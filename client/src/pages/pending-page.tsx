@@ -1,4 +1,6 @@
 import { ServerCog } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function PendingPage() {
   return (
@@ -10,6 +12,11 @@ export default function PendingPage() {
           Your account is currently pending administrator approval. You'll be able to access the
           dashboard once your account has been approved. Please check back later.
         </p>
+        <Link href="/auth">
+          <Button variant="outline" className="mt-4">
+            Back to Login
+          </Button>
+        </Link>
       </div>
     </div>
   );
