@@ -28,6 +28,8 @@ export function SettingsDialog() {
       siteTitle: "",
       fontFamily: "",
       loginDescription: "",
+      onlineColor: "#22c55e",
+      offlineColor: "#ef4444",
     }
   });
 
@@ -39,6 +41,8 @@ export function SettingsDialog() {
         siteTitle: settings.siteTitle || "",
         fontFamily: settings.fontFamily || "",
         loginDescription: settings.loginDescription || "",
+        onlineColor: settings.onlineColor || "#22c55e",
+        offlineColor: settings.offlineColor || "#ef4444",
       });
     }
   }, [settings, form]);
@@ -163,6 +167,36 @@ export function SettingsDialog() {
                       value={field.value || ""} 
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="onlineColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Online Status Color</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input type="color" {...field} value={field.value || "#22c55e"} className="w-16 p-1 h-9" />
+                    </FormControl>
+                    <Input {...field} value={field.value || "#22c55e"} className="flex-1" />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="offlineColor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Offline Status Color</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input type="color" {...field} value={field.value || "#ef4444"} className="w-16 p-1 h-9" />
+                    </FormControl>
+                    <Input {...field} value={field.value || "#ef4444"} className="flex-1" />
+                  </div>
                 </FormItem>
               )}
             />

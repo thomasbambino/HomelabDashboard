@@ -8,6 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { EditGameServerDialog } from "./edit-game-server-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+
+interface Settings {
+  onlineColor?: string;
+  offlineColor?: string;
+}
 
 interface GameServerCardProps {
   server: GameServer;
@@ -19,6 +25,10 @@ export function GameServerCard({ server }: GameServerCardProps) {
   const connectionString = `${server.host}:${server.port}`;
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(connectionString);
@@ -53,7 +63,15 @@ export function GameServerCard({ server }: GameServerCardProps) {
           </CardTitle>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={server.status ? "default" : "destructive"}>
+          <Badge
+            variant="default"
+            style={{
+              backgroundColor: server.status ?
+                settings?.onlineColor || "#22c55e" :
+                settings?.offlineColor || "#ef4444",
+              color: "white"
+            }}
+          >
             {server.status ? "Online" : "Offline"}
           </Badge>
           {isAdmin && (
@@ -70,8 +88,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
               <span>Players</span>
               <span>{server.playerCount ?? 0}/{server.maxPlayers ?? 0}</span>
             </div>
-            <Progress 
-              value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100} 
+            <Progress
+              value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
               className="h-2"
             />
           </div>

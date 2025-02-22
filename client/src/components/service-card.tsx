@@ -7,7 +7,7 @@ import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   AlertDialog,
@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Settings as SettingsType } from "@/types/settings";
+
 
 interface ServiceCardProps {
   service: Service;
@@ -30,6 +32,10 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
+
+  const { data: settings } = useQuery<SettingsType>({
+    queryKey: ["/api/settings"],
+  });
 
   const deleteServiceMutation = useMutation({
     mutationFn: async () => {
@@ -60,7 +66,15 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={service.status ? "default" : "destructive"}>
+          <Badge
+            variant="default"
+            style={{
+              backgroundColor: service.status ?
+                settings?.onlineColor || "#22c55e" :
+                settings?.offlineColor || "#ef4444",
+              color: "white"
+            }}
+          >
             {service.status ? "Online" : "Offline"}
           </Badge>
           {isAdmin && (
