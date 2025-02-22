@@ -1,4 +1,4 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, users, services, gameServers } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, users, services, gameServers } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -15,6 +15,8 @@ export interface IStorage {
   getAllGameServers(): Promise<GameServer[]>;
   createService(service: InsertService): Promise<Service>;
   createGameServer(server: InsertGameServer): Promise<GameServer>;
+  updateService(service: UpdateService): Promise<Service | undefined>;
+  updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined>;
   sessionStore: session.Store;
 }
 
@@ -59,6 +61,24 @@ export class DatabaseStorage implements IStorage {
   async createGameServer(server: InsertGameServer): Promise<GameServer> {
     const [newServer] = await db.insert(gameServers).values(server).returning();
     return newServer;
+  }
+
+  async updateService(service: UpdateService): Promise<Service | undefined> {
+    const [updatedService] = await db
+      .update(services)
+      .set(service)
+      .where(eq(services.id, service.id))
+      .returning();
+    return updatedService;
+  }
+
+  async updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined> {
+    const [updatedServer] = await db
+      .update(gameServers)
+      .set(server)
+      .where(eq(gameServers.id, server.id))
+      .returning();
+    return updatedServer;
   }
 }
 
