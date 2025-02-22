@@ -1,0 +1,38 @@
+<body style="background-image: url(https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/526870/library_hero.jpg);" class="analytics-true" data-extension-installed="2.4.6">
+    <div class="ServerInfo">
+        <div class="InfoHeader">
+            <img class="BannerImage" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/526870/header.jpg">
+            <div class="HeaderLines">
+                <h1 class="ServerName">Satisfactory (Hermes)</h1>
+                <h2 class="ServerDescription"></h2>
+            </div>
+            <div class="InfoStatus" style="background-color: #159922">
+                Ready <div class="mat-icon">play_circle</div>
+            </div>
+        </div>
+        <div class="InfoBody">
+            <!--<h1 class="ServerName">Server Name</h1>
+            <h2 class="ServerDescription">Server Description</h2>-->
+            <p class="d-none"></p>
+            <div class="ServerInfoLines">
+                <div class="Line "><div class="mat-icon">public</div> <a href="https://cubecoders.com/AMP">Stylus</a></div>
+                <div class="Line"><div class="mat-icon">location_on</div> California</div>
+                <div class="Line"><div class="mat-icon">settings_ethernet</div> <span id="endpointText">game.stylus.services:7769</span> <button id="copyButton" label="Copy to Clipboard"><span class="mat-icon">content_copy</span></button></div>
+                <div class="Line"><div class="mat-icon">group</div> 0 active users</div>
+                <!--<div class="Line"><div class="mat-icon">update</div> Running for 0:00:00:00</div>-->
+                <!--<div class="Line"><div class="mat-icon">event</div> No upcoming events</div>-->
+            </div>
+        </div>
+        <hr>
+        <div class="InfoActions">
+            <!-- Join Server, Join Discord and Share buttons -->
+            <!--<button class="JoinServer"><div class="mat-icon">open_in_new</div> Join Server</button>-->
+            <a class="button JoinDiscord " href="https://discord.gg/u6jEpnTV" target="_blank"><div class="mat-icon">forum</div> Join Discord</a>
+            <a class="button Connect " href="game.stylus.services:7769" target="_blank"><div class="mat-icon">settings_ethernet</div> Connect</a>
+            <button class="Share" id="shareButton"><div class="mat-icon">share</div> Share</button>
+        </div>
+    </div>
+    <img id="AMPLogo" src="/Images/FullLogo256.webp" alt="AMP Logo">
+<script defer="" src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;rayId&quot;:&quot;91620f083ed278de&quot;,&quot;version&quot;:&quot;2025.1.0&quot;,&quot;r&quot;:1,&quot;token&quot;:&quot;49acc2ccc14941e78b4a762f6ec04c11&quot;,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}}}" crossorigin="anonymous"></script>
+
+</body>
