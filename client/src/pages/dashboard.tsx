@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Service, GameServer } from "@shared/schema";
 import { ServiceCard } from "@/components/service-card";
 import { GameServerCard } from "@/components/game-server-card";
+import { AddServiceDialog } from "@/components/add-service-dialog";
+import { AddGameServerDialog } from "@/components/add-game-server-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, ServerCog } from "lucide-react";
@@ -37,9 +39,7 @@ export default function Dashboard() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Game Servers</h2>
-              <Button variant="outline" size="sm">
-                Add Server
-              </Button>
+              <AddGameServerDialog />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {serversLoading ? (
@@ -57,9 +57,7 @@ export default function Dashboard() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Services</h2>
-              <Button variant="outline" size="sm">
-                Add Service
-              </Button>
+              <AddServiceDialog />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {servicesLoading ? (
