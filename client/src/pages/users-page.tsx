@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { Users, Settings as SettingsIcon } from "lucide-react";
+import { Redirect, Link } from "wouter";
+import { Users, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -72,9 +72,17 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">User Management</h1>
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Users className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">User Management</h1>
+          </div>
+          <Link href="/">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
         </header>
 
         <Card>
@@ -118,7 +126,7 @@ export default function UsersPage() {
                         <div className="flex items-center gap-2">
                           <Switch
                             checked={u.approved}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               updateUserMutation.mutate({ id: u.id, approved: checked })
                             }
                           />
@@ -126,7 +134,7 @@ export default function UsersPage() {
                         </div>
                         <Select
                           value={u.role}
-                          onValueChange={(value) => 
+                          onValueChange={(value) =>
                             updateUserMutation.mutate({ id: u.id, role: value })
                           }
                         >
