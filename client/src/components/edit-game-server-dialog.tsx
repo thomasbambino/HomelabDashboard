@@ -119,7 +119,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                       type="number"
                       min="5"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
                     />
                   </FormControl>
                 </FormItem>

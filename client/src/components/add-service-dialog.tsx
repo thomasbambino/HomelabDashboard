@@ -15,6 +15,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import * as z from 'zod';
 
 export function AddServiceDialog() {
   const { toast } = useToast();
@@ -31,7 +32,7 @@ export function AddServiceDialog() {
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: z.infer<typeof insertServiceSchema>) => {
       const res = await apiRequest("POST", "/api/services", data);
       return res.json();
     },

@@ -1,11 +1,20 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const roleEnum = pgEnum('role', ['admin', 'user', 'pending']);
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  defaultRole: roleEnum("defaultRole").notNull().default('pending'),
+});
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: roleEnum("role").notNull().default('pending'),
+  approved: boolean("approved").notNull().default(false),
 });
 
 export const services = pgTable("services", {
@@ -37,6 +46,7 @@ export const gameServers = pgTable("gameServers", {
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
+export const insertSettingsSchema = createInsertSchema(settings);
 
 // Create update schemas that make all fields optional except id
 export const updateServiceSchema = insertServiceSchema.extend({
@@ -47,11 +57,18 @@ export const updateGameServerSchema = insertGameServerSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+export const updateUserSchema = insertUserSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 export type UpdateGameServer = z.infer<typeof updateGameServerSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;
+export type Settings = typeof settings.$inferSelect;

@@ -84,7 +84,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
             {server.info && typeof server.info === 'object' && 'version' in server.info && (
               <p className="text-xs text-muted-foreground">
-                Version: {server.info.version}
+                Version: {(server.info as { version: string }).version}
               </p>
             )}
             <p className="text-xs text-muted-foreground">

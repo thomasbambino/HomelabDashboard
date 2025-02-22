@@ -22,6 +22,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import * as z from 'zod';
 
 const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
 
@@ -42,7 +43,7 @@ export function AddGameServerDialog() {
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: z.infer<typeof insertGameServerSchema>) => {
       const res = await apiRequest("POST", "/api/game-servers", data);
       return res.json();
     },

@@ -1,4 +1,4 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, users, services, gameServers } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -11,12 +11,16 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUser(user: UpdateUser): Promise<User | undefined>;
   getAllServices(): Promise<Service[]>;
   getAllGameServers(): Promise<GameServer[]>;
   createService(service: InsertService): Promise<Service>;
   createGameServer(server: InsertGameServer): Promise<GameServer>;
   updateService(service: UpdateService): Promise<Service | undefined>;
   updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined>;
+  getSettings(): Promise<Settings>;
+  updateSettings(settings: InsertSettings): Promise<Settings>;
   sessionStore: session.Store;
 }
 
@@ -41,8 +45,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [settings] = await db.select().from(settingsTable);
+    const [user] = await db.insert(users).values({
+      ...insertUser,
+      role: settings?.defaultRole ?? 'pending',
+      approved: settings?.defaultRole === 'pending' ? false : true,
+    }).returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUser(user: UpdateUser): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(user)
+      .where(eq(users.id, user.id))
+      .returning();
+    return updatedUser;
   }
 
   async getAllServices(): Promise<Service[]> {
@@ -79,6 +101,29 @@ export class DatabaseStorage implements IStorage {
       .where(eq(gameServers.id, server.id))
       .returning();
     return updatedServer;
+  }
+
+  async getSettings(): Promise<Settings> {
+    const [existingSettings] = await db.select().from(settingsTable);
+    if (!existingSettings) {
+      const [newSettings] = await db.insert(settingsTable).values({}).returning();
+      return newSettings;
+    }
+    return existingSettings;
+  }
+
+  async updateSettings(settingsData: InsertSettings): Promise<Settings> {
+    const [existingSettings] = await db.select().from(settingsTable);
+    if (!existingSettings) {
+      const [newSettings] = await db.insert(settingsTable).values(settingsData).returning();
+      return newSettings;
+    }
+    const [updatedSettings] = await db
+      .update(settingsTable)
+      .set(settingsData)
+      .where(eq(settingsTable.id, existingSettings.id))
+      .returning();
+    return updatedSettings;
   }
 }
 

@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -26,6 +26,20 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Middleware to check if user is admin
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  if (req.user.role !== 'admin') return res.sendStatus(403);
+  next();
+}
+
+// Middleware to check if user is approved
+export function isApproved(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  if (!req.user.approved) return res.sendStatus(403);
+  next();
 }
 
 export function setupAuth(app: Express) {
@@ -89,5 +103,31 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+
+  // Admin routes for user management
+  app.get("/api/users", isAdmin, async (req, res) => {
+    const users = await storage.getAllUsers();
+    res.json(users);
+  });
+
+  app.patch("/api/users/:id", isAdmin, async (req, res) => {
+    const user = await storage.updateUser({
+      id: parseInt(req.params.id),
+      ...req.body,
+    });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  });
+
+  // Settings routes
+  app.get("/api/settings", isAdmin, async (req, res) => {
+    const settings = await storage.getSettings();
+    res.json(settings);
+  });
+
+  app.patch("/api/settings", isAdmin, async (req, res) => {
+    const settings = await storage.updateSettings(req.body);
+    res.json(settings);
   });
 }

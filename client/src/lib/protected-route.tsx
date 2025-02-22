@@ -29,5 +29,13 @@ export function ProtectedRoute({
     );
   }
 
-  return <Component />
+  if (!user.approved) {
+    return (
+      <Route path={path}>
+        <Redirect to="/pending" />
+      </Route>
+    );
+  }
+
+  return <Component />;
 }

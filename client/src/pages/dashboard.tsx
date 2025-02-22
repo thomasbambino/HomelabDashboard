@@ -6,10 +6,11 @@ import { AddServiceDialog } from "@/components/add-service-dialog";
 import { AddGameServerDialog } from "@/components/add-game-server-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ServerCog } from "lucide-react";
+import { LogOut, ServerCog, Users } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Dashboard() {
-  const { logoutMutation } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -21,6 +22,8 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -29,17 +32,27 @@ export default function Dashboard() {
             <ServerCog className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold">HomeLab Monitor</h1>
           </div>
-          <Button variant="outline" onClick={() => logoutMutation.mutate()}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Link href="/users">
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Users
+                </Button>
+              </Link>
+            )}
+            <Button variant="outline" onClick={() => logoutMutation.mutate()}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </header>
 
         <div className="grid gap-8">
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Game Servers</h2>
-              <AddGameServerDialog />
+              {isAdmin && <AddGameServerDialog />}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {serversLoading ? (
@@ -57,7 +70,7 @@ export default function Dashboard() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Services</h2>
-              <AddServiceDialog />
+              {isAdmin && <AddServiceDialog />}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {servicesLoading ? (
