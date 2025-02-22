@@ -4,6 +4,7 @@ import { ServiceCard } from "@/components/service-card";
 import { GameServerCard } from "@/components/game-server-card";
 import { AddServiceDialog } from "@/components/add-service-dialog";
 import { AddGameServerDialog } from "@/components/add-game-server-dialog";
+import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, ServerCog, Users } from "lucide-react";
@@ -34,12 +35,15 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && (
-              <Link href="/users">
-                <Button variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Users
-                </Button>
-              </Link>
+              <>
+                <SettingsDialog />
+                <Link href="/users">
+                  <Button variant="outline">
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Users
+                  </Button>
+                </Link>
+              </>
             )}
             <Button variant="outline" onClick={() => logoutMutation.mutate()}>
               <LogOut className="h-4 w-4 mr-2" />
