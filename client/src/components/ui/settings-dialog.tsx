@@ -11,6 +11,7 @@ import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -30,6 +31,9 @@ export function SettingsDialog() {
       loginDescription: "",
       onlineColor: "#22c55e",
       offlineColor: "#ef4444",
+      showRefreshInterval: true,
+      showLastChecked: true,
+      showServiceUrl: true,
     }
   });
 
@@ -43,6 +47,9 @@ export function SettingsDialog() {
         loginDescription: settings.loginDescription || "",
         onlineColor: settings.onlineColor || "#22c55e",
         offlineColor: settings.offlineColor || "#ef4444",
+        showRefreshInterval: settings.showRefreshInterval ?? true,
+        showLastChecked: settings.showLastChecked ?? true,
+        showServiceUrl: settings.showServiceUrl ?? true,
       });
     }
   }, [settings, form]);
@@ -161,10 +168,10 @@ export function SettingsDialog() {
                 <FormItem>
                   <FormLabel>Login Page Description</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Monitor your services and game servers..." 
-                      {...field} 
-                      value={field.value || ""} 
+                    <Input
+                      placeholder="Monitor your services and game servers..."
+                      {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                 </FormItem>
@@ -200,6 +207,53 @@ export function SettingsDialog() {
                 </FormItem>
               )}
             />
+            <div className="space-y-4">
+              <Label>Service Card Elements</Label>
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="showRefreshInterval"
+                  render={({ field }) => (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval</Label>
+                      <Switch
+                        id="showRefreshInterval"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="showLastChecked"
+                  render={({ field }) => (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time</Label>
+                      <Switch
+                        id="showLastChecked"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="showServiceUrl"
+                  render={({ field }) => (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL</Label>
+                      <Switch
+                        id="showServiceUrl"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Logo</Label>
               <div className="flex items-center gap-4">
@@ -227,9 +281,9 @@ export function SettingsDialog() {
                 </div>
               )}
             </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={updateSettingsMutation.isPending || isUploading}
             >
               {updateSettingsMutation.isPending && (

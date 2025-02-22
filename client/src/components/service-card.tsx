@@ -111,21 +111,27 @@ export function ServiceCard({ service }: ServiceCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <a
-          href={service.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-        >
-          <ExternalLink className="h-4 w-4" />
-          {service.url}
-        </a>
-        <p className="text-xs text-muted-foreground mt-2">
-          Last checked: {new Date(service.lastChecked).toLocaleString()}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Refresh interval: {service.refreshInterval}s
-        </p>
+        {settings?.showServiceUrl && (
+          <a
+            href={service.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+          >
+            <ExternalLink className="h-4 w-4" />
+            {service.url}
+          </a>
+        )}
+        {settings?.showLastChecked && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Last checked: {new Date(service.lastChecked).toLocaleString()}
+          </p>
+        )}
+        {settings?.showRefreshInterval && (
+          <p className="text-xs text-muted-foreground">
+            Refresh interval: {service.refreshInterval}s
+          </p>
+        )}
       </CardContent>
       {isAdmin && (
         <EditServiceDialog

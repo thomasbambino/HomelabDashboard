@@ -12,8 +12,12 @@ export const settings = pgTable("settings", {
   logoUrl: text("logoUrl"),
   logoUrlLarge: text("logoUrlLarge"),
   loginDescription: text("loginDescription").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
-  onlineColor: text("onlineColor").default("#22c55e"), // Default green color
-  offlineColor: text("offlineColor").default("#ef4444"), // Default red color
+  onlineColor: text("onlineColor").default("#22c55e"),
+  offlineColor: text("offlineColor").default("#ef4444"),
+  // Add visibility settings
+  showRefreshInterval: boolean("showRefreshInterval").default(true),
+  showLastChecked: boolean("showLastChecked").default(true),
+  showServiceUrl: boolean("showServiceUrl").default(true),
 });
 
 export const users = pgTable("users", {
