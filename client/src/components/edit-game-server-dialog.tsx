@@ -13,6 +13,7 @@ import { GameServer, updateGameServerSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface EditGameServerDialogProps {
   server: GameServer;
@@ -80,9 +81,13 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
               name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon (emoji)</FormLabel>
+                  <FormLabel>Icon Image</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="🎮" />
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      onClear={() => field.onChange("")}
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -92,9 +97,13 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
               name="background"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Background Image URL</FormLabel>
+                  <FormLabel>Background Image</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="https://example.com/bg.jpg" />
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      onClear={() => field.onChange("")}
+                    />
                   </FormControl>
                 </FormItem>
               )}
