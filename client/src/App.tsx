@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
+import { ThemeProvider } from "@/components/theme-provider";
 
 function Router() {
   return (
@@ -24,12 +25,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

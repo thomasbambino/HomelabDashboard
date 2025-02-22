@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, ServerCog, Users } from "lucide-react";
 import { Link } from "wouter";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -46,6 +47,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">{settings?.siteTitle || "Homelab Dashboard"}</h1>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {isAdmin && (
               <>
                 <SettingsDialog />
