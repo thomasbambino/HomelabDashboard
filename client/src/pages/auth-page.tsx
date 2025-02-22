@@ -124,11 +124,18 @@ export default function AuthPage() {
       </div>
 
       <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/5">
-        <ServerCog className="h-20 w-20 mb-4 text-primary" />
+        {settings?.logoUrl ? (
+          <img
+            src={settings.logoUrl}
+            alt="Site Logo"
+            className="h-20 w-20 mb-4 object-contain"
+          />
+        ) : (
+          <ServerCog className="h-20 w-20 mb-4 text-primary" />
+        )}
         <h2 className="text-2xl font-bold mb-2">{settings?.siteTitle || "Homelab Dashboard"}</h2>
         <p className="text-center text-muted-foreground max-w-md">
-          Monitor your services and game servers in real-time with our comprehensive dashboard.
-          Track status, player counts, and get quick access to all your homelab resources.
+          {settings?.loginDescription || "Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."}
         </p>
       </div>
     </div>

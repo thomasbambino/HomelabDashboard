@@ -27,6 +27,7 @@ export function SettingsDialog() {
       id: 1,
       siteTitle: "",
       fontFamily: "",
+      loginDescription: "",
     }
   });
 
@@ -37,6 +38,7 @@ export function SettingsDialog() {
         id: settings.id,
         siteTitle: settings.siteTitle || "",
         fontFamily: settings.fontFamily || "",
+        loginDescription: settings.loginDescription || "",
       });
     }
   }, [settings, form]);
@@ -144,6 +146,22 @@ export function SettingsDialog() {
                   <FormLabel>Font Family</FormLabel>
                   <FormControl>
                     <Input placeholder="Inter" {...field} value={field.value || ""} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="loginDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Login Page Description</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Monitor your services and game servers..." 
+                      {...field} 
+                      value={field.value || ""} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
