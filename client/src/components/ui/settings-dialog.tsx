@@ -5,11 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useEffect } from "react";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -20,32 +21,36 @@ export function SettingsDialog() {
 
   const form = useForm({
     resolver: zodResolver(updateSettingsSchema),
-    defaultValues: settings,
+    defaultValues: {
+      id: 1,
+      siteTitle: "",
+      fontFamily: "",
+    }
   });
+
+  // Update form when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      form.reset({
+        id: settings.id,
+        siteTitle: settings.siteTitle || "",
+        fontFamily: settings.fontFamily || "",
+      });
+    }
+  }, [settings, form]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Partial<Settings>) => {
-      const formData = new FormData();
-      
-      // Handle file upload if present
+      // Handle file upload separately if present
       if (data.logoFile instanceof File) {
+        const formData = new FormData();
         formData.append('logo', data.logoFile);
+        await apiRequest("POST", "/api/settings/logo", formData);
         delete data.logoFile;
       }
-      
-      // Add other fields to formData
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
-        }
-      });
 
-      const res = await apiRequest("PATCH", "/api/settings", formData, {
-        headers: {
-          // Don't set Content-Type, let the browser set it with boundary
-          Accept: "application/json",
-        },
-      });
+      // Update other settings as JSON
+      const res = await apiRequest("PATCH", "/api/settings", data);
       return res.json();
     },
     onSuccess: () => {
@@ -100,7 +105,7 @@ export function SettingsDialog() {
                 <FormItem>
                   <FormLabel>Site Title</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="Homelab Dashboard" {...field} value={field.value || ""} />
                   </FormControl>
                 </FormItem>
               )}
@@ -112,7 +117,7 @@ export function SettingsDialog() {
                 <FormItem>
                   <FormLabel>Font Family</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Inter" />
+                    <Input placeholder="Inter" {...field} value={field.value || ""} />
                   </FormControl>
                 </FormItem>
               )}
@@ -126,7 +131,14 @@ export function SettingsDialog() {
                 className="cursor-pointer"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={updateSettingsMutation.isPending}
+            >
+              {updateSettingsMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Save Changes
             </Button>
           </form>
