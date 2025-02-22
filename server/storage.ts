@@ -1,8 +1,11 @@
-import { Service, GameServer, User, InsertUser } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, users, services, gameServers } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -13,68 +16,38 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private services: Map<number, Service>;
-  private gameServers: Map<number, GameServer>;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  currentId: number;
 
   constructor() {
-    this.users = new Map();
-    this.services = new Map();
-    this.gameServers = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
-    });
-
-    // Add some sample data
-    this.services.set(1, {
-      id: 1,
-      name: "Plex Media Server",
-      url: "http://plex.local:32400",
-      status: true,
-      lastChecked: new Date().toISOString(),
-    });
-
-    this.gameServers.set(1, {
-      id: 1,
-      name: "Minecraft Server",
-      host: "mc.local",
-      port: 25565,
-      type: "minecraft",
-      status: true,
-      playerCount: 5,
-      maxPlayers: 20,
-      info: { version: "1.19.2" },
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getAllServices(): Promise<Service[]> {
-    return Array.from(this.services.values());
+    return await db.select().from(services);
   }
 
   async getAllGameServers(): Promise<GameServer[]> {
-    return Array.from(this.gameServers.values());
+    return await db.select().from(gameServers);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
