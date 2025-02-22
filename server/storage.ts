@@ -20,7 +20,7 @@ export interface IStorage {
   updateService(service: UpdateService): Promise<Service | undefined>;
   updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined>;
   getSettings(): Promise<Settings>;
-  updateSettings(settings: InsertSettings): Promise<Settings>;
+  updateSettings(settings: Partial<Settings>): Promise<Settings>;
   sessionStore: session.Store;
 }
 
@@ -112,7 +112,7 @@ export class DatabaseStorage implements IStorage {
     return existingSettings;
   }
 
-  async updateSettings(settingsData: InsertSettings): Promise<Settings> {
+  async updateSettings(settingsData: Partial<Settings>): Promise<Settings> {
     const [existingSettings] = await db.select().from(settingsTable);
     if (!existingSettings) {
       const [newSettings] = await db.insert(settingsTable).values(settingsData).returning();

@@ -7,6 +7,9 @@ export const roleEnum = pgEnum('role', ['admin', 'user', 'pending']);
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   defaultRole: roleEnum("defaultRole").notNull().default('pending'),
+  siteTitle: text("siteTitle").default("Homelab Dashboard"),
+  fontFamily: text("fontFamily").default("Inter"),
+  logoUrl: text("logoUrl"),
 });
 
 export const users = pgTable("users", {
@@ -61,6 +64,10 @@ export const updateUserSchema = insertUserSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+export const updateSettingsSchema = insertSettingsSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
@@ -68,6 +75,7 @@ export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 export type UpdateGameServer = z.infer<typeof updateGameServerSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
 export type User = typeof users.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;

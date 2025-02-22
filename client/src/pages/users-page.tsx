@@ -10,6 +10,7 @@ import { Redirect, Link } from "wouter";
 import { Users, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { SettingsDialog } from "@/components/ui/settings-dialog";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -77,12 +78,15 @@ export default function UsersPage() {
             <Users className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold">User Management</h1>
           </div>
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <SettingsDialog />
+            <Link href="/">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
         </header>
 
         <Card>
