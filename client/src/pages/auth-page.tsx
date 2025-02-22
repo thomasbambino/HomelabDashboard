@@ -9,10 +9,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { Redirect } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Settings } from "@shared/schema";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
+
   const loginForm = useForm({
     resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
   });
@@ -30,7 +36,7 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome to HomeLab Monitor</CardTitle>
+            <CardTitle>Welcome to {settings?.siteTitle || "Homelab Dashboard"}</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login">
@@ -38,7 +44,7 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}>
@@ -116,10 +122,10 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/5">
         <ServerCog className="h-20 w-20 mb-4 text-primary" />
-        <h2 className="text-2xl font-bold mb-2">HomeLab Monitoring Dashboard</h2>
+        <h2 className="text-2xl font-bold mb-2">{settings?.siteTitle || "Homelab Dashboard"}</h2>
         <p className="text-center text-muted-foreground max-w-md">
           Monitor your services and game servers in real-time with our comprehensive dashboard.
           Track status, player counts, and get quick access to all your homelab resources.

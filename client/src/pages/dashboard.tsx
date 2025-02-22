@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Service, GameServer } from "@shared/schema";
+import { Service, GameServer, Settings } from "@shared/schema";
 import { ServiceCard } from "@/components/service-card";
 import { GameServerCard } from "@/components/game-server-card";
 import { AddServiceDialog } from "@/components/add-service-dialog";
@@ -12,6 +12,10 @@ import { Link } from "wouter";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -31,7 +35,7 @@ export default function Dashboard() {
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <ServerCog className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">HomeLab Monitor</h1>
+            <h1 className="text-3xl font-bold">{settings?.siteTitle || "Homelab Dashboard"}</h1>
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && (
