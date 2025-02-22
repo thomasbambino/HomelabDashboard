@@ -36,7 +36,7 @@ export async function startServiceChecker() {
   // Check services every 30 seconds
   setInterval(async () => {
     try {
-      const allServices = await storage.getAllServices();
+      const allServices = await db.select().from(services);
       await Promise.all(allServices.map(updateServiceStatus));
     } catch (error) {
       console.error('Error checking services:', error);
