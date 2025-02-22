@@ -10,6 +10,7 @@ export const settings = pgTable("settings", {
   siteTitle: text("siteTitle").default("Homelab Dashboard"),
   fontFamily: text("fontFamily").default("Inter"),
   logoUrl: text("logoUrl"),
+  logoUrlLarge: text("logoUrlLarge"),
   loginDescription: text("loginDescription").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
 });
 

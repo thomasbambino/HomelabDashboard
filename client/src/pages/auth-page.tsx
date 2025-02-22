@@ -124,9 +124,9 @@ export default function AuthPage() {
       </div>
 
       <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/5">
-        {settings?.logoUrl ? (
+        {settings?.logoUrlLarge ? (
           <img
-            src={settings.logoUrl}
+            src={settings.logoUrlLarge}
             alt="Site Logo"
             className="h-20 w-20 mb-4 object-contain"
           />

@@ -60,14 +60,34 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType
   });
 }
 
-async function resizeAndSaveImage(inputBuffer: Buffer, outputPath: string): Promise<void> {
+async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string): Promise<{ small: string; large: string }> {
+  const smallFilename = `small_${filename}`;
+  const largeFilename = `large_${filename}`;
+  const smallPath = path.join(basePath, smallFilename);
+  const largePath = path.join(basePath, largeFilename);
+
+  // Create small version (32x32) for header
   await sharp(inputBuffer)
-    .resize(32, 32, { // Fixed size for consistent UI
+    .resize(32, 32, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
-    .png() // Convert to PNG for transparency support
-    .toFile(outputPath);
+    .png()
+    .toFile(smallPath);
+
+  // Create large version (80x80) for login page
+  await sharp(inputBuffer)
+    .resize(80, 80, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png()
+    .toFile(largePath);
+
+  return {
+    small: `/uploads/${smallFilename}`,
+    large: `/uploads/${largeFilename}`
+  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -88,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle direct file upload
         inputBuffer = fs.readFileSync(req.file.path);
         filename = req.file.filename;
-        // Delete the original uploaded file since we'll create a resized version
+        // Delete the original uploaded file since we'll create resized versions
         fs.unlinkSync(req.file.path);
       } else if (req.body.imageUrl) {
         // Handle URL-based upload
@@ -104,15 +124,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      const outputPath = path.join(uploadDir, filename);
-      await resizeAndSaveImage(inputBuffer, outputPath);
+      const { small, large } = await resizeAndSaveImage(inputBuffer, uploadDir, filename);
 
-      const fileUrl = `/uploads/${filename}`;
+      // Update settings with both logo URLs
+      await storage.updateSettings({
+        logoUrl: small,
+        logoUrlLarge: large
+      });
 
-      // Update settings with the new logo URL
-      await storage.updateSettings({ logoUrl: fileUrl });
-
-      res.json({ url: fileUrl });
+      res.json({ url: small, largeUrl: large });
     } catch (error) {
       res.status(400).json({ 
         message: error instanceof Error ? error.message : "Upload failed" 
