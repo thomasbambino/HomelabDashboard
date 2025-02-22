@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 export function SettingsDialog() {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -51,6 +52,7 @@ export function SettingsDialog() {
         title: "Settings updated",
         description: "UI settings have been updated successfully",
       });
+      setOpen(false); // Close the dialog after successful update
     },
     onError: (error: Error) => {
       toast({
@@ -109,7 +111,7 @@ export function SettingsDialog() {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <SettingsIcon className="h-4 w-4 mr-2" />
