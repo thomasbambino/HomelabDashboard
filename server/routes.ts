@@ -179,6 +179,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/services/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const id = parseInt(req.params.id);
+      const service = await storage.deleteService(id);
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      res.json(service);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
   app.get("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const servers = await storage.getAllGameServers();

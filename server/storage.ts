@@ -19,6 +19,7 @@ export interface IStorage {
   createGameServer(server: InsertGameServer): Promise<GameServer>;
   updateService(service: UpdateService): Promise<Service | undefined>;
   updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined>;
+  deleteService(id: number): Promise<Service | undefined>;
   getSettings(): Promise<Settings>;
   updateSettings(settings: Partial<Settings>): Promise<Settings>;
   sessionStore: session.Store;
@@ -101,6 +102,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(gameServers.id, server.id))
       .returning();
     return updatedServer;
+  }
+
+  async deleteService(id: number): Promise<Service | undefined> {
+    const [deletedService] = await db
+      .delete(services)
+      .where(eq(services.id, id))
+      .returning();
+    return deletedService;
   }
 
   async getSettings(): Promise<Settings> {
