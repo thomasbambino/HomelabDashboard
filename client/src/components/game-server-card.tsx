@@ -7,6 +7,7 @@ import { Copy, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditGameServerDialog } from "./edit-game-server-dialog";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface GameServerCardProps {
   server: GameServer;
@@ -16,6 +17,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
   const [showEdit, setShowEdit] = useState(false);
   const connectionString = `${server.host}:${server.port}`;
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(connectionString);
@@ -53,9 +56,11 @@ export function GameServerCard({ server }: GameServerCardProps) {
           <Badge variant={server.status ? "default" : "destructive"}>
             {server.status ? "Online" : "Offline"}
           </Badge>
-          <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
-            <Settings className="h-4 w-4" />
-          </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -93,11 +98,13 @@ export function GameServerCard({ server }: GameServerCardProps) {
           </div>
         </div>
       </CardContent>
-      <EditGameServerDialog
-        server={server}
-        open={showEdit}
-        onOpenChange={setShowEdit}
-      />
+      {isAdmin && (
+        <EditGameServerDialog
+          server={server}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+        />
+      )}
     </Card>
   );
 }

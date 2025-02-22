@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Settings } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ServiceCardProps {
   service: Service;
@@ -12,6 +13,8 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Card className={`relative ${service.background ? `bg-[url('${service.background}')] bg-cover` : ''}`}>
@@ -24,9 +27,11 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <Badge variant={service.status ? "default" : "destructive"}>
             {service.status ? "Online" : "Offline"}
           </Badge>
-          <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
-            <Settings className="h-4 w-4" />
-          </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -46,11 +51,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
           Refresh interval: {service.refreshInterval}s
         </p>
       </CardContent>
-      <EditServiceDialog
-        service={service}
-        open={showEdit}
-        onOpenChange={setShowEdit}
-      />
+      {isAdmin && (
+        <EditServiceDialog
+          service={service}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+        />
+      )}
     </Card>
   );
 }
