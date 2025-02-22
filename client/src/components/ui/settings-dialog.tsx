@@ -5,15 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings as SettingsIcon, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Loader2, Image as ImageIcon } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function SettingsDialog() {
   const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -41,15 +42,6 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Partial<Settings>) => {
-      // Handle file upload separately if present
-      if (data.logoFile instanceof File) {
-        const formData = new FormData();
-        formData.append('logo', data.logoFile);
-        await apiRequest("POST", "/api/settings/logo", formData);
-        delete data.logoFile;
-      }
-
-      // Update other settings as JSON
       const res = await apiRequest("PATCH", "/api/settings", data);
       return res.json();
     },
@@ -69,18 +61,50 @@ export function SettingsDialog() {
     },
   });
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== "image/png" && file.type !== "image/jpeg") {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PNG or JPEG image",
-          variant: "destructive",
-        });
-        return;
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PNG or JPEG image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
       }
-      form.setValue("logoFile", file);
+
+      const data = await response.json();
+
+      // Refresh settings to get the new logo URL
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+
+      toast({
+        title: "Logo updated",
+        description: "The logo has been updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload logo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -124,17 +148,35 @@ export function SettingsDialog() {
             />
             <div className="space-y-2">
               <Label>Logo</Label>
-              <Input
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={handleLogoChange}
-                className="cursor-pointer"
-              />
+              <div className="flex items-center gap-4">
+                {settings?.logoUrl && (
+                  <img
+                    src={settings.logoUrl}
+                    alt="Site Logo"
+                    className="w-8 h-8 object-contain"
+                  />
+                )}
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleLogoUpload}
+                    className="cursor-pointer"
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+              {isUploading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading...
+                </div>
+              )}
             </div>
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={updateSettingsMutation.isPending}
+              disabled={updateSettingsMutation.isPending || isUploading}
             >
               {updateSettingsMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

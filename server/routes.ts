@@ -10,6 +10,7 @@ import fs from "fs";
 import express from 'express';
 import https from 'https';
 import http from 'http';
+import sharp from 'sharp';
 
 // Configure multer for image upload
 const upload = multer({
@@ -59,6 +60,16 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType
   });
 }
 
+async function resizeAndSaveImage(inputBuffer: Buffer, outputPath: string): Promise<void> {
+  await sharp(inputBuffer)
+    .resize(32, 32, { // Fixed size for consistent UI
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png() // Convert to PNG for transparency support
+    .toFile(outputPath);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
@@ -71,27 +82,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       let filename: string;
+      let inputBuffer: Buffer;
 
       if (req.file) {
         // Handle direct file upload
+        inputBuffer = fs.readFileSync(req.file.path);
         filename = req.file.filename;
+        // Delete the original uploaded file since we'll create a resized version
+        fs.unlinkSync(req.file.path);
       } else if (req.body.imageUrl) {
         // Handle URL-based upload
-        const { buffer, contentType } = await downloadImage(req.body.imageUrl);
-        const ext = contentType === 'image/png' ? '.png' : '.jpg';
-        filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-
-        const uploadDir = path.join(process.cwd(), 'uploads');
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        fs.writeFileSync(path.join(uploadDir, filename), buffer);
+        const { buffer } = await downloadImage(req.body.imageUrl);
+        inputBuffer = buffer;
+        filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
       } else {
         return res.status(400).json({ message: "No file or URL provided" });
       }
 
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const outputPath = path.join(uploadDir, filename);
+      await resizeAndSaveImage(inputBuffer, outputPath);
+
       const fileUrl = `/uploads/${filename}`;
+
+      // Update settings with the new logo URL
+      await storage.updateSettings({ logoUrl: fileUrl });
+
       res.json({ url: fileUrl });
     } catch (error) {
       res.status(400).json({ 
