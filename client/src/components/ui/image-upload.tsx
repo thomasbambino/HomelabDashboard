@@ -66,7 +66,7 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
   return (
     <div className={className}>
       {value ? (
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+        <div className="relative h-20 w-full overflow-hidden rounded-lg border">
           <img
             src={value}
             alt="Uploaded image"
@@ -75,19 +75,17 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
           <Button
             variant="destructive"
             size="icon"
-            className="absolute right-2 top-2"
+            className="absolute right-1 top-1 h-6 w-6"
             onClick={onClear}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </Button>
         </div>
       ) : (
-        <label className="flex aspect-video w-full cursor-pointer items-center justify-center rounded-lg border border-dashed">
-          <div className="flex flex-col items-center gap-2">
-            <UploadCloud className="h-8 w-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              {uploading ? "Uploading..." : "Click to upload"}
-            </span>
+        <label className="flex h-20 w-full cursor-pointer items-center justify-center rounded-lg border border-dashed">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <UploadCloud className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Upload image"}
           </div>
           <Input
             type="file"
