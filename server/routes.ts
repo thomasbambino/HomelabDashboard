@@ -8,6 +8,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from 'express';
+import https from 'https';
+import http from 'http';
 
 // Configure multer for image upload
 const upload = multer({
@@ -37,6 +39,26 @@ const upload = multer({
   }
 });
 
+async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http;
+    protocol.get(url, (res) => {
+      const contentType = res.headers['content-type'];
+      if (!contentType || !['image/jpeg', 'image/png'].includes(contentType)) {
+        reject(new Error('Invalid image type'));
+        return;
+      }
+
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve({
+        buffer: Buffer.concat(chunks),
+        contentType
+      }));
+    }).on('error', reject);
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
@@ -44,12 +66,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Upload endpoint
-  app.post("/api/upload", upload.single('image'), (req, res) => {
+  app.post("/api/upload", upload.single('image'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl });
+    try {
+      let filename: string;
+
+      if (req.file) {
+        // Handle direct file upload
+        filename = req.file.filename;
+      } else if (req.body.imageUrl) {
+        // Handle URL-based upload
+        const { buffer, contentType } = await downloadImage(req.body.imageUrl);
+        const ext = contentType === 'image/png' ? '.png' : '.jpg';
+        filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
+
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        fs.writeFileSync(path.join(uploadDir, filename), buffer);
+      } else {
+        return res.status(400).json({ message: "No file or URL provided" });
+      }
+
+      const fileUrl = `/uploads/${filename}`;
+      res.json({ url: fileUrl });
+    } catch (error) {
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Upload failed" 
+      });
+    }
   });
 
   app.get("/api/services", async (req, res) => {

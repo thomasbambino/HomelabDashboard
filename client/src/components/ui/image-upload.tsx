@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, X } from "lucide-react";
+import { UploadCloud, X, Link } from "lucide-react";
 import { useState } from "react";
 
 interface ImageUploadProps {
@@ -14,6 +14,8 @@ interface ImageUploadProps {
 export function ImageUpload({ value, onChange, onClear, className }: ImageUploadProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,6 +65,37 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
     }
   };
 
+  const handleUrlSubmit = async () => {
+    if (!urlInput) return;
+
+    setUploading(true);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl: urlInput }),
+        credentials: 'include',
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      onChange(data.url);
+      setUrlInput("");
+      setShowUrlInput(false);
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className={className}>
       {value ? (
@@ -81,20 +114,54 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
             <X className="h-3 w-3" />
           </Button>
         </div>
-      ) : (
-        <label className="flex h-20 w-full cursor-pointer items-center justify-center rounded-lg border border-dashed">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <UploadCloud className="h-4 w-4" />
-            {uploading ? "Uploading..." : "Upload image"}
-          </div>
+      ) : showUrlInput ? (
+        <div className="flex gap-2">
           <Input
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={uploading}
+            type="url"
+            placeholder="Enter image URL"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            className="flex-1"
           />
-        </label>
+          <Button
+            onClick={handleUrlSubmit}
+            disabled={uploading || !urlInput}
+            size="sm"
+          >
+            {uploading ? "Uploading..." : "Add"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUrlInput(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <label className="flex h-10 flex-1 cursor-pointer items-center justify-center rounded-lg border border-dashed">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <UploadCloud className="h-4 w-4" />
+              {uploading ? "Uploading..." : "Upload image"}
+            </div>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUrlInput(true)}
+          >
+            <Link className="h-4 w-4 mr-2" />
+            URL
+          </Button>
+        </div>
       )}
     </div>
   );
