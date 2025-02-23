@@ -6,20 +6,20 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings as SettingsIcon, Loader2, Image as ImageIcon } from "lucide-react";
+import { Settings as SettingsIcon, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Dialog as UserDialog, DialogContent as UserDialogContent, DialogHeader as UserDialogHeader, DialogTitle as UserDialogTitle, DialogTrigger as UserDialogTrigger } from "@/components/ui/dialog";
-import { User, updateUserSchema } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
 
 export function SettingsDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -45,6 +45,13 @@ export function SettingsDialog() {
     }
   });
 
+  // Form for user preferences
+  const userPreferencesForm = useForm({
+    defaultValues: {
+      showUptimeHistory: user?.showUptimeHistory ?? true,
+    },
+  });
+
   useEffect(() => {
     if (settings) {
       form.reset({
@@ -65,6 +72,14 @@ export function SettingsDialog() {
       });
     }
   }, [settings, form]);
+
+  useEffect(() => {
+    if (user) {
+      userPreferencesForm.reset({
+        showUptimeHistory: user.showUptimeHistory ?? true,
+      });
+    }
+  }, [user]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Partial<Settings>) => {
@@ -88,6 +103,27 @@ export function SettingsDialog() {
     },
   });
 
+  const updateUserPreferencesMutation = useMutation({
+    mutationFn: async (data: { showUptimeHistory: boolean }) => {
+      const res = await apiRequest("PATCH", "/api/user", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Preferences updated",
+        description: "Your display preferences have been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update preferences",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -100,16 +136,16 @@ export function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="branding">Branding</TabsTrigger>
-                <TabsTrigger value="visibility">Visibility</TabsTrigger>
-              </TabsList>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
+            <TabsTrigger value="visibility">Visibility</TabsTrigger>
+          </TabsList>
 
-              <TabsContent value="general" className="space-y-4 mt-4">
+          <TabsContent value="general">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="siteTitle"
@@ -150,310 +186,228 @@ export function SettingsDialog() {
                     </FormItem>
                   )}
                 />
-              </TabsContent>
+                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
 
-              <TabsContent value="branding" className="space-y-4 mt-4">
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="logoUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Header Logo</FormLabel>
+          <TabsContent value="branding">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Header Logo</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          onClear={() => field.onChange("")}
+                          uploadType="site"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="logoUrlLarge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Login Page Logo</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          onClear={() => field.onChange("")}
+                          uploadType="site"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="onlineColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Online Status Color</FormLabel>
+                      <div className="flex gap-2">
                         <FormControl>
-                          <ImageUpload
-                            value={field.value}
-                            onChange={field.onChange}
-                            onClear={() => field.onChange("")}
-                            uploadType="site"
-                          />
+                          <Input type="color" {...field} value={field.value || "#22c55e"} className="w-16 p-1 h-9" />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="logoUrlLarge"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Login Page Logo</FormLabel>
+                        <Input {...field} value={field.value || "#22c55e"} className="flex-1" />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="offlineColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Offline Status Color</FormLabel>
+                      <div className="flex gap-2">
                         <FormControl>
-                          <ImageUpload
-                            value={field.value}
-                            onChange={field.onChange}
-                            onClear={() => field.onChange("")}
-                            uploadType="site"
-                          />
+                          <Input type="color" {...field} value={field.value || "#ef4444"} className="w-16 p-1 h-9" />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                        <Input {...field} value={field.value || "#ef4444"} className="flex-1" />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
 
-                  <FormField
-                    control={form.control}
-                    name="onlineColor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Online Status Color</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input type="color" {...field} value={field.value || "#22c55e"} className="w-16 p-1 h-9" />
-                          </FormControl>
-                          <Input {...field} value={field.value || "#22c55e"} className="flex-1" />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="offlineColor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Offline Status Color</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input type="color" {...field} value={field.value || "#ef4444"} className="w-16 p-1 h-9" />
-                          </FormControl>
-                          <Input {...field} value={field.value || "#ef4444"} className="flex-1" />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="visibility" className="mt-4">
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-base">Administrator View</Label>
-                      <FormField
-                        control={form.control}
-                        name="adminShowRefreshInterval"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">Refresh Interval</Label>
-                            <Switch
-                              id="adminShowRefreshInterval"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="adminShowLastChecked"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">Last Checked Time</Label>
-                            <Switch
-                              id="adminShowLastChecked"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="adminShowServiceUrl"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">Service URL</Label>
-                            <Switch
-                              id="adminShowServiceUrl"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-base">Regular User View</Label>
-                      <FormField
-                        control={form.control}
-                        name="showRefreshInterval"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">Refresh Interval</Label>
-                            <Switch
-                              id="showRefreshInterval"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="showLastChecked"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="showLastChecked" className="text-sm text-muted-foreground">Last Checked Time</Label>
-                            <Switch
-                              id="showLastChecked"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="showServiceUrl"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="showServiceUrl" className="text-sm text-muted-foreground">Service URL</Label>
-                            <Switch
-                              id="showServiceUrl"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
+          <TabsContent value="visibility">
+            <div className="space-y-6">
+              <Form {...userPreferencesForm}>
+                <form 
+                  onSubmit={userPreferencesForm.handleSubmit((data) => updateUserPreferencesMutation.mutate(data))} 
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label className="text-base">Personal Preferences</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="showUptimeHistory" className="text-sm text-muted-foreground">Show Uptime History</Label>
+                      <Switch
+                        id="showUptimeHistory"
+                        checked={userPreferencesForm.watch("showUptimeHistory")}
+                        onCheckedChange={(checked) => userPreferencesForm.setValue("showUptimeHistory", checked)}
                       />
                     </div>
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                  <Button type="submit" className="w-full" disabled={updateUserPreferencesMutation.isPending}>
+                    Save Preferences
+                  </Button>
+                </form>
+              </Form>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={updateSettingsMutation.isPending}
-            >
-              {updateSettingsMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Save Changes
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-
-interface EditUserSettingsDialogProps {
-  user: User;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export function EditUserSettingsDialog({ user, open, onOpenChange }: EditUserSettingsDialogProps) {
-  const { toast } = useToast();
-  const form = useForm({
-    resolver: zodResolver(updateUserSchema),
-    defaultValues: {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      approved: user.approved,
-      canViewNSFW: user.canViewNSFW,
-    },
-  });
-
-  const updateUserMutation = useMutation({
-    mutationFn: async (data: Parameters<typeof updateUserSchema.parse>[0]) => {
-      const res = await apiRequest("PATCH", `/api/users/${user.id}`, data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "User updated",
-        description: "User settings have been updated successfully",
-      });
-      onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update user",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit User Settings</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => updateUserMutation.mutate(data))} className="space-y-4">
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="approved"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Account Approved</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                  {user?.role === 'admin' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-base">Administrator View</Label>
+                        <FormField
+                          control={form.control}
+                          name="adminShowRefreshInterval"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">
+                                Refresh Interval
+                              </Label>
+                              <Switch
+                                id="adminShowRefreshInterval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
                         />
-                      </FormControl>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="canViewNSFW"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Can View NSFW Content</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <FormField
+                          control={form.control}
+                          name="adminShowLastChecked"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">
+                                Last Checked Time
+                              </Label>
+                              <Switch
+                                id="adminShowLastChecked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
                         />
-                      </FormControl>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="pending">Pending</option>
-                      </select>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                        <FormField
+                          control={form.control}
+                          name="adminShowServiceUrl"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">
+                                Service URL
+                              </Label>
+                              <Switch
+                                id="adminShowServiceUrl"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-base">Regular User View</Label>
+                        <FormField
+                          control={form.control}
+                          name="showRefreshInterval"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">
+                                Refresh Interval
+                              </Label>
+                              <Switch
+                                id="showRefreshInterval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="showLastChecked"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="showLastChecked" className="text-sm text-muted-foreground">
+                                Last Checked Time
+                              </Label>
+                              <Switch
+                                id="showLastChecked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="showServiceUrl"
+                          render={({ field }) => (
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="showServiceUrl" className="text-sm text-muted-foreground">
+                                Service URL
+                              </Label>
+                              <Switch
+                                id="showServiceUrl"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                    Save Changes
+                  </Button>
+                </form>
+              </Form>
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={updateUserMutation.isPending}
-            >
-              Save Changes
-            </Button>
-          </form>
-        </Form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
