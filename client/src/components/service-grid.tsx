@@ -9,6 +9,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -19,6 +21,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface ServiceGridProps {
   timeScale: string;
@@ -26,12 +29,18 @@ interface ServiceGridProps {
 
 export function ServiceGrid({ timeScale }: ServiceGridProps) {
   const { toast } = useToast();
+  const [activeId, setActiveId] = useState<number | null>(null);
+
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -57,8 +66,13 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
     },
   });
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(Number(event.active.id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over && active.id !== over.id) {
       const oldIndex = services.findIndex((s) => s.id === Number(active.id));
@@ -71,15 +85,19 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
     }
   };
 
+  // Find the active service for the overlay
+  const activeService = services.find((service) => service.id === activeId);
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
         <SortableContext 
-          items={services.map(service => service.id)} 
+          items={services.map(service => service.id)}
           strategy={rectSortingStrategy}
         >
           {services.map((service) => (
@@ -91,6 +109,15 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
           ))}
         </SortableContext>
       </div>
+      <DragOverlay>
+        {activeId && activeService && (
+          <ServiceCard
+            service={activeService}
+            timeScale={timeScale}
+            isDragOverlay
+          />
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }

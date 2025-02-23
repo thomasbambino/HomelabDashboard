@@ -28,9 +28,10 @@ import { ServiceHealthChart } from "./service-health-chart";
 interface ServiceCardProps {
   service: Service;
   timeScale: string;
+  isDragOverlay?: boolean;
 }
 
-export function ServiceCard({ service, timeScale }: ServiceCardProps) {
+export function ServiceCard({ service, timeScale, isDragOverlay }: ServiceCardProps) {
   const {
     attributes,
     listeners,
@@ -40,6 +41,7 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     isDragging
   } = useSortable({
     id: service.id,
+    disabled: isDragOverlay
   });
 
   const [showEdit, setShowEdit] = useState(false);
@@ -91,17 +93,23 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     transition,
     ...cardStyle,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
   };
 
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className="relative touch-none select-none"
+      className={`relative select-none ${isDragOverlay ? 'cursor-grabbing shadow-lg' : ''}`}
     >
-      <div {...attributes} {...listeners} className="absolute top-0 left-0 right-0 h-12 cursor-grab bg-transparent hover:bg-accent/10 flex items-center px-4">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-0 left-0 right-0 h-12 cursor-grab hover:bg-accent/10 flex items-center px-4"
+      >
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
+
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3">
         <div className="flex items-center gap-2">
           {service.icon && (
