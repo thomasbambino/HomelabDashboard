@@ -44,7 +44,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     .filter(record => new Date(record.timestamp) >= startTime);
 
   // Create continuous data with gaps filled
-  const chartData = [];
+  const chartData: { timestamp: Date; status: number }[] = [];
   let currentTime = startTime;
   let lastStatus = false;
   let hasDataForPeriod = false;
