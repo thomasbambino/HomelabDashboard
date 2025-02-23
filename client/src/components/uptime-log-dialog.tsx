@@ -53,9 +53,14 @@ export function UptimeLogDialog() {
       console.log('Fetching logs with URL:', url);  // Debug log
 
       const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch status logs");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch status logs: ${errorText}`);
+      }
       return response.json();
     },
+    // Refetch every 30 seconds to get real-time updates
+    refetchInterval: 30000,
   });
 
   return (
