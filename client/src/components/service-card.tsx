@@ -33,7 +33,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const isAdmin = user?.role === 'admin';
 
   // Hide NSFW content from users without permission
-  if (service.isNSFW && !user?.canViewNSFW && !isAdmin) {
+  if (service.isNSFW && !user?.can_view_nsfw && !isAdmin) {
     return null;
   }
 
@@ -63,9 +63,9 @@ export function ServiceCard({ service }: ServiceCardProps) {
   });
 
   // Use the appropriate visibility settings based on user role
-  const showRefreshInterval = isAdmin ? settings?.adminShowRefreshInterval : settings?.showRefreshInterval;
-  const showLastChecked = isAdmin ? settings?.adminShowLastChecked : settings?.showLastChecked;
-  const showServiceUrl = isAdmin ? settings?.adminShowServiceUrl : settings?.showServiceUrl;
+  const showRefreshInterval = isAdmin ? settings?.admin_show_refresh_interval : settings?.show_refresh_interval;
+  const showLastChecked = isAdmin ? settings?.admin_show_last_checked : settings?.show_last_checked;
+  const showServiceUrl = isAdmin ? settings?.admin_show_service_url : settings?.show_service_url;
 
   // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
@@ -94,8 +94,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
             variant="default"
             style={{
               backgroundColor: service.status ?
-                settings?.onlineColor || "#22c55e" :
-                settings?.offlineColor || "#ef4444",
+                settings?.online_color || "#22c55e" :
+                settings?.offline_color || "#ef4444",
               color: "white"
             }}
           >

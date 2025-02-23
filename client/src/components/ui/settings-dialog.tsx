@@ -28,22 +28,22 @@ export function SettingsDialog() {
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
       id: settings?.id ?? 1,
-      defaultRole: settings?.defaultRole ?? "pending",
-      siteTitle: settings?.siteTitle ?? "",
-      fontFamily: settings?.fontFamily ?? "",
-      loginDescription: settings?.loginDescription ?? "",
-      onlineColor: settings?.onlineColor ?? "#22c55e",
-      offlineColor: settings?.offlineColor ?? "#ef4444",
-      showRefreshInterval: settings?.showRefreshInterval ?? true,
-      showLastChecked: settings?.showLastChecked ?? true,
-      showServiceUrl: settings?.showServiceUrl ?? true,
-      showUptimeLog: settings?.showUptimeLog ?? false,
-      adminShowRefreshInterval: settings?.adminShowRefreshInterval ?? true,
-      adminShowLastChecked: settings?.adminShowLastChecked ?? true,
-      adminShowServiceUrl: settings?.adminShowServiceUrl ?? true,
-      adminShowUptimeLog: settings?.adminShowUptimeLog ?? false,
-      logoUrl: settings?.logoUrl ?? "",
-      logoUrlLarge: settings?.logoUrlLarge ?? "",
+      default_role: settings?.default_role ?? "pending",
+      site_title: settings?.site_title ?? "",
+      font_family: settings?.font_family ?? "",
+      login_description: settings?.login_description ?? "",
+      online_color: settings?.online_color ?? "#22c55e",
+      offline_color: settings?.offline_color ?? "#ef4444",
+      show_refresh_interval: settings?.show_refresh_interval ?? true,
+      show_last_checked: settings?.show_last_checked ?? true,
+      show_service_url: settings?.show_service_url ?? true,
+      show_uptime_log: settings?.show_uptime_log ?? false,
+      admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
+      admin_show_last_checked: settings?.admin_show_last_checked ?? true,
+      admin_show_service_url: settings?.admin_show_service_url ?? true,
+      admin_show_uptime_log: settings?.admin_show_uptime_log ?? false,
+      logo_url: settings?.logo_url ?? "",
+      logo_url_large: settings?.logo_url_large ?? "",
     },
   });
 
@@ -92,7 +92,7 @@ export function SettingsDialog() {
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="siteTitle"
+                  name="site_title"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Site Title</FormLabel>
@@ -104,7 +104,7 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
-                  name="fontFamily"
+                  name="font_family"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Font Family</FormLabel>
@@ -116,7 +116,7 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
-                  name="loginDescription"
+                  name="login_description"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Login Page Description</FormLabel>
@@ -145,7 +145,7 @@ export function SettingsDialog() {
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="logoUrl"
+                  name="logo_url"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Header Logo</FormLabel>
@@ -162,7 +162,7 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
-                  name="logoUrlLarge"
+                  name="logo_url_large"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Login Page Logo</FormLabel>
@@ -179,7 +179,7 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
-                  name="onlineColor"
+                  name="online_color"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Online Status Color</FormLabel>
@@ -194,7 +194,7 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
-                  name="offlineColor"
+                  name="offline_color"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Offline Status Color</FormLabel>
@@ -227,13 +227,13 @@ export function SettingsDialog() {
                     <div className="space-y-3">
                       <FormField
                         control={form.control}
-                        name="adminShowUptimeLog"
+                        name="admin_show_uptime_log"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
+                              <FormLabel htmlFor="admin_show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
                               <Switch
-                                id="adminShowUptimeLog"
+                                id="admin_show_uptime_log"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -243,13 +243,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="adminShowRefreshInterval"
+                        name="admin_show_refresh_interval"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
+                              <FormLabel htmlFor="admin_show_refresh_interval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
                               <Switch
-                                id="adminShowRefreshInterval"
+                                id="admin_show_refresh_interval"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -259,13 +259,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="adminShowLastChecked"
+                        name="admin_show_last_checked"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
+                              <FormLabel htmlFor="admin_show_last_checked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
                               <Switch
-                                id="adminShowLastChecked"
+                                id="admin_show_last_checked"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -275,13 +275,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="adminShowServiceUrl"
+                        name="admin_show_service_url"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm cursor-pointer">Show Service URL</FormLabel>
+                              <FormLabel htmlFor="admin_show_service_url" className="text-sm cursor-pointer">Show Service URL</FormLabel>
                               <Switch
-                                id="adminShowServiceUrl"
+                                id="admin_show_service_url"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -298,13 +298,13 @@ export function SettingsDialog() {
                     <div className="space-y-3">
                       <FormField
                         control={form.control}
-                        name="showUptimeLog"
+                        name="show_uptime_log"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
+                              <FormLabel htmlFor="show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
                               <Switch
-                                id="showUptimeLog"
+                                id="show_uptime_log"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -314,13 +314,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="showRefreshInterval"
+                        name="show_refresh_interval"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
+                              <FormLabel htmlFor="show_refresh_interval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
                               <Switch
-                                id="showRefreshInterval"
+                                id="show_refresh_interval"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -330,13 +330,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="showLastChecked"
+                        name="show_last_checked"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
+                              <FormLabel htmlFor="show_last_checked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
                               <Switch
-                                id="showLastChecked"
+                                id="show_last_checked"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -346,13 +346,13 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="showServiceUrl"
+                        name="show_service_url"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showServiceUrl" className="text-sm cursor-pointer">Show Service URL</FormLabel>
+                              <FormLabel htmlFor="show_service_url" className="text-sm cursor-pointer">Show Service URL</FormLabel>
                               <Switch
-                                id="showServiceUrl"
+                                id="show_service_url"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
