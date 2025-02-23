@@ -74,11 +74,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {service.icon && (
-            <img 
-              src={service.icon} 
-              alt={`${service.name} icon`}
-              className="w-6 h-6 object-contain"
-            />
+            <div className="w-6 h-6 flex items-center justify-center">
+              <img 
+                src={service.icon} 
+                alt={`${service.name} icon`}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
           )}
           <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
         </div>
