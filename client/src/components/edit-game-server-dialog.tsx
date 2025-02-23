@@ -84,10 +84,13 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/game-servers/${server.id}`);
+      const res = await apiRequest("DELETE", `/api/game-servers/${server.id}`, undefined, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to delete server: ${errorText}`);
+        throw new Error(`Failed to delete server: ${await res.text()}`);
       }
       return res.json();
     },
