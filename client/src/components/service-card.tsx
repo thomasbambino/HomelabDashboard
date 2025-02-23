@@ -62,11 +62,24 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const showLastChecked = isAdmin ? settings?.adminShowLastChecked : settings?.showLastChecked;
   const showServiceUrl = isAdmin ? settings?.adminShowServiceUrl : settings?.showServiceUrl;
 
+  // Create the background style with proper URL formatting
+  const cardStyle = service.background ? {
+    backgroundImage: `url('${service.background}')`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  } : {};
+
   return (
-    <Card className={`relative ${service.background ? `bg-[url('${service.background}')] bg-cover` : ''}`}>
+    <Card className="relative" style={cardStyle}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          {service.icon && <span className="text-xl">{service.icon}</span>}
+          {service.icon && (
+            <img 
+              src={service.icon} 
+              alt={`${service.name} icon`}
+              className="w-6 h-6 object-contain"
+            />
+          )}
           <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
         </div>
         <div className="flex items-center gap-2">
@@ -127,12 +140,12 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </a>
         )}
         {showLastChecked && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Last checked: {new Date(service.lastChecked).toLocaleString()}
           </p>
         )}
         {showRefreshInterval && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Refresh interval: {service.refreshInterval}s
           </p>
         )}
