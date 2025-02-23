@@ -176,8 +176,14 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     status?: boolean;
   }): Promise<ServiceStatusLog[]> {
-    let query = db.select().from(serviceStatusLogs);
+    console.log('Getting service status logs with filters:', filters);
 
+    // Base query to get all logs with their previous status
+    let query = db.select()
+      .from(serviceStatusLogs)
+      .orderBy(desc(serviceStatusLogs.timestamp));
+
+    // Apply filters
     if (filters?.serviceId !== undefined) {
       query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
     }
@@ -195,7 +201,28 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    return await query.orderBy(desc(serviceStatusLogs.timestamp));
+    // Execute the query
+    const logs = await query;
+
+    // Filter to only include status changes
+    const statusChanges = logs.reduce<ServiceStatusLog[]>((changes, currentLog, index) => {
+      // Always include the most recent log
+      if (index === 0) {
+        changes.push(currentLog);
+        return changes;
+      }
+
+      // Include logs where status differs from the previous log
+      const previousLog = logs[index - 1];
+      if (currentLog.serviceId === previousLog.serviceId && currentLog.status !== previousLog.status) {
+        changes.push(currentLog);
+      }
+
+      return changes;
+    }, []);
+
+    console.log(`Found ${statusChanges.length} status changes out of ${logs.length} total logs`);
+    return statusChanges;
   }
 
   async getService(id: number): Promise<Service | undefined> {

@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ScrollText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function UptimeLogDialog() {
   const [selectedService, setSelectedService] = useState<string>("all");
@@ -134,35 +135,37 @@ export function UptimeLogDialog() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className="flex items-center justify-between p-2 rounded-lg border"
-              >
-                <div>
-                  <span className="font-medium">{log.service.name}</span>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    {format(new Date(log.timestamp), "PPp")}
-                  </span>
-                </div>
-                <Badge
-                  variant="default"
-                  style={{
-                    backgroundColor: log.status ? "#22c55e" : "#ef4444",
-                    color: "white"
-                  }}
+          <ScrollArea className="h-[400px] rounded-md border p-4">
+            <div className="space-y-2">
+              {logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between p-2 rounded-lg border"
                 >
-                  {log.status ? "Online" : "Offline"}
-                </Badge>
-              </div>
-            ))}
-            {logs.length === 0 && (
-              <div className="text-center text-muted-foreground py-4">
-                No status changes found
-              </div>
-            )}
-          </div>
+                  <div>
+                    <span className="font-medium">{log.service.name}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {format(new Date(log.timestamp), "PPp")}
+                    </span>
+                  </div>
+                  <Badge
+                    variant="default"
+                    style={{
+                      backgroundColor: log.status ? "#22c55e" : "#ef4444",
+                      color: "white"
+                    }}
+                  >
+                    {log.status ? "Online" : "Offline"}
+                  </Badge>
+                </div>
+              ))}
+              {logs.length === 0 && (
+                <div className="text-center text-muted-foreground py-4">
+                  No status changes found
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
