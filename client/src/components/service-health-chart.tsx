@@ -1,7 +1,7 @@
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { ServiceHealthHistory } from "@shared/schema";
-import { format, subHours, subDays, subMonths, addSeconds, isBefore } from "date-fns";
+import { format, subHours, subDays, subMonths } from "date-fns";
 import { useState } from "react";
 
 interface ServiceHealthChartProps {
@@ -9,11 +9,6 @@ interface ServiceHealthChartProps {
   onlineColor: string;
   offlineColor: string;
   timeScale: string;
-}
-
-interface ChartDataPoint {
-  timestamp: Date;
-  status: number;
 }
 
 export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeScale }: ServiceHealthChartProps) {
@@ -43,41 +38,13 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     case '1m': startTime = subMonths(now, 1); break;
   }
 
-  // Sort history by timestamp
-  const sortedHistory = [...healthHistory]
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .filter(record => new Date(record.timestamp) >= startTime);
-
-  console.log('Raw history data:', sortedHistory);
-
-  // Create continuous data with gaps filled
-  const chartData: ChartDataPoint[] = [];
-  let currentTime = startTime;
-
-  while (isBefore(currentTime, now)) {
-    // Find records in this time slot
-    const recordsInSlot = sortedHistory.filter(record => {
-      const recordTime = new Date(record.timestamp);
-      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5);
-    });
-
-    if (recordsInSlot.length > 0) {
-      const mostRecent = recordsInSlot[recordsInSlot.length - 1];
-      chartData.push({
-        timestamp: currentTime,
-        status: mostRecent.status ? 1 : 0 // 1 for online, 0 for offline
-      });
-    } else {
-      chartData.push({
-        timestamp: currentTime,
-        status: -1 // -1 for no data
-      });
-    }
-
-    currentTime = addSeconds(currentTime, 5);
-  }
-
-  console.log('Processed chart data:', chartData);
+  // Filter health records to the selected time range and format for chart
+  const chartData = healthHistory
+    .filter(record => new Date(record.timestamp) >= startTime)
+    .map(record => ({
+      timestamp: new Date(record.timestamp),
+      status: record.status
+    }));
 
   return (
     <div className="relative h-6 w-full rounded-md overflow-hidden group">
@@ -105,35 +72,21 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             scale="time"
             hide
           />
-          <YAxis hide domain={[-1, 1]} />
+          <YAxis hide domain={[0, 1]} />
           <Bar
             dataKey="status"
             isAnimationActive={false}
-            shape={({ x, y, width, height, value }) => {
-              let color;
-              // Log the value to see what we're getting
-              console.log('Bar value:', value);
-
-              if (value === -1) {
-                color = '#94a3b8'; // gray for no data
-              } else if (value === 0) {
-                color = offlineColor; // red for offline
-              } else {
-                color = onlineColor; // green for online
-              }
-
-              return (
-                <rect
-                  x={x}
-                  y={y}
-                  width={width}
-                  height={height}
-                  fill={color}
-                  rx={3}
-                  ry={3}
-                />
-              );
-            }}
+            shape={({ x, y, width, height, value }) => (
+              <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill={value ? onlineColor : offlineColor}
+                rx={3}
+                ry={3}
+              />
+            )}
           />
         </BarChart>
       </ResponsiveContainer>
