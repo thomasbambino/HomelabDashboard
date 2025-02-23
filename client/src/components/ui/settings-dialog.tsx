@@ -72,12 +72,11 @@ export function SettingsDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <SettingsIcon className="h-4 w-4 mr-2" />
-          UI Settings
+        <Button variant="ghost" size="icon">
+          <SettingsIcon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
