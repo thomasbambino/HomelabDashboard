@@ -46,7 +46,7 @@ async function updateServiceStatus(service: Service) {
     serviceId: service.id,
     status,
     responseTime,
-    timestamp: new Date().toISOString()
+    timestamp: new Date() // Fixed: Use Date object instead of ISO string
   });
 }
 

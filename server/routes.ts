@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, insertServiceHealthHistorySchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { ZodError } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -281,11 +282,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const history = await storage.getServiceHealthHistory(serviceId, limit);
       res.json(history);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
+      console.error('Health history error:', error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -297,9 +295,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const record = await storage.createServiceHealthRecord(data);
       res.status(201).json(record);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Health record error:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
