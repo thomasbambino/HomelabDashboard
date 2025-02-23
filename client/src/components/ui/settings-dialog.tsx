@@ -71,32 +71,50 @@ export function SettingsDialog() {
   const updateSettingsMutation = useMutation({
     mutationFn: async (formData: any) => {
       try {
-        // Extract user preference and settings data
+        // Extract user preference
         const { showUptimeHistory, ...settingsData } = formData;
 
-        // Validate settings data
-        const validSettingsData = updateSettingsSchema.parse(settingsData);
+        // Only keep the settings fields that are in the schema
+        const validSettingsData = {
+          id: settingsData.id,
+          siteTitle: settingsData.siteTitle,
+          fontFamily: settingsData.fontFamily,
+          loginDescription: settingsData.loginDescription,
+          onlineColor: settingsData.onlineColor,
+          offlineColor: settingsData.offlineColor,
+          showRefreshInterval: settingsData.showRefreshInterval,
+          showLastChecked: settingsData.showLastChecked,
+          showServiceUrl: settingsData.showServiceUrl,
+          adminShowRefreshInterval: settingsData.adminShowRefreshInterval,
+          adminShowLastChecked: settingsData.adminShowLastChecked,
+          adminShowServiceUrl: settingsData.adminShowServiceUrl,
+          logoUrl: settingsData.logoUrl,
+          logoUrlLarge: settingsData.logoUrlLarge,
+        };
 
-        // Make the API calls sequentially to better handle errors
+        // Update settings
         const settingsRes = await apiRequest("PATCH", "/api/settings", validSettingsData);
         if (!settingsRes.ok) {
           const errorText = await settingsRes.text();
           throw new Error(`Failed to update settings: ${errorText}`);
         }
-        const settingsJson = await settingsRes.json();
 
         // Update user preferences
-        const userRes = await apiRequest("PATCH", "/api/user", { showUptimeHistory });
+        const userRes = await apiRequest("PATCH", "/api/user", {
+          id: user?.id,
+          showUptimeHistory,
+        });
         if (!userRes.ok) {
           const errorText = await userRes.text();
           throw new Error(`Failed to update user preferences: ${errorText}`);
         }
-        const userJson = await userRes.json();
 
-        return {
-          settings: settingsJson,
-          user: userJson
-        };
+        const [settingsJson, userJson] = await Promise.all([
+          settingsRes.json(),
+          userRes.json(),
+        ]);
+
+        return { settings: settingsJson, user: userJson };
       } catch (error) {
         console.error('Update error:', error);
         throw error;
