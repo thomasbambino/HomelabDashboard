@@ -13,6 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Dialog as UserDialog, DialogContent as UserDialogContent, DialogHeader as UserDialogHeader, DialogTitle as UserDialogTitle, DialogTrigger as UserDialogTrigger } from "@/components/ui/dialog";
+import { User, updateUserSchema } from "@shared/schema";
+
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -390,6 +393,125 @@ export function SettingsDialog() {
               {updateSettingsMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
+              Save Changes
+            </Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+interface EditUserSettingsDialogProps {
+  user: User;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditUserSettingsDialog({ user, open, onOpenChange }: EditUserSettingsDialogProps) {
+  const { toast } = useToast();
+  const form = useForm({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      approved: user.approved,
+      canViewNSFW: user.canViewNSFW,
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: Parameters<typeof updateUserSchema.parse>[0]) => {
+      const res = await apiRequest("PATCH", `/api/users/${user.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User updated",
+        description: "User settings have been updated successfully",
+      });
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User Settings</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit((data) => updateUserMutation.mutate(data))} className="space-y-4">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="approved"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Account Approved</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="canViewNSFW"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Can View NSFW Content</FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <FormControl>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        {...field}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={updateUserMutation.isPending}
+            >
               Save Changes
             </Button>
           </form>

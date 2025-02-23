@@ -105,8 +105,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
             <Badge
               variant="outline"
               style={{
-                backgroundColor: "white",
-                color: "#ec4899", // Pink color
+                backgroundColor: "#ec4899", // Pink background
+                color: "white",
                 borderColor: "#ec4899"
               }}
             >
