@@ -42,7 +42,6 @@ export function SettingsDialog() {
       adminShowServiceUrl: true,
       logoUrl: "",
       logoUrlLarge: "",
-      // Add user preferences to the same form
       showUptimeHistory: user?.showUptimeHistory ?? true,
     },
   });
@@ -71,18 +70,29 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Split the data into settings and user preferences
+      // Extract user preference
       const { showUptimeHistory, ...settingsData } = data;
 
-      // Update both settings and user preferences
-      const [settingsRes, userRes] = await Promise.all([
-        apiRequest("PATCH", "/api/settings", settingsData),
-        apiRequest("PATCH", "/api/user", { showUptimeHistory })
+      // Update settings first
+      const settingsRes = await apiRequest("PATCH", "/api/settings", settingsData);
+      if (!settingsRes.ok) {
+        throw new Error("Failed to update settings");
+      }
+
+      // Then update user preferences
+      const userRes = await apiRequest("PATCH", "/api/user", { showUptimeHistory });
+      if (!userRes.ok) {
+        throw new Error("Failed to update user preferences");
+      }
+
+      const [settingsJson, userJson] = await Promise.all([
+        settingsRes.json(),
+        userRes.json()
       ]);
 
       return {
-        settings: await settingsRes.json(),
-        user: await userRes.json()
+        settings: settingsJson,
+        user: userJson
       };
     },
     onSuccess: () => {
