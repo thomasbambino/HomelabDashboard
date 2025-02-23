@@ -24,7 +24,7 @@ export default function UsersPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: number; role?: string; approved?: boolean }) => {
+    mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -131,6 +131,15 @@ export default function UsersPage() {
                             }
                           />
                           <Label>Approved</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={u.canViewNSFW}
+                            onCheckedChange={(checked) =>
+                              updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
+                            }
+                          />
+                          <Label>NSFW Access</Label>
                         </div>
                         <Select
                           value={u.role}
