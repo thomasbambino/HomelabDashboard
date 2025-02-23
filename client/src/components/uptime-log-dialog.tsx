@@ -33,8 +33,12 @@ export function UptimeLogDialog() {
     queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedService !== "all") params.append("serviceId", selectedService);
-      if (selectedStatus !== "all") params.append("status", selectedStatus);
+      if (selectedService !== "all") {
+        params.append("serviceId", selectedService);
+      }
+      if (selectedStatus !== "all") {
+        params.append("status", selectedStatus === "true" ? "true" : "false");
+      }
       if (date?.from) params.append("startDate", date.from.toISOString());
       if (date?.to) params.append("endDate", date.to.toISOString());
 
@@ -52,7 +56,7 @@ export function UptimeLogDialog() {
           Uptime Log
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Service Uptime Log</DialogTitle>
         </DialogHeader>
