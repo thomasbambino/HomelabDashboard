@@ -8,13 +8,14 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ScrollText } from "lucide-react";
+import { CalendarIcon, ScrollText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function UptimeLogDialog() {
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [date, setDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
   const [open, setOpen] = useState(false);
 
   // Fetch services for the filter dropdown
@@ -24,12 +25,13 @@ export function UptimeLogDialog() {
 
   // Fetch status logs with filters
   const { data: logs = [] } = useQuery<(ServiceStatusLog & { service: Service })[]>({
-    queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.toISOString()],
+    queryKey: ["/api/services/status-logs", selectedService, selectedStatus, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedService !== "all") params.append("serviceId", selectedService);
       if (selectedStatus !== "all") params.append("status", selectedStatus);
-      if (date) params.append("date", date.toISOString());
+      if (startDate) params.append("startDate", startDate.toISOString());
+      if (endDate) params.append("endDate", endDate.toISOString());
 
       const response = await fetch(`/api/services/status-logs?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch status logs");
@@ -50,7 +52,7 @@ export function UptimeLogDialog() {
           <DialogTitle>Service Uptime Log</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Select value={selectedService} onValueChange={setSelectedService}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by service" />
@@ -76,28 +78,66 @@ export function UptimeLogDialog() {
               </SelectContent>
             </Select>
 
-            <Popover>
-              <PopoverTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "PPP") : <span>Start date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "PPP") : <span>End date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {(startDate || endDate) && (
                 <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[180px] justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setStartDate(undefined);
+                    setEndDate(undefined);
+                  }}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  <X className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

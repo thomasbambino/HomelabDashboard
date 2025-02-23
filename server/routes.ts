@@ -312,10 +312,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filters.status = req.query.status === 'true';
       }
 
-      if (req.query.date) {
-        const date = new Date(req.query.date as string);
-        filters.startDate = new Date(date.setHours(0, 0, 0, 0));
-        filters.endDate = new Date(date.setHours(23, 59, 59, 999));
+      if (req.query.startDate) {
+        filters.startDate = new Date(req.query.startDate as string);
+      }
+
+      if (req.query.endDate) {
+        filters.endDate = new Date(req.query.endDate as string);
       }
 
       const logs = await storage.getServiceStatusLogs(filters);
