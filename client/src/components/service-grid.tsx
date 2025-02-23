@@ -11,6 +11,7 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverlay,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -38,7 +39,15 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
+        delay: 50,
+        tolerance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -67,7 +76,8 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
   });
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(Number(event.active.id));
+    const { active } = event;
+    setActiveId(Number(active.id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -85,7 +95,6 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
     }
   };
 
-  // Find the active service for the overlay
   const activeService = services.find((service) => service.id === activeId);
 
   return (
@@ -95,11 +104,11 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-        <SortableContext 
-          items={services.map(service => service.id)}
-          strategy={rectSortingStrategy}
-        >
+      <SortableContext 
+        items={services.map(service => service.id)}
+        strategy={rectSortingStrategy}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
           {services.map((service) => (
             <ServiceCard
               key={service.id}
@@ -107,8 +116,8 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
               timeScale={timeScale}
             />
           ))}
-        </SortableContext>
-      </div>
+        </div>
+      </SortableContext>
       <DragOverlay>
         {activeId && activeService && (
           <ServiceCard
