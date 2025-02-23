@@ -60,34 +60,34 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType
   });
 }
 
-async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string): Promise<{ small: string; large: string }> {
-  const smallFilename = `small_${filename}`;
-  const largeFilename = `large_${filename}`;
-  const smallPath = path.join(basePath, smallFilename);
-  const largePath = path.join(basePath, largeFilename);
+async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string, type: string): Promise<string> {
+  const outputFilename = `${type}_${filename}`;
+  const outputPath = path.join(basePath, outputFilename);
 
-  // Create small version (32x32) for header
+  let size: number;
+  switch (type) {
+    case 'site':
+      size = 32; // Small icon for header
+      break;
+    case 'service':
+      size = 48; // Medium icon for service cards
+      break;
+    case 'game':
+      size = 64; // Larger icon for game servers
+      break;
+    default:
+      size = 32;
+  }
+
   await sharp(inputBuffer)
-    .resize(32, 32, {
+    .resize(size, size, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
     .png()
-    .toFile(smallPath);
+    .toFile(outputPath);
 
-  // Create large version (80x80) for login page
-  await sharp(inputBuffer)
-    .resize(80, 80, {
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 }
-    })
-    .png()
-    .toFile(largePath);
-
-  return {
-    small: `/uploads/${smallFilename}`,
-    large: `/uploads/${largeFilename}`
-  };
+  return `/uploads/${outputFilename}`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -96,19 +96,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-  // Upload endpoint
-  app.post("/api/upload", upload.single('image'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  // Type-specific upload endpoints
+  const handleUpload = async (req: express.Request, res: express.Response, type: 'site' | 'service' | 'game') => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     try {
-      let filename: string;
       let inputBuffer: Buffer;
+      let filename: string;
 
       if (req.file) {
         // Handle direct file upload
         inputBuffer = fs.readFileSync(req.file.path);
         filename = req.file.filename;
-        // Delete the original uploaded file since we'll create resized versions
+        // Delete the original uploaded file since we'll create resized version
         fs.unlinkSync(req.file.path);
       } else if (req.body.imageUrl) {
         // Handle URL-based upload
@@ -124,21 +126,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      const { small, large } = await resizeAndSaveImage(inputBuffer, uploadDir, filename);
-
-      // Update settings with both logo URLs
-      await storage.updateSettings({
-        logoUrl: small,
-        logoUrlLarge: large
-      });
-
-      res.json({ url: small, largeUrl: large });
+      const url = await resizeAndSaveImage(inputBuffer, uploadDir, filename, type);
+      res.json({ url });
     } catch (error) {
+      console.error('Upload error:', error);
       res.status(400).json({ 
         message: error instanceof Error ? error.message : "Upload failed" 
       });
     }
-  });
+  };
+
+  // Register type-specific upload endpoints
+  app.post("/api/upload/site", upload.single('image'), (req, res) => handleUpload(req, res, 'site'));
+  app.post("/api/upload/service", upload.single('image'), (req, res) => handleUpload(req, res, 'service'));
+  app.post("/api/upload/game", upload.single('image'), (req, res) => handleUpload(req, res, 'game'));
 
   app.get("/api/services", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
