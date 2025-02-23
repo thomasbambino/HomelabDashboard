@@ -33,16 +33,26 @@ export function UptimeLogDialog() {
     queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
+
+      // Add service filter
       if (selectedService !== "all") {
         params.append("serviceId", selectedService);
       }
+
+      // Add status filter
       if (selectedStatus !== "all") {
         params.append("status", selectedStatus === "true" ? "true" : "false");
       }
+
+      // Add date range filters
       if (date?.from) params.append("startDate", date.from.toISOString());
       if (date?.to) params.append("endDate", date.to.toISOString());
 
-      const response = await fetch(`/api/services/status-logs?${params.toString()}`);
+      const queryString = params.toString();
+      const url = `/api/services/status-logs${queryString ? `?${queryString}` : ''}`;
+      console.log('Fetching logs with URL:', url);  // Debug log
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch status logs");
       return response.json();
     },
@@ -56,7 +66,7 @@ export function UptimeLogDialog() {
           Uptime Log
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Service Uptime Log</DialogTitle>
         </DialogHeader>
