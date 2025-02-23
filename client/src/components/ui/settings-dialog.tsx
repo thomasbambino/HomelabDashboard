@@ -208,14 +208,17 @@ export function SettingsDialog() {
               )}
             />
             <div className="space-y-4">
-              <Label>Service Card Elements</Label>
+              <Label className="text-base">User View Settings</Label>
+              <p className="text-sm text-muted-foreground">
+                Control which elements are visible to regular users. Administrators will always see all elements.
+              </p>
               <div className="space-y-2">
                 <FormField
                   control={form.control}
                   name="showRefreshInterval"
                   render={({ field }) => (
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval</Label>
+                      <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval to Users</Label>
                       <Switch
                         id="showRefreshInterval"
                         checked={field.value}
@@ -229,7 +232,7 @@ export function SettingsDialog() {
                   name="showLastChecked"
                   render={({ field }) => (
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time</Label>
+                      <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time to Users</Label>
                       <Switch
                         id="showLastChecked"
                         checked={field.value}
@@ -243,7 +246,7 @@ export function SettingsDialog() {
                   name="showServiceUrl"
                   render={({ field }) => (
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL</Label>
+                      <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL to Users</Label>
                       <Switch
                         id="showServiceUrl"
                         checked={field.value}

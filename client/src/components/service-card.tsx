@@ -57,10 +57,10 @@ export function ServiceCard({ service }: ServiceCardProps) {
     },
   });
 
-  // Use admin settings or user preferences based on role
-  const showRefreshInterval = isAdmin ? settings?.showRefreshInterval : user?.showRefreshInterval;
-  const showLastChecked = isAdmin ? settings?.showLastChecked : user?.showLastChecked;
-  const showServiceUrl = isAdmin ? settings?.showServiceUrl : user?.showServiceUrl;
+  // Show all elements for admin users, but respect settings for regular users
+  const showRefreshInterval = isAdmin ? true : settings?.showRefreshInterval;
+  const showLastChecked = isAdmin ? true : settings?.showLastChecked;
+  const showServiceUrl = isAdmin ? true : settings?.showServiceUrl;
 
   return (
     <Card className={`relative ${service.background ? `bg-[url('${service.background}')] bg-cover` : ''}`}>
