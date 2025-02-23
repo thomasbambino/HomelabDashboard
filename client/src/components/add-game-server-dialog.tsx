@@ -67,38 +67,52 @@ export function AddGameServerDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
+        <Button variant="outline" size="sm" aria-label="Add new game server">
+          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
           Add Server
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-labelledby="add-server-title" aria-describedby="add-server-description">
         <DialogHeader>
-          <DialogTitle>Add New Game Server</DialogTitle>
+          <DialogTitle id="add-server-title">Add New Game Server</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+          <form 
+            onSubmit={form.handleSubmit((data) => mutation.mutate(data))} 
+            className="space-y-4"
+            aria-label="Add game server form"
+          >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Server Name</FormLabel>
+                  <FormLabel id="server-name-label">Server Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="My Minecraft Server" {...field} />
+                    <Input 
+                      placeholder="My Minecraft Server" 
+                      {...field} 
+                      aria-labelledby="server-name-label"
+                      aria-required="true"
+                    />
                   </FormControl>
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" role="group" aria-label="Server connection details">
               <FormField
                 control={form.control}
                 name="host"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Host</FormLabel>
+                    <FormLabel id="server-host-label">Host</FormLabel>
                     <FormControl>
-                      <Input placeholder="mc.example.com" {...field} />
+                      <Input 
+                        placeholder="mc.example.com" 
+                        {...field} 
+                        aria-labelledby="server-host-label"
+                        aria-required="true"
+                      />
                     </FormControl>
                   </FormItem>
                 )}
@@ -108,12 +122,14 @@ export function AddGameServerDialog() {
                 name="port"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Port</FormLabel>
+                    <FormLabel id="server-port-label">Port</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        aria-labelledby="server-port-label"
+                        aria-required="true"
                       />
                     </FormControl>
                   </FormItem>
@@ -125,13 +141,14 @@ export function AddGameServerDialog() {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Server Type</FormLabel>
+                  <FormLabel id="server-type-label">Server Type</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    aria-labelledby="server-type-label"
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Select game type">
                         <SelectValue placeholder="Select a game type" />
                       </SelectTrigger>
                     </FormControl>
@@ -152,19 +169,26 @@ export function AddGameServerDialog() {
                 name="maxPlayers"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max Players</FormLabel>
+                    <FormLabel id="max-players-label">Max Players</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        aria-labelledby="max-players-label"
+                        aria-required="true"
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={mutation.isPending}
+              aria-label={mutation.isPending ? "Adding server..." : "Add server"}
+            >
               Add Server
             </Button>
           </form>
