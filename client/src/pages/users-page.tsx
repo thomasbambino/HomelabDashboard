@@ -24,7 +24,7 @@ export default function UsersPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean }) => {
+    mutationFn: async (data: { id: number; role?: string; approved?: boolean; can_view_nsfw?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -45,7 +45,7 @@ export default function UsersPage() {
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { defaultRole: string }) => {
+    mutationFn: async (data: { default_role: string }) => {
       const res = await apiRequest("PATCH", "/api/settings", data);
       return res.json();
     },
@@ -96,8 +96,8 @@ export default function UsersPage() {
             <div className="flex items-center gap-4">
               <Label>Default role for new users:</Label>
               <Select
-                value={settings?.defaultRole}
-                onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
+                value={settings?.default_role}
+                onValueChange={(value) => updateSettingsMutation.mutate({ default_role: value })}
               >
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -134,9 +134,9 @@ export default function UsersPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={u.canViewNSFW}
+                            checked={u.can_view_nsfw}
                             onCheckedChange={(checked) =>
-                              updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
+                              updateUserMutation.mutate({ id: u.id, can_view_nsfw: checked })
                             }
                           />
                           <Label>NSFW Access</Label>
