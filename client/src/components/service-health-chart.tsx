@@ -44,10 +44,8 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     .filter(record => new Date(record.timestamp) >= startTime);
 
   // Create continuous data with gaps filled
-  const chartData: { timestamp: Date; status: number }[] = [];
+  const chartData = [];
   let currentTime = startTime;
-  let lastStatus = false;
-  let hasDataForPeriod = false;
 
   while (isBefore(currentTime, now)) {
     // Find records in this time slot
@@ -56,17 +54,21 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
       return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5);
     });
 
+    // Add data point for this time slot
     if (recordsInSlot.length > 0) {
       // If we have data, use the most recent status in this slot
       const mostRecent = recordsInSlot[recordsInSlot.length - 1];
-      lastStatus = mostRecent.status;
-      hasDataForPeriod = true;
+      chartData.push({
+        timestamp: currentTime,
+        status: mostRecent.status ? 100 : 0, // 100 for online, 0 for offline
+      });
+    } else {
+      // No data for this slot
+      chartData.push({
+        timestamp: currentTime,
+        status: -1, // -1 indicates no data
+      });
     }
-
-    chartData.push({
-      timestamp: currentTime,
-      status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1, // -1 indicates no data
-    });
 
     currentTime = addSeconds(currentTime, 5);
   }
@@ -74,9 +76,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
   return (
     <div className="relative h-6 w-full rounded-md overflow-hidden group">
       {tooltipTime && (
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
-        >
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity">
           {tooltipTime}
         </div>
       )}
@@ -99,25 +99,29 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             scale="time"
             hide
           />
-          <YAxis hide domain={[0, 100]} />
+          <YAxis hide domain={[-1, 100]} />
           <Bar
             dataKey="status"
             fill={onlineColor}
             isAnimationActive={false}
-            shape={(props: any) => {
+            shape={(props) => {
               const { x, y, width, height, value } = props;
-              const fill = value === -1 
-                ? '#94a3b8'  // gray for no data
-                : value === 0 
-                  ? offlineColor  // red for offline
-                  : onlineColor;  // green for online
+              let color;
+              if (value === -1) {
+                color = '#94a3b8'; // gray for no data
+              } else if (value === 0) {
+                color = offlineColor; // red for offline
+              } else {
+                color = onlineColor; // green for online
+              }
+
               return (
                 <rect
                   x={x}
                   y={y}
                   width={width}
                   height={height}
-                  fill={fill}
+                  fill={color}
                   rx={3}
                   ry={3}
                 />
