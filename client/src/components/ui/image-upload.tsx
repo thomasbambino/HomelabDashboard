@@ -99,12 +99,16 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
   return (
     <div className={className}>
       {value ? (
-        <div className="relative h-20 w-full overflow-hidden rounded-lg border">
-          <img
-            src={value}
-            alt="Uploaded image"
-            className="h-full w-full object-cover"
-          />
+        <div className="relative rounded-lg border">
+          <div className="flex items-center justify-center p-2">
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              <img
+                src={value}
+                alt="Uploaded image"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </div>
           <Button
             variant="destructive"
             size="icon"

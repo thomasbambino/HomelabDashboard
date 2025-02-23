@@ -16,9 +16,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import * as z from 'zod';
+import { useState } from "react";
 
 export function AddServiceDialog() {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+
   const form = useForm({
     resolver: zodResolver(insertServiceSchema.extend({
       url: insertServiceSchema.shape.url.url("Please enter a valid URL"),
@@ -43,6 +46,7 @@ export function AddServiceDialog() {
         description: "New service has been added successfully",
       });
       form.reset();
+      setOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -54,7 +58,7 @@ export function AddServiceDialog() {
   });
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Plus className="h-4 w-4 mr-2" />
