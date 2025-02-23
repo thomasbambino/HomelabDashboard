@@ -1,19 +1,17 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Settings as SettingsIcon, Loader2 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings, updateSettingsSchema } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Settings as SettingsIcon, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
-import { ImageUpload } from "./image-upload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -99,72 +97,131 @@ export function SettingsDialog() {
           <TabsContent value="visibility">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="showUptimeLog"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
-                            <Switch
-                              id="showUptimeLog"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="showRefreshInterval"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Refresh Interval</FormLabel>
-                            <Switch
-                              id="showRefreshInterval"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="showLastChecked"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel htmlFor="showLastChecked" className="text-sm cursor-pointer">Last Checked Time</FormLabel>
-                            <Switch
-                              id="showLastChecked"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="showServiceUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel htmlFor="showServiceUrl" className="text-sm cursor-pointer">Service URL</FormLabel>
-                            <Switch
-                              id="showServiceUrl"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                <div className="space-y-6">
+                  {/* Admin Settings Section */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Administrator View</h3>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="adminShowRefreshInterval"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm cursor-pointer">Admin Refresh Interval</FormLabel>
+                              <Switch
+                                id="adminShowRefreshInterval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adminShowLastChecked"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm cursor-pointer">Admin Last Checked Time</FormLabel>
+                              <Switch
+                                id="adminShowLastChecked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adminShowServiceUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm cursor-pointer">Admin Service URL</FormLabel>
+                              <Switch
+                                id="adminShowServiceUrl"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* User Settings Section */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Regular User View</h3>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="showUptimeLog"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
+                              <Switch
+                                id="showUptimeLog"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="showRefreshInterval"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Refresh Interval</FormLabel>
+                              <Switch
+                                id="showRefreshInterval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="showLastChecked"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="showLastChecked" className="text-sm cursor-pointer">Last Checked Time</FormLabel>
+                              <Switch
+                                id="showLastChecked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="showServiceUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="showServiceUrl" className="text-sm cursor-pointer">Service URL</FormLabel>
+                              <Switch
+                                id="showServiceUrl"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </div>
                 <Button
