@@ -72,7 +72,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
   }
 
   return (
-    <div className="relative h-12 w-full rounded-md overflow-hidden group"> {/* Adjusted height */}
+    <div className="relative h-6 w-full rounded-md overflow-hidden group"> {/* Match badge height */}
       {tooltipTime && (
         <div 
           className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
