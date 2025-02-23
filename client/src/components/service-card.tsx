@@ -38,7 +38,9 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     transform,
     transition,
     isDragging
-  } = useSortable({ id: service.id });
+  } = useSortable({
+    id: service.id,
+  });
 
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
@@ -88,24 +90,7 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     ...cardStyle,
-    zIndex: isDragging ? 50 : 1,
     opacity: isDragging ? 0.5 : 1,
-    position: 'relative' as const,
-  };
-
-  const dragHandleStyle = {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '48px',
-    display: 'flex',
-    alignItems: 'center',
-    paddingLeft: '1rem',
-    cursor: 'grab',
-    zIndex: 10,
-    backgroundColor: 'transparent',
-    transition: 'background-color 0.2s',
   };
 
   return (
@@ -114,12 +99,7 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
       style={style}
       className="relative touch-none select-none"
     >
-      <div
-        {...attributes}
-        {...listeners}
-        style={dragHandleStyle}
-        className="hover:bg-accent/50"
-      >
+      <div {...attributes} {...listeners} className="absolute top-0 left-0 right-0 h-12 cursor-grab bg-transparent hover:bg-accent/10 flex items-center px-4">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3">

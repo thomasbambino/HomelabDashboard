@@ -31,12 +31,7 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        delay: 0,
-        tolerance: 0,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -84,7 +79,7 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
         <SortableContext 
-          items={services.map(s => s.id)} 
+          items={services.map(service => service.id)} 
           strategy={rectSortingStrategy}
         >
           {services.map((service) => (
