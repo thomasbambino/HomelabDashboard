@@ -33,7 +33,8 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 4, // Reduced from 8 to make dragging easier to initiate
+        delay: 0,
+        tolerance: 0,
       },
     }),
     useSensor(KeyboardSensor, {

@@ -88,21 +88,37 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     ...cardStyle,
-    zIndex: isDragging ? 50 : 'auto',
+    zIndex: isDragging ? 50 : 1,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative' as const,
+  };
+
+  const dragHandleStyle = {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '48px',
+    display: 'flex',
+    alignItems: 'center',
+    paddingLeft: '1rem',
+    cursor: 'grab',
+    zIndex: 10,
+    backgroundColor: 'transparent',
+    transition: 'background-color 0.2s',
   };
 
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className="relative touch-none"
+      className="relative touch-none select-none"
     >
-      <div 
-        {...attributes} 
+      <div
+        {...attributes}
         {...listeners}
-        className="absolute inset-x-0 top-0 h-12 z-50 cursor-move flex items-center justify-start px-4 hover:bg-accent/50 transition-colors"
+        style={dragHandleStyle}
+        className="hover:bg-accent/50"
       >
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
