@@ -106,13 +106,18 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             isAnimationActive={false}
             shape={(props: any) => {
               const { x, y, width, height, value } = props;
+              const fill = value === -1 
+                ? '#94a3b8'  // gray for no data
+                : value === 0 
+                  ? offlineColor  // red for offline
+                  : onlineColor;  // green for online
               return (
                 <rect
                   x={x}
                   y={y}
                   width={width}
                   height={height}
-                  fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
+                  fill={fill}
                   rx={3}
                   ry={3}
                 />
