@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button";
 import { LogOut, ServerCog, Users } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TimeScaleSelector } from "@/components/time-scale-selector";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+  const [timeScale, setTimeScale] = useState('1h');
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -47,6 +50,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold">{settings?.siteTitle || "Homelab Dashboard"}</h1>
           </div>
           <div className="flex items-center gap-3">
+            <TimeScaleSelector value={timeScale} onValueChange={setTimeScale} />
             <ThemeToggle />
             {isAdmin && (
               <>
@@ -97,7 +101,7 @@ export default function Dashboard() {
                 ))
               ) : (
                 services.map((service) => (
-                  <ServiceCard key={service.id} service={service} />
+                  <ServiceCard key={service.id} service={service} timeScale={timeScale} />
                 ))
               )}
             </div>
