@@ -11,6 +11,7 @@ import { Settings as SettingsIcon, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function UserPreferencesDialog({ user }: { user: User }) {
   const { toast } = useToast();
@@ -20,10 +21,10 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
       id: user.id,
-      showUptimeLog: user.showUptimeLog ?? false,
-      showServiceUrl: user.showServiceUrl ?? true,
-      showRefreshInterval: user.showRefreshInterval ?? true,
-      showLastChecked: user.showLastChecked ?? true,
+      show_uptime_log: user.show_uptime_log ?? false,
+      show_service_url: user.show_service_url ?? true,
+      show_refresh_interval: user.show_refresh_interval ?? true,
+      show_last_checked: user.show_last_checked ?? true,
     },
   });
 
@@ -54,98 +55,160 @@ export function UserPreferencesDialog({ user }: { user: User }) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <SettingsIcon className="h-4 w-4 mr-2" />
-          UI Settings & Visibility
+          UI Settings
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>UI Settings & Visibility</DialogTitle>
+          <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-3">Service Status Elements</h3>
-                <div className="space-y-3">
-                  <FormField
-                    control={form.control}
-                    name="showUptimeLog"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</Label>
-                          <Switch
-                            id="showUptimeLog"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="showServiceUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="showServiceUrl" className="text-sm cursor-pointer">Show Service URL</Label>
-                          <Switch
-                            id="showServiceUrl"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="showRefreshInterval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</Label>
-                          <Switch
-                            id="showRefreshInterval"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="showLastChecked"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="showLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</Label>
-                          <Switch
-                            id="showLastChecked"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+        <Tabs defaultValue="visibility">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
+            <TabsTrigger value="visibility">Visibility</TabsTrigger>
+          </TabsList>
+          <TabsContent value="visibility">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Administrator View</h3>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="show_refresh_interval"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="admin-show_refresh_interval" className="text-sm cursor-pointer">Refresh Interval</Label>
+                              <Switch
+                                id="admin-show_refresh_interval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="show_last_checked"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="admin-show_last_checked" className="text-sm cursor-pointer">Last Checked Time</Label>
+                              <Switch
+                                id="admin-show_last_checked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="show_service_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="admin-show_service_url" className="text-sm cursor-pointer">Service URL</Label>
+                              <Switch
+                                id="admin-show_service_url"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Regular User View</h3>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="show_uptime_log"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</Label>
+                              <Switch
+                                id="show_uptime_log"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="show_refresh_interval"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="show_refresh_interval" className="text-sm cursor-pointer">Refresh Interval</Label>
+                              <Switch
+                                id="show_refresh_interval"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="show_last_checked"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="show_last_checked" className="text-sm cursor-pointer">Last Checked Time</Label>
+                              <Switch
+                                id="show_last_checked"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="show_service_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="show_service_url" className="text-sm cursor-pointer">Service URL</Label>
+                              <Switch
+                                id="show_service_url"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={updatePreferencesMutation.isPending}
-            >
-              {updatePreferencesMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Save Preferences
-            </Button>
-          </form>
-        </Form>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={updatePreferencesMutation.isPending}
+                >
+                  {updatePreferencesMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

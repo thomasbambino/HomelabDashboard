@@ -4,6 +4,20 @@ import { z } from "zod";
 
 export const roleEnum = pgEnum('role', ['admin', 'user', 'pending']);
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  role: roleEnum("role").notNull().default('pending'),
+  approved: boolean("approved").notNull().default(false),
+  can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
+  show_uptime_log: boolean("show_uptime_log").notNull().default(false),
+  show_service_url: boolean("show_service_url").notNull().default(true),
+  show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
+  show_last_checked: boolean("show_last_checked").notNull().default(true),
+  service_order: integer("service_order").array().default([]),
+});
+
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   defaultRole: roleEnum("defaultRole").notNull().default('pending'),
@@ -20,17 +34,6 @@ export const settings = pgTable("settings", {
   adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
   adminShowLastChecked: boolean("adminShowLastChecked").default(true),
   adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
-});
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  role: roleEnum("role").notNull().default('pending'),
-  approved: boolean("approved").notNull().default(false),
-  canViewNSFW: boolean("canViewNSFW").notNull().default(false),
-  showUptimeLog: boolean("showUptimeLog").notNull().default(false),
-  serviceOrder: integer("serviceOrder").array().default([]),
 });
 
 export const services = pgTable("services", {
