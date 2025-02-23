@@ -88,7 +88,8 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
           throw new Error(data.message || data.error || 'Upload failed');
         }
 
-        onChange(data.url);
+        // For site uploads, we might receive both regular and large URLs
+        onChange(uploadType === 'site' && data.largeUrl ? data.largeUrl : data.url);
       } catch (parseError) {
         console.error('Response handling error:', parseError);
         throw new Error('Failed to process server response');
@@ -143,7 +144,8 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
           throw new Error(data.message || data.error || 'Upload failed');
         }
 
-        onChange(data.url);
+        // For site uploads, we might receive both regular and large URLs
+        onChange(uploadType === 'site' && data.largeUrl ? data.largeUrl : data.url);
         setUrlInput("");
         setShowUrlInput(false);
       } catch (parseError) {

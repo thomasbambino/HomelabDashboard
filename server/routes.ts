@@ -60,15 +60,41 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType
   });
 }
 
-async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string, type: string): Promise<string> {
-  const outputFilename = `${type}_${filename}`;
-  const outputPath = path.join(basePath, outputFilename);
+async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string, type: string): Promise<string | { url: string; largeUrl: string }> {
+  if (type === 'site') {
+    // For site logos, create both small and large versions
+    const smallFilename = `site_small_${filename}`;
+    const largeFilename = `site_large_${filename}`;
+    const smallPath = path.join(basePath, smallFilename);
+    const largePath = path.join(basePath, largeFilename);
 
+    // Create small version (32x32) for header
+    await sharp(inputBuffer)
+      .resize(32, 32, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png({ quality: 90 })
+      .toFile(smallPath);
+
+    // Create large version (128x128) for login page
+    await sharp(inputBuffer)
+      .resize(128, 128, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png({ quality: 100 })
+      .toFile(largePath);
+
+    return {
+      url: `/uploads/${smallFilename}`,
+      largeUrl: `/uploads/${largeFilename}`
+    };
+  }
+
+  // For other types, create a single resized version
   let size: number;
   switch (type) {
-    case 'site':
-      size = 32; // Small icon for header
-      break;
     case 'service':
       size = 48; // Medium icon for service cards
       break;
@@ -79,62 +105,71 @@ async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filenam
       size = 32;
   }
 
+  const outputFilename = `${type}_${filename}`;
+  const outputPath = path.join(basePath, outputFilename);
+
   await sharp(inputBuffer)
     .resize(size, size, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
-    .png()
+    .png({ quality: 90 })
     .toFile(outputPath);
 
   return `/uploads/${outputFilename}`;
 }
+
+// Type-specific upload endpoints
+const handleUpload = async (req: express.Request, res: express.Response, type: 'site' | 'service' | 'game') => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    let inputBuffer: Buffer;
+    let filename: string;
+
+    if (req.file) {
+      // Handle direct file upload
+      inputBuffer = fs.readFileSync(req.file.path);
+      filename = req.file.filename;
+      // Delete the original uploaded file since we'll create resized version
+      fs.unlinkSync(req.file.path);
+    } else if (req.body.imageUrl) {
+      // Handle URL-based upload
+      const { buffer } = await downloadImage(req.body.imageUrl);
+      inputBuffer = buffer;
+      filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
+    } else {
+      return res.status(400).json({ message: "No file or URL provided" });
+    }
+
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const result = await resizeAndSaveImage(inputBuffer, uploadDir, filename, type);
+
+    // For site uploads, handle both URLs
+    if (typeof result === 'object' && 'largeUrl' in result) {
+      res.json(result);
+    } else {
+      res.json({ url: result });
+    }
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(400).json({ 
+      message: error instanceof Error ? error.message : "Upload failed" 
+    });
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
-  // Type-specific upload endpoints
-  const handleUpload = async (req: express.Request, res: express.Response, type: 'site' | 'service' | 'game') => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      let inputBuffer: Buffer;
-      let filename: string;
-
-      if (req.file) {
-        // Handle direct file upload
-        inputBuffer = fs.readFileSync(req.file.path);
-        filename = req.file.filename;
-        // Delete the original uploaded file since we'll create resized version
-        fs.unlinkSync(req.file.path);
-      } else if (req.body.imageUrl) {
-        // Handle URL-based upload
-        const { buffer } = await downloadImage(req.body.imageUrl);
-        inputBuffer = buffer;
-        filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
-      } else {
-        return res.status(400).json({ message: "No file or URL provided" });
-      }
-
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      const url = await resizeAndSaveImage(inputBuffer, uploadDir, filename, type);
-      res.json({ url });
-    } catch (error) {
-      console.error('Upload error:', error);
-      res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Upload failed" 
-      });
-    }
-  };
 
   // Register type-specific upload endpoints
   app.post("/api/upload/site", upload.single('image'), (req, res) => handleUpload(req, res, 'site'));
