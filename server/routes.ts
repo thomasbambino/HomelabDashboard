@@ -234,6 +234,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/game-servers", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const servers = await storage.getAllGameServers();
+    res.json(servers);
+  });
+
+  app.post("/api/game-servers", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const data = insertGameServerSchema.parse(req.body);
+      const server = await storage.createGameServer(data);
+      res.status(201).json(server);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.put("/api/game-servers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const data = updateGameServerSchema.parse({ ...req.body, id: parseInt(req.params.id) });
+      const server = await storage.updateGameServer(data);
+      if (!server) {
+        return res.status(404).json({ message: "Game server not found" });
+      }
+      res.json(server);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
 
   // Add new routes for service health history
   app.get("/api/services/:id/health-history", async (req, res) => {
@@ -263,38 +301,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Health record error:', error);
         res.status(500).json({ message: "Internal server error" });
       }
-    }
-  });
-
-  // Add new route for reordering services
-  app.put("/api/services/reorder", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { serviceIds } = req.body;
-
-      // Get all services to verify the IDs
-      const allServices = await storage.getAllServices();
-      const validIds = new Set(allServices.map(s => s.id));
-
-      // Validate that all provided IDs exist
-      if (!Array.isArray(serviceIds) || !serviceIds.every(id => validIds.has(id))) {
-        return res.status(400).json({ message: "Invalid service IDs provided" });
-      }
-
-      // Update each service's order in sequence
-      for (let i = 0; i < serviceIds.length; i++) {
-        await storage.updateService({
-          id: serviceIds[i],
-          order: i,
-        });
-      }
-
-      // Return the reordered services
-      const updatedServices = await storage.getAllServices();
-      res.json(updatedServices);
-    } catch (error) {
-      console.error('Service reorder error:', error);
-      res.status(500).json({ message: "Failed to reorder services" });
     }
   });
 

@@ -47,7 +47,6 @@ export const services = pgTable("services", {
   background: text("background"),
   refreshInterval: integer("refreshInterval").default(30),
   isNSFW: boolean("isNSFW").default(false),
-  order: integer("order"), // Add order field
 });
 
 export const gameServers = pgTable("gameServers", {
