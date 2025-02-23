@@ -38,6 +38,8 @@ export function SettingsDialog() {
       adminShowRefreshInterval: true,
       adminShowLastChecked: true,
       adminShowServiceUrl: true,
+      logoUrl: "",
+      logoUrlLarge: ""
     }
   });
 
@@ -56,6 +58,8 @@ export function SettingsDialog() {
         adminShowRefreshInterval: settings.adminShowRefreshInterval ?? true,
         adminShowLastChecked: settings.adminShowLastChecked ?? true,
         adminShowServiceUrl: settings.adminShowServiceUrl ?? true,
+        logoUrl: settings.logoUrl || "",
+        logoUrlLarge: settings.logoUrlLarge || ""
       });
     }
   }, [settings, form]);
@@ -82,7 +86,7 @@ export function SettingsDialog() {
     },
   });
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'largeLogo') => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -99,6 +103,7 @@ export function SettingsDialog() {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('image', file);
+      formData.append('type', type);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -142,8 +147,9 @@ export function SettingsDialog() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
             <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="branding">Branding</TabsTrigger>
                 <TabsTrigger value="visibility">Visibility</TabsTrigger>
               </TabsList>
 
@@ -188,7 +194,61 @@ export function SettingsDialog() {
                     </FormItem>
                   )}
                 />
+              </TabsContent>
+
+              <TabsContent value="branding" className="space-y-4 mt-4">
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Header Logo</Label>
+                    <div className="flex items-center gap-4">
+                      {settings?.logoUrl && (
+                        <img
+                          src={settings.logoUrl}
+                          alt="Site Logo"
+                          className="w-8 h-8 object-contain"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <Input
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={(e) => handleLogoUpload(e, 'logo')}
+                          className="cursor-pointer"
+                          disabled={isUploading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Login Page Logo</Label>
+                    <div className="flex items-center gap-4">
+                      {settings?.logoUrlLarge && (
+                        <img
+                          src={settings.logoUrlLarge}
+                          alt="Large Site Logo"
+                          className="w-12 h-12 object-contain"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <Input
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={(e) => handleLogoUpload(e, 'largeLogo')}
+                          className="cursor-pointer"
+                          disabled={isUploading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {isUploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="onlineColor"
@@ -204,6 +264,7 @@ export function SettingsDialog() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="offlineColor"
@@ -219,33 +280,6 @@ export function SettingsDialog() {
                       </FormItem>
                     )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Logo</Label>
-                  <div className="flex items-center gap-4">
-                    {settings?.logoUrl && (
-                      <img
-                        src={settings.logoUrl}
-                        alt="Site Logo"
-                        className="w-8 h-8 object-contain"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        onChange={handleLogoUpload}
-                        className="cursor-pointer"
-                        disabled={isUploading}
-                      />
-                    </div>
-                  </div>
-                  {isUploading && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Uploading...
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
