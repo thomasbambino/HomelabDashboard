@@ -74,6 +74,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
       const data = await res.json();
       onChange(data.url);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
@@ -81,6 +82,8 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
       });
     } finally {
       setUploading(false);
+      // Reset the input to allow uploading the same file again
+      e.target.value = '';
     }
   };
 
@@ -109,6 +112,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
       setUrlInput("");
       setShowUrlInput(false);
     } catch (error) {
+      console.error('URL upload error:', error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
@@ -139,6 +143,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
             className="absolute right-1 top-1 h-6 w-6"
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               onClear();
             }}
           >
