@@ -178,12 +178,12 @@ export class DatabaseStorage implements IStorage {
   }): Promise<ServiceStatusLog[]> {
     console.log('Getting service status logs with filters:', filters);
 
-    // Base query to get all logs with their previous status
+    // Base query to get all logs ordered by service and timestamp
     let query = db.select()
       .from(serviceStatusLogs)
-      .orderBy(desc(serviceStatusLogs.timestamp));
+      .orderBy(serviceStatusLogs.serviceId, desc(serviceStatusLogs.timestamp));
 
-    // Apply filters
+    // Apply filters to the base query
     if (filters?.serviceId !== undefined) {
       query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
     }
@@ -204,22 +204,14 @@ export class DatabaseStorage implements IStorage {
     // Execute the query
     const logs = await query;
 
-    // Filter to only include status changes
-    const statusChanges = logs.reduce<ServiceStatusLog[]>((changes, currentLog, index) => {
-      // Always include the most recent log
-      if (index === 0) {
-        changes.push(currentLog);
-        return changes;
-      }
-
-      // Include logs where status differs from the previous log
-      const previousLog = logs[index - 1];
-      if (currentLog.serviceId === previousLog.serviceId && currentLog.status !== previousLog.status) {
-        changes.push(currentLog);
-      }
-
-      return changes;
-    }, []);
+    // Filter to only include status changes, tracking last status per service
+    const lastStatusByService = new Map<number, boolean>();
+    const statusChanges = logs.filter((log) => {
+      const lastStatus = lastStatusByService.get(log.serviceId);
+      const isChange = lastStatus === undefined || lastStatus !== log.status;
+      lastStatusByService.set(log.serviceId, log.status);
+      return isChange;
+    });
 
     console.log(`Found ${statusChanges.length} status changes out of ${logs.length} total logs`);
     return statusChanges;
