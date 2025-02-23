@@ -36,11 +36,13 @@ export function UptimeLogDialog() {
 
       // Add service filter
       if (selectedService !== "all") {
+        console.log('Adding service filter:', selectedService);
         params.append("serviceId", selectedService);
       }
 
       // Add status filter
       if (selectedStatus !== "all") {
+        console.log('Adding status filter:', selectedStatus);
         params.append("status", selectedStatus === "true" ? "true" : "false");
       }
 

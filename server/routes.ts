@@ -304,14 +304,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status?: boolean;
       } = {};
 
+      console.log('Raw query params:', req.query);
+
+      // Parse serviceId
       if (req.query.serviceId) {
-        filters.serviceId = parseInt(req.query.serviceId as string);
+        const serviceId = parseInt(req.query.serviceId as string);
+        if (!isNaN(serviceId)) {
+          filters.serviceId = serviceId;
+          console.log('Parsed serviceId:', filters.serviceId);
+        }
       }
 
+      // Parse status
       if (req.query.status) {
         filters.status = req.query.status === 'true';
+        console.log('Parsed status:', filters.status);
       }
 
+      // Parse dates
       if (req.query.startDate) {
         filters.startDate = new Date(req.query.startDate as string);
       }
@@ -319,6 +329,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.query.endDate) {
         filters.endDate = new Date(req.query.endDate as string);
       }
+
+      console.log('Final filters:', filters);
 
       const logs = await storage.getServiceStatusLogs(filters);
 
@@ -330,6 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
+      console.log('Returning logs count:', logsWithServiceDetails.length);
       res.json(logsWithServiceDetails);
     } catch (error) {
       console.error('Error fetching status logs:', error);
