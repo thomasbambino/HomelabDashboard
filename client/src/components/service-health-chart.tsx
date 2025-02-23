@@ -53,7 +53,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     // Find records in this time slot
     const recordsInSlot = sortedHistory.filter(record => {
       const recordTime = new Date(record.timestamp);
-      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5); // Reduced from 30s to 5s
+      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5);
     });
 
     if (recordsInSlot.length > 0) {
@@ -68,11 +68,11 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
       status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1, // -1 indicates no data
     });
 
-    currentTime = addSeconds(currentTime, 5); // Reduced from 30s to 5s
+    currentTime = addSeconds(currentTime, 5);
   }
 
   return (
-    <div className="relative h-6 w-full rounded-md overflow-hidden group"> {/* Match badge height */}
+    <div className="relative h-6 w-full rounded-md overflow-hidden group">
       {tooltipTime && (
         <div 
           className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
@@ -105,24 +105,16 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             fill={onlineColor}
             isAnimationActive={false}
             shape={(props: any) => {
-              const { x, y, width, height, value, index } = props;
-              const totalDataPoints = chartData.length;
-              const rx = index === 0 ? { left: 4, right: 0 } : index === totalDataPoints - 1 ? { left: 0, right: 4 } : { left: 0, right: 0 };
-
+              const { x, y, width, height, value } = props;
               return (
-                <path
-                  d={`
-                    M ${x + rx.left} ${y}
-                    H ${x + width - rx.right}
-                    ${rx.right ? `A ${rx.right} ${rx.right} 0 0 1 ${x + width} ${y + rx.right}` : ''}
-                    V ${y + height - rx.right}
-                    ${rx.right ? `A ${rx.right} ${rx.right} 0 0 1 ${x + width - rx.right} ${y + height}` : ''}
-                    H ${x + rx.left}
-                    ${rx.left ? `A ${rx.left} ${rx.left} 0 0 1 ${x} ${y + height - rx.left}` : ''}
-                    V ${y + rx.left}
-                    ${rx.left ? `A ${rx.left} ${rx.left} 0 0 1 ${x + rx.left} ${y}` : ''}
-                  `}
+                <rect
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={height}
                   fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
+                  rx={3}
+                  ry={3}
                 />
               );
             }}
