@@ -10,16 +10,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
-import { z } from "zod";
-
-// Schema for user preferences form
-const userPreferencesSchema = z.object({
-  showUptimeHistory: z.boolean(),
-});
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -48,71 +42,6 @@ export function SettingsDialog() {
       adminShowServiceUrl: true,
       logoUrl: "",
       logoUrlLarge: "",
-    },
-  });
-
-  const preferencesForm = useForm({
-    resolver: zodResolver(userPreferencesSchema),
-    defaultValues: {
-      showUptimeHistory: user?.showUptimeHistory ?? true,
-    },
-  });
-
-  useEffect(() => {
-    if (settings) {
-      form.reset({
-        id: settings.id,
-        defaultRole: settings.defaultRole,
-        siteTitle: settings.siteTitle || "",
-        fontFamily: settings.fontFamily || "",
-        loginDescription: settings.loginDescription || "",
-        onlineColor: settings.onlineColor || "#22c55e",
-        offlineColor: settings.offlineColor || "#ef4444",
-        showRefreshInterval: settings.showRefreshInterval ?? true,
-        showLastChecked: settings.showLastChecked ?? true,
-        showServiceUrl: settings.showServiceUrl ?? true,
-        adminShowRefreshInterval: settings.adminShowRefreshInterval ?? true,
-        adminShowLastChecked: settings.adminShowLastChecked ?? true,
-        adminShowServiceUrl: settings.adminShowServiceUrl ?? true,
-        logoUrl: settings.logoUrl || "",
-        logoUrlLarge: settings.logoUrlLarge || "",
-      });
-    }
-  }, [settings, form]);
-
-  useEffect(() => {
-    if (user) {
-      preferencesForm.reset({
-        showUptimeHistory: user.showUptimeHistory ?? true,
-      });
-    }
-  }, [user, preferencesForm]);
-
-  const updateUserPreferences = useMutation({
-    mutationFn: async (data: z.infer<typeof userPreferencesSchema>) => {
-      const res = await apiRequest("PATCH", "/api/user", {
-        id: user?.id,
-        ...data,
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to update preferences: ${errorText}`);
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Preferences updated",
-        description: "Your display preferences have been updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update preferences",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 
@@ -293,158 +222,121 @@ export function SettingsDialog() {
           </TabsContent>
 
           <TabsContent value="visibility">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Personal Preferences</h3>
-                  <Form {...preferencesForm}>
-                    <form onSubmit={preferencesForm.handleSubmit((data) => updateUserPreferences.mutate(data))} className="space-y-3">
-                      <FormField
-                        control={preferencesForm.control}
-                        name="showUptimeHistory"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between space-y-0">
-                            <FormLabel className="text-sm text-muted-foreground">Show Uptime History Bar</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={updateUserPreferences.isPending}
-                      >
-                        {updateUserPreferences.isPending && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Save Personal Preferences
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
+            {user?.role === 'admin' && (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-base font-medium">Administrator View</h3>
+                    <FormField
+                      control={form.control}
+                      name="adminShowRefreshInterval"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">
+                            Refresh Interval
+                          </FormLabel>
+                          <Switch
+                            id="adminShowRefreshInterval"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="adminShowLastChecked"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">
+                            Last Checked Time
+                          </FormLabel>
+                          <Switch
+                            id="adminShowLastChecked"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="adminShowServiceUrl"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">
+                            Service URL
+                          </FormLabel>
+                          <Switch
+                            id="adminShowServiceUrl"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
 
-                {user?.role === 'admin' && (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="text-base font-medium">Administrator View</h3>
-                        <FormField
-                          control={form.control}
-                          name="adminShowRefreshInterval"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">
-                                Refresh Interval
-                              </FormLabel>
-                              <Switch
-                                id="adminShowRefreshInterval"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="adminShowLastChecked"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">
-                                Last Checked Time
-                              </FormLabel>
-                              <Switch
-                                id="adminShowLastChecked"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="adminShowServiceUrl"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">
-                                Service URL
-                              </FormLabel>
-                              <Switch
-                                id="adminShowServiceUrl"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <h3 className="text-base font-medium">Regular User View</h3>
-                        <FormField
-                          control={form.control}
-                          name="showRefreshInterval"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">
-                                Refresh Interval
-                              </FormLabel>
-                              <Switch
-                                id="showRefreshInterval"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="showLastChecked"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showLastChecked" className="text-sm text-muted-foreground">
-                                Last Checked Time
-                              </FormLabel>
-                              <Switch
-                                id="showLastChecked"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="showServiceUrl"
-                          render={({ field }) => (
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showServiceUrl" className="text-sm text-muted-foreground">
-                                Service URL
-                              </FormLabel>
-                              <Switch
-                                id="showServiceUrl"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          )}
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
-                        {updateSettingsMutation.isPending && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Save Changes
-                      </Button>
-                    </form>
-                  </Form>
-                )}
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <h3 className="text-base font-medium">Regular User View</h3>
+                    <FormField
+                      control={form.control}
+                      name="showRefreshInterval"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">
+                            Refresh Interval
+                          </FormLabel>
+                          <Switch
+                            id="showRefreshInterval"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="showLastChecked"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="showLastChecked" className="text-sm text-muted-foreground">
+                            Last Checked Time
+                          </FormLabel>
+                          <Switch
+                            id="showLastChecked"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="showServiceUrl"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="showServiceUrl" className="text-sm text-muted-foreground">
+                            Service URL
+                          </FormLabel>
+                          <Switch
+                            id="showServiceUrl"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                    {updateSettingsMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save Changes
+                  </Button>
+                </form>
+              </Form>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
