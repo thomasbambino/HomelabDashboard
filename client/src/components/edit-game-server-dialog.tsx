@@ -92,11 +92,15 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
       return true;
     },
     onSuccess: () => {
+      // Invalidate all game server related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      queryClient.removeQueries({ queryKey: [`/api/game-servers/${server.id}`] });
+
       toast({
         title: "Server deleted",
         description: "The game server has been deleted successfully",
       });
+      setShowDeleteConfirm(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
@@ -111,7 +115,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent 
+        <DialogContent
           aria-labelledby="edit-server-title"
           aria-describedby="edit-server-description"
         >
@@ -122,8 +126,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
             Edit the settings and appearance of your game server
           </div>
           <Form {...form}>
-            <form 
-              onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} 
+            <form
+              onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
               className="space-y-4"
               aria-label="Edit game server form"
             >
@@ -134,8 +138,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                   <FormItem>
                     <FormLabel id="server-name-label">Server Name</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         aria-labelledby="server-name-label"
                         aria-required="true"
                       />
@@ -151,9 +155,9 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                     <FormItem>
                       <FormLabel id="server-host-label">Host</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="mc.example.com" 
-                          {...field} 
+                        <Input
+                          placeholder="mc.example.com"
+                          {...field}
                           aria-labelledby="server-host-label"
                           aria-required="true"
                         />
@@ -275,7 +279,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                 )}
               />
               <div className="flex justify-between gap-4">
-                <Button 
+                <Button
                   type="button"
                   variant="destructive"
                   onClick={() => setShowDeleteConfirm(true)}
@@ -285,8 +289,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                   <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
                   Delete Server
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1"
                   disabled={updateMutation.isPending}
                   aria-label={updateMutation.isPending ? "Saving changes..." : "Save changes"}
