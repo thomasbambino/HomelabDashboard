@@ -31,7 +31,11 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -43,6 +47,10 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      toast({
+        title: "Order updated",
+        description: "Service order has been updated successfully",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -55,13 +63,15 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
-      const oldIndex = services.findIndex((s) => s.id === active.id);
-      const newIndex = services.findIndex((s) => s.id === over.id);
-      
-      const newOrder = arrayMove(services, oldIndex, newIndex);
-      orderMutation.mutate(newOrder.map((s) => s.id));
+      const oldIndex = services.findIndex((s) => s.id === Number(active.id));
+      const newIndex = services.findIndex((s) => s.id === Number(over.id));
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(services, oldIndex, newIndex);
+        orderMutation.mutate(newOrder.map((s) => s.id));
+      }
     }
   };
 
@@ -72,7 +82,10 @@ export function ServiceGrid({ timeScale }: ServiceGridProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-        <SortableContext items={services.map(s => s.id)} strategy={rectSortingStrategy}>
+        <SortableContext 
+          items={services.map(s => s.id)} 
+          strategy={rectSortingStrategy}
+        >
           {services.map((service) => (
             <ServiceCard
               key={service.id}
