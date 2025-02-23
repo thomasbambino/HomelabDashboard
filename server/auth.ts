@@ -140,9 +140,10 @@ export function setupAuth(app: Express) {
 
     const user = await storage.updateUser({
       id: parseInt(req.params.id),
-      showRefreshInterval: req.body.showRefreshInterval,
-      showLastChecked: req.body.showLastChecked,
-      showServiceUrl: req.body.showServiceUrl,
+      show_refresh_interval: req.body.show_refresh_interval,
+      show_last_checked: req.body.show_last_checked,
+      show_service_url: req.body.show_service_url,
+      show_uptime_log: req.body.show_uptime_log,
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
