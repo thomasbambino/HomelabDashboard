@@ -153,14 +153,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createServiceStatusLog(serviceId: number, status: boolean): Promise<ServiceStatusLog> {
-    const [newLog] = await db.insert(serviceStatusLogs)
-      .values({
-        serviceId,
-        status,
-        timestamp: new Date(),
-      })
-      .returning();
-    return newLog;
+    console.log('Creating service status log:', { serviceId, status, timestamp: new Date() });
+    try {
+      const [newLog] = await db.insert(serviceStatusLogs)
+        .values({
+          serviceId,
+          status,
+          timestamp: new Date(),
+        })
+        .returning();
+      console.log('Created service status log:', newLog);
+      return newLog;
+    } catch (error) {
+      console.error('Error in createServiceStatusLog:', error);
+      throw error;
+    }
   }
 
   async getServiceStatusLogs(filters?: {

@@ -22,6 +22,7 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
       responseTime: endTime - startTime
     };
   } catch (error) {
+    console.log(`Service check failed for URL ${url}:`, error);
     return {
       status: false,
       responseTime: undefined
@@ -37,20 +38,36 @@ async function updateServiceStatus(service: Service) {
 
   // Always create a log entry for better history tracking
   try {
-    await storage.createServiceStatusLog(service.id, status);
-    console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`);
+    const logEntry = await storage.createServiceStatusLog(service.id, status);
+    console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`, logEntry);
   } catch (error) {
     console.error('Error logging status:', error);
+    // Attempt to log the error details
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        serviceId: service.id,
+        serviceName: service.name,
+        status: status
+      });
+    }
   }
 
   // Update service status
-  await db
-    .update(services)
-    .set({ 
-      status, 
-      lastChecked: new Date().toISOString() 
-    })
-    .where(eq(services.id, service.id));
+  try {
+    await db
+      .update(services)
+      .set({ 
+        status, 
+        lastChecked: new Date().toISOString() 
+      })
+      .where(eq(services.id, service.id));
+
+    console.log(`Service status updated in database for ${service.name}`);
+  } catch (error) {
+    console.error('Error updating service status:', error);
+  }
 }
 
 export async function startServiceChecker() {
