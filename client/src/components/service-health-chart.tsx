@@ -72,7 +72,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
   }
 
   return (
-    <div className="relative h-6 w-full rounded-md overflow-hidden group">
+    <div className="relative h-12 w-full rounded-md overflow-hidden group"> {/* Adjusted height */}
       {tooltipTime && (
         <div 
           className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
@@ -105,16 +105,19 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             fill={onlineColor}
             isAnimationActive={false}
             shape={(props: any) => {
-              const { x, y, width, height, value } = props;
+              const { x, y, width, height, value, index } = props;
+              const totalDataPoints = chartData.length;
+              const rx = index === 0 || index === totalDataPoints -1 ? 4 : 0;
+              const ry = index === 0 || index === totalDataPoints -1 ? 4 : 0;
               return (
                 <rect
                   x={x}
                   y={y}
-                  width={width + 0.5} // Slightly increase width to eliminate gaps
+                  width={width + 0.5} 
                   height={height}
                   fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
-                  rx={4}
-                  ry={4}
+                  rx={rx}
+                  ry={ry}
                 />
               );
             }}
