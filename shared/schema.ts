@@ -28,13 +28,13 @@ export const settings = pgTable("settings", {
   loginDescription: text("loginDescription").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
   onlineColor: text("onlineColor").default("#22c55e"),
   offlineColor: text("offlineColor").default("#ef4444"),
-  show_refresh_interval: boolean("show_refresh_interval").default(true),
-  show_last_checked: boolean("show_last_checked").default(true),
-  show_service_url: boolean("show_service_url").default(true),
-  show_uptime_log: boolean("show_uptime_log").default(false),
-  admin_show_refresh_interval: boolean("admin_show_refresh_interval").default(true),
-  admin_show_last_checked: boolean("admin_show_last_checked").default(true),
-  admin_show_service_url: boolean("admin_show_service_url").default(true),
+  showRefreshInterval: boolean("showRefreshInterval").default(true),
+  showLastChecked: boolean("showLastChecked").default(true),
+  showServiceUrl: boolean("showServiceUrl").default(true),
+  showUptimeLog: boolean("showUptimeLog").default(false),
+  adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
+  adminShowLastChecked: boolean("adminShowLastChecked").default(true),
+  adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
 });
 
 export const services = pgTable("services", {
