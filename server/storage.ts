@@ -1,4 +1,4 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog, serviceNotifications, ServiceNotification, InsertServiceNotification } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
@@ -32,11 +32,6 @@ export interface IStorage {
     status?: boolean;
   }): Promise<ServiceStatusLog[]>;
   getService(id: number): Promise<Service | undefined>;
-  getServiceNotifications(userId: number): Promise<ServiceNotification[]>;
-  getServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined>;
-  createServiceNotification(notification: InsertServiceNotification): Promise<ServiceNotification>;
-  updateServiceNotification(userId: number, serviceId: number, enabled: boolean): Promise<ServiceNotification | undefined>;
-  deleteServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -60,20 +55,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // First ensure we have default settings
-    let settings = await this.getSettings();
-
-    // Create the user with default settings
+    const [settings] = await db.select().from(settingsTable);
     const [user] = await db.insert(users).values({
       ...insertUser,
-      role: settings.default_role ?? 'pending',
-      approved: settings.default_role !== 'pending',
-      show_uptime_log: settings.show_uptime_log,
-      show_service_url: settings.show_service_url,
-      show_refresh_interval: settings.show_refresh_interval,
-      show_last_checked: settings.show_last_checked,
+      role: settings?.defaultRole ?? 'pending',
+      approved: settings?.defaultRole === 'pending' ? false : true,
     }).returning();
-
     return user;
   }
 
@@ -145,19 +132,7 @@ export class DatabaseStorage implements IStorage {
   async getSettings(): Promise<Settings> {
     const [existingSettings] = await db.select().from(settingsTable);
     if (!existingSettings) {
-      // Create default settings if none exist
-      const [newSettings] = await db.insert(settingsTable)
-        .values({
-          default_role: 'pending',
-          site_title: 'Homelab Dashboard',
-          font_family: 'Inter',
-          show_uptime_log: true,
-          show_service_url: true,
-          show_refresh_interval: true,
-          show_last_checked: true,
-
-        })
-        .returning();
+      const [newSettings] = await db.insert(settingsTable).values({}).returning();
       return newSettings;
     }
     return existingSettings;
@@ -178,15 +153,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog> {
-    const [newLog] = await db.insert(serviceStatusLogs)
-      .values({
-        serviceId,
-        status,
-        responseTime,
-        timestamp: new Date(),
-      })
-      .returning();
-    return newLog;
+    console.log('Creating service status log:', { serviceId, status, responseTime, timestamp: new Date() });
+    try {
+      const [newLog] = await db.insert(serviceStatusLogs)
+        .values({
+          serviceId,
+          status,
+          responseTime,
+          timestamp: new Date(),
+        })
+        .returning();
+      console.log('Created service status log:', newLog);
+      return newLog;
+    } catch (error) {
+      console.error('Error in createServiceStatusLog:', error);
+      throw error;
+    }
   }
 
   async getServiceStatusLogs(filters?: {
@@ -195,86 +177,70 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     status?: boolean;
   }): Promise<ServiceStatusLog[]> {
-    let query = db.select().from(serviceStatusLogs);
+    console.log('Starting getServiceStatusLogs with filters:', filters);
 
-    if (filters?.serviceId !== undefined) {
-      query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
+    try {
+      // Start with base query
+      let baseQuery = db
+        .select()
+        .from(serviceStatusLogs)
+        .orderBy(serviceStatusLogs.serviceId, desc(serviceStatusLogs.timestamp));
+
+      // Build conditions array
+      const conditions = [];
+
+      if (filters?.serviceId !== undefined) {
+        console.log('Adding serviceId filter:', filters.serviceId);
+        conditions.push(eq(serviceStatusLogs.serviceId, filters.serviceId));
+      }
+
+      if (filters?.status !== undefined) {
+        console.log('Adding status filter:', filters.status);
+        conditions.push(eq(serviceStatusLogs.status, filters.status));
+      }
+
+      if (filters?.startDate && filters?.endDate) {
+        console.log('Adding date range filter:', {
+          start: filters.startDate,
+          end: filters.endDate
+        });
+        conditions.push(
+          and(
+            gte(serviceStatusLogs.timestamp, filters.startDate),
+            lte(serviceStatusLogs.timestamp, filters.endDate)
+          )
+        );
+      }
+
+      // Apply all conditions if any exist
+      if (conditions.length > 0) {
+        baseQuery = baseQuery.where(and(...conditions));
+      }
+
+      // Execute the query
+      const logs = await baseQuery;
+      console.log('Raw logs count:', logs.length);
+
+      // Filter to only include status changes, tracking last status per service
+      const lastStatusByService = new Map<number, boolean>();
+      const statusChanges = logs.filter((log) => {
+        const lastStatus = lastStatusByService.get(log.serviceId);
+        const isChange = lastStatus === undefined || lastStatus !== log.status;
+        lastStatusByService.set(log.serviceId, log.status);
+        return isChange;
+      });
+
+      console.log('Status changes count:', statusChanges.length);
+      return statusChanges;
+    } catch (error) {
+      console.error('Error in getServiceStatusLogs:', error);
+      throw error;
     }
-
-    if (filters?.status !== undefined) {
-      query = query.where(eq(serviceStatusLogs.status, filters.status));
-    }
-
-    if (filters?.startDate && filters?.endDate) {
-      query = query.where(
-        and(
-          gte(serviceStatusLogs.timestamp, filters.startDate),
-          lte(serviceStatusLogs.timestamp, filters.endDate)
-        )
-      );
-    }
-
-    return await query.orderBy(desc(serviceStatusLogs.timestamp));
   }
 
   async getService(id: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(eq(services.id, id));
     return service;
-  }
-
-  async getServiceNotifications(userId: number): Promise<ServiceNotification[]> {
-    return await db
-      .select()
-      .from(serviceNotifications)
-      .where(eq(serviceNotifications.user_id, userId));
-  }
-
-  async getServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined> {
-    const [notification] = await db
-      .select()
-      .from(serviceNotifications)
-      .where(
-        and(
-          eq(serviceNotifications.user_id, userId),
-          eq(serviceNotifications.service_id, serviceId)
-        )
-      );
-    return notification;
-  }
-
-  async createServiceNotification(notification: InsertServiceNotification): Promise<ServiceNotification> {
-    const [newNotification] = await db
-      .insert(serviceNotifications)
-      .values(notification)
-      .returning();
-    return newNotification;
-  }
-
-  async updateServiceNotification(userId: number, serviceId: number, enabled: boolean): Promise<ServiceNotification | undefined> {
-    const [updatedNotification] = await db
-      .update(serviceNotifications)
-      .set({ enabled })
-      .where(
-        and(
-          eq(serviceNotifications.user_id, userId),
-          eq(serviceNotifications.service_id, serviceId)
-        )
-      )
-      .returning();
-    return updatedNotification;
-  }
-
-  async deleteServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined> {
-    const [deletedNotification] = await db
-      .delete(serviceNotifications)
-      .where(
-        and(
-          eq(serviceNotifications.user_id, userId),
-          eq(serviceNotifications.service_id, serviceId)
-        )
-      )
-      .returning();
-    return deletedNotification;
   }
 }
 
