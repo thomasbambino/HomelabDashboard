@@ -12,6 +12,8 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
+import { sendTestEmail } from './email';
+import { isAdmin } from './middleware';
 
 // Configure multer for image upload
 const upload = multer({
@@ -190,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const service = await storage.createService(data);
       res.status(201).json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
@@ -208,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
@@ -226,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
@@ -247,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const server = await storage.createGameServer(data);
       res.status(201).json(server);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
@@ -265,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(server);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
@@ -283,8 +285,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(server);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: fromZodError(error).message });
       } else {
         res.status(500).json({ message: "Internal server error" });
       }
@@ -347,6 +349,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching status logs:', error);
       res.status(500).json({ message: "Failed to fetch status logs" });
+    }
+  });
+
+  // Add new notification management routes
+  app.get("/api/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const notifications = await storage.getServiceNotifications(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const notification = await storage.createServiceNotification({
+        userId: req.user.id,
+        serviceId: req.body.serviceId,
+        enabled: true,
+      });
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+
+  app.patch("/api/notifications/:serviceId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const notification = await storage.updateServiceNotification(
+        req.user.id,
+        parseInt(req.params.serviceId),
+        req.body.enabled
+      );
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      res.json(notification);
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      res.status(500).json({ message: "Failed to update notification" });
+    }
+  });
+
+  app.patch("/api/users/:id/notification-email", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // Only allow users to update their own email
+    if (req.user.id !== parseInt(req.params.id)) {
+      return res.status(403).json({ message: "You can only update your own email" });
+    }
+
+    try {
+      const user = await storage.updateUser({
+        id: req.user.id,
+        notification_email: req.body.email,
+      });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error('Error updating notification email:', error);
+      res.status(500).json({ message: "Failed to update notification email" });
+    }
+  });
+
+  // Admin route for testing email notifications
+  app.post("/api/admin/test-notification", isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!req.user?.notification_email) {
+        return res.status(400).json({ message: "No notification email set for user" });
+      }
+      const success = await sendTestEmail(req.user.notification_email, settings);
+      if (success) {
+        res.json({ message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send test email" });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ message: "Failed to send test email" });
     }
   });
 

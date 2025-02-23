@@ -1,4 +1,4 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog, serviceNotifications, ServiceNotification, InsertServiceNotification } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
@@ -32,6 +32,11 @@ export interface IStorage {
     status?: boolean;
   }): Promise<ServiceStatusLog[]>;
   getService(id: number): Promise<Service | undefined>;
+  getServiceNotifications(userId: number): Promise<ServiceNotification[]>;
+  getServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined>;
+  createServiceNotification(notification: InsertServiceNotification): Promise<ServiceNotification>;
+  updateServiceNotification(userId: number, serviceId: number, enabled: boolean): Promise<ServiceNotification | undefined>;
+  deleteServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -241,6 +246,60 @@ export class DatabaseStorage implements IStorage {
   async getService(id: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(eq(services.id, id));
     return service;
+  }
+  async getServiceNotifications(userId: number): Promise<ServiceNotification[]> {
+    return await db
+      .select()
+      .from(serviceNotifications)
+      .where(eq(serviceNotifications.userId, userId));
+  }
+
+  async getServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined> {
+    const [notification] = await db
+      .select()
+      .from(serviceNotifications)
+      .where(
+        and(
+          eq(serviceNotifications.userId, userId),
+          eq(serviceNotifications.serviceId, serviceId)
+        )
+      );
+    return notification;
+  }
+
+  async createServiceNotification(notification: InsertServiceNotification): Promise<ServiceNotification> {
+    const [newNotification] = await db
+      .insert(serviceNotifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async updateServiceNotification(userId: number, serviceId: number, enabled: boolean): Promise<ServiceNotification | undefined> {
+    const [updatedNotification] = await db
+      .update(serviceNotifications)
+      .set({ enabled })
+      .where(
+        and(
+          eq(serviceNotifications.userId, userId),
+          eq(serviceNotifications.serviceId, serviceId)
+        )
+      )
+      .returning();
+    return updatedNotification;
+  }
+
+  async deleteServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined> {
+    const [deletedNotification] = await db
+      .delete(serviceNotifications)
+      .where(
+        and(
+          eq(serviceNotifications.userId, userId),
+          eq(serviceNotifications.serviceId, serviceId)
+        )
+      )
+      .returning();
+    return deletedNotification;
   }
 }
 

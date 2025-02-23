@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
   show_last_checked: boolean("show_last_checked").notNull().default(true),
   service_order: integer("service_order").array().default([]),
+  notification_email: text("notification_email"),
 });
 
 export const settings = pgTable("settings", {
@@ -36,6 +37,15 @@ export const settings = pgTable("settings", {
   adminShowLastChecked: boolean("adminShowLastChecked").default(true),
   adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
   adminShowUptimeLog: boolean("adminShowUptimeLog").default(false),
+  notificationEmailSubject: text("notificationEmailSubject").default("Service Status Change Alert"),
+  notificationEmailTemplate: text("notificationEmailTemplate").default("Service {serviceName} is now {status}.\n\nCurrent Status: {status}\nLast Checked: {lastChecked}\nResponse Time: {responseTime}ms"),
+});
+
+export const serviceNotifications = pgTable("serviceNotifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  enabled: boolean("enabled").notNull().default(true),
 });
 
 export const services = pgTable("services", {
@@ -65,13 +75,12 @@ export const gameServers = pgTable("gameServers", {
   refreshInterval: integer("refreshInterval").default(30),
 });
 
-// Add responseTime to serviceStatusLogs table
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
   id: serial("id").primaryKey(),
   serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
   status: boolean("status").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  responseTime: integer("responseTime"), // Add response time in milliseconds (nullable)
+  responseTime: integer("responseTime"), 
 });
 
 export const insertUserSchema = createInsertSchema(users);
@@ -79,6 +88,7 @@ export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertServiceStatusLogSchema = createInsertSchema(serviceStatusLogs);
+export const insertServiceNotificationSchema = createInsertSchema(serviceNotifications);
 
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
@@ -96,6 +106,10 @@ export const updateSettingsSchema = insertSettingsSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+export const updateServiceNotificationSchema = insertServiceNotificationSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
@@ -109,3 +123,6 @@ export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type ServiceStatusLog = typeof serviceStatusLogs.$inferSelect;
+export type ServiceNotification = typeof serviceNotifications.$inferSelect;
+export type InsertServiceNotification = z.infer<typeof insertServiceNotificationSchema>;
+export type UpdateServiceNotification = z.infer<typeof updateServiceNotificationSchema>;

@@ -1,11 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Request, Response, NextFunction } from "express";
+import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { isAdmin, isApproved } from "./middleware";
 
 declare global {
   namespace Express {
@@ -26,20 +27,6 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
-}
-
-// Middleware to check if user is admin
-export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) return res.sendStatus(401);
-  if (req.user.role !== 'admin') return res.sendStatus(403);
-  next();
-}
-
-// Middleware to check if user is approved
-export function isApproved(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) return res.sendStatus(401);
-  if (!req.user.approved) return res.sendStatus(403);
-  next();
 }
 
 export function setupAuth(app: Express) {
