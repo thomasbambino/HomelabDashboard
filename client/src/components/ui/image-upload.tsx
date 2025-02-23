@@ -57,7 +57,10 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
       formData.append('image', file);
       formData.append('type', uploadType);
 
-      const res = await fetch(getUploadEndpoint(), {
+      const endpoint = getUploadEndpoint();
+      console.log('Uploading to endpoint:', endpoint);
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -66,24 +69,29 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         },
       });
 
-      let errorMessage = 'Upload failed';
+      console.log('Upload response status:', res.status);
+      console.log('Upload response headers:', Object.fromEntries(res.headers.entries()));
+
       try {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await res.json();
-          if (!res.ok) {
-            errorMessage = data.message || data.error || 'Upload failed';
-            throw new Error(errorMessage);
-          }
-          onChange(data.url);
-        } else {
-          const text = await res.text();
-          console.error('Non-JSON response:', text);
-          throw new Error('Invalid server response');
+        const responseText = await res.text();
+        console.log('Raw response:', responseText);
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError);
+          throw new Error('Server returned invalid JSON');
         }
+
+        if (!res.ok) {
+          throw new Error(data.message || data.error || 'Upload failed');
+        }
+
+        onChange(data.url);
       } catch (parseError) {
-        console.error('Response parsing error:', parseError);
-        throw new Error(errorMessage);
+        console.error('Response handling error:', parseError);
+        throw new Error('Failed to process server response');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -103,7 +111,10 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
 
     setUploading(true);
     try {
-      const res = await fetch(getUploadEndpoint(), {
+      const endpoint = getUploadEndpoint();
+      console.log('Submitting URL to endpoint:', endpoint);
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,26 +124,31 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         credentials: 'include',
       });
 
-      let errorMessage = 'Upload failed';
+      console.log('URL upload response status:', res.status);
+      console.log('URL upload response headers:', Object.fromEntries(res.headers.entries()));
+
       try {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await res.json();
-          if (!res.ok) {
-            errorMessage = data.message || data.error || 'Upload failed';
-            throw new Error(errorMessage);
-          }
-          onChange(data.url);
-          setUrlInput("");
-          setShowUrlInput(false);
-        } else {
-          const text = await res.text();
-          console.error('Non-JSON response:', text);
-          throw new Error('Invalid server response');
+        const responseText = await res.text();
+        console.log('Raw URL upload response:', responseText);
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse URL upload response as JSON:', parseError);
+          throw new Error('Server returned invalid JSON');
         }
+
+        if (!res.ok) {
+          throw new Error(data.message || data.error || 'Upload failed');
+        }
+
+        onChange(data.url);
+        setUrlInput("");
+        setShowUrlInput(false);
       } catch (parseError) {
-        console.error('Response parsing error:', parseError);
-        throw new Error(errorMessage);
+        console.error('URL upload response handling error:', parseError);
+        throw new Error('Failed to process server response');
       }
     } catch (error) {
       console.error('URL upload error:', error);
