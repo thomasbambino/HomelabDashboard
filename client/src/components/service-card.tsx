@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2 } from "lucide-react";
+import { ExternalLink, GripVertical, Settings, Trash2 } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -94,12 +94,17 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
 
   return (
     <Card
-      className="relative cursor-move"
-      style={style}
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
+      style={style}
+      className="relative"
     >
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="absolute inset-x-0 top-0 h-12 cursor-move flex items-center px-4 opacity-0 hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {service.icon && (
