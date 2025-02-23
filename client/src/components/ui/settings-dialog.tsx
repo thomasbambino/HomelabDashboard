@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
 import { Label } from "@/components/ui/label";
+import { UserPreferencesDialog } from "@/components/user-preferences-dialog";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -42,12 +43,11 @@ export function SettingsDialog() {
       adminShowServiceUrl: true,
       logoUrl: "",
       logoUrlLarge: "",
-      showUptimeHistory: user?.showUptimeHistory ?? true,
     },
   });
 
   useEffect(() => {
-    if (settings && user) {
+    if (settings) {
       form.reset({
         id: settings.id,
         siteTitle: settings.siteTitle || "",
@@ -63,69 +63,24 @@ export function SettingsDialog() {
         adminShowServiceUrl: settings.adminShowServiceUrl ?? true,
         logoUrl: settings.logoUrl || "",
         logoUrlLarge: settings.logoUrlLarge || "",
-        showUptimeHistory: user.showUptimeHistory ?? true,
       });
     }
-  }, [settings, user, form]);
+  }, [settings, form]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (formData: any) => {
-      try {
-        // Extract user preference
-        const { showUptimeHistory, ...settingsData } = formData;
-
-        // Only keep the settings fields that are in the schema
-        const validSettingsData = {
-          id: settingsData.id,
-          siteTitle: settingsData.siteTitle,
-          fontFamily: settingsData.fontFamily,
-          loginDescription: settingsData.loginDescription,
-          onlineColor: settingsData.onlineColor,
-          offlineColor: settingsData.offlineColor,
-          showRefreshInterval: settingsData.showRefreshInterval,
-          showLastChecked: settingsData.showLastChecked,
-          showServiceUrl: settingsData.showServiceUrl,
-          adminShowRefreshInterval: settingsData.adminShowRefreshInterval,
-          adminShowLastChecked: settingsData.adminShowLastChecked,
-          adminShowServiceUrl: settingsData.adminShowServiceUrl,
-          logoUrl: settingsData.logoUrl,
-          logoUrlLarge: settingsData.logoUrlLarge,
-        };
-
-        // Update settings
-        const settingsRes = await apiRequest("PATCH", "/api/settings", validSettingsData);
-        if (!settingsRes.ok) {
-          const errorText = await settingsRes.text();
-          throw new Error(`Failed to update settings: ${errorText}`);
-        }
-
-        // Update user preferences
-        const userRes = await apiRequest("PATCH", "/api/user", {
-          id: user?.id,
-          showUptimeHistory,
-        });
-        if (!userRes.ok) {
-          const errorText = await userRes.text();
-          throw new Error(`Failed to update user preferences: ${errorText}`);
-        }
-
-        const [settingsJson, userJson] = await Promise.all([
-          settingsRes.json(),
-          userRes.json(),
-        ]);
-
-        return { settings: settingsJson, user: userJson };
-      } catch (error) {
-        console.error('Update error:', error);
-        throw error;
+    mutationFn: async (data: Settings) => {
+      const res = await apiRequest("PATCH", "/api/settings", data);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to update settings: ${errorText}`);
       }
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Settings updated",
-        description: "All settings have been updated successfully",
+        description: "UI settings have been updated successfully",
       });
       setOpen(false);
     },
@@ -288,31 +243,16 @@ export function SettingsDialog() {
           </TabsContent>
 
           <TabsContent value="visibility">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Personal Preferences</h3>
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="showUptimeHistory"
-                        render={({ field }) => (
-                          <div className="flex items-center justify-between">
-                            <FormLabel htmlFor="showUptimeHistory" className="text-sm text-muted-foreground">Show Uptime History Bar</FormLabel>
-                            <Switch
-                              id="showUptimeHistory"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        )}
-                      />
-                    </div>
-                  </div>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Personal Preferences</h3>
+                  {user && <UserPreferencesDialog user={user} />}
+                </div>
 
-                  {user?.role === 'admin' && (
-                    <>
+                {user?.role === 'admin' && (
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
                       <div className="space-y-2">
                         <h3 className="text-base font-medium">Administrator View</h3>
                         <FormField
@@ -416,17 +356,17 @@ export function SettingsDialog() {
                           )}
                         />
                       </div>
-                    </>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
-                  {updateSettingsMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Save Changes
-                </Button>
-              </form>
-            </Form>
+                      <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </form>
+                  </Form>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </DialogContent>
