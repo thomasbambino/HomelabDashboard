@@ -21,14 +21,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@shared/schema";
-import { ServiceHealthChart } from "./service-health-chart";
 
 interface ServiceCardProps {
   service: Service;
-  timeScale: string;
 }
 
-export function ServiceCard({ service, timeScale }: ServiceCardProps) {
+export function ServiceCard({ service }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -149,14 +147,6 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {user?.showUptimeHistory && (
-          <ServiceHealthChart
-            serviceId={service.id}
-            onlineColor={settings?.onlineColor || "#22c55e"}
-            offlineColor={settings?.offlineColor || "#ef4444"}
-            timeScale={timeScale}
-          />
-        )}
         {showServiceUrl && (
           <a
             href={service.url}

@@ -21,6 +21,7 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     defaultValues: {
       id: user.id,
       showUptimeHistory: user.showUptimeHistory ?? true,
+      showUptimeLog: user.showUptimeLog ?? false,
     },
   });
 
@@ -62,8 +63,24 @@ export function UserPreferencesDialog({ user }: { user: User }) {
           <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium mb-3">Service Card Elements</h3>
+                <h3 className="text-sm font-medium mb-3">Service Status Elements</h3>
                 <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="showUptimeLog"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</Label>
+                          <Switch
+                            id="showUptimeLog"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="showUptimeHistory"
