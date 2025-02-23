@@ -51,34 +51,36 @@ export function UserPreferencesDialog({ user }: { user: User }) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <SettingsIcon className="h-4 w-4 mr-2" />
-          Display Preferences
+          UI Settings & Visibility
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Display Preferences</DialogTitle>
+          <DialogTitle>UI Settings & Visibility</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
             <div className="space-y-4">
-              <Label>Service Card Elements</Label>
-              <div className="space-y-2">
-                <FormField
-                  control={form.control}
-                  name="showUptimeHistory"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="showUptimeHistory" className="cursor-pointer">Show Uptime History</Label>
-                        <Switch
-                          id="showUptimeHistory"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </div>
-                    </FormItem>
-                  )}
-                />
+              <div>
+                <h3 className="text-sm font-medium mb-3">Service Card Elements</h3>
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="showUptimeHistory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="showUptimeHistory" className="text-sm cursor-pointer">Show Uptime History Bar</Label>
+                          <Switch
+                            id="showUptimeHistory"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </div>
             <Button
