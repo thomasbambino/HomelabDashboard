@@ -107,17 +107,22 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             shape={(props: any) => {
               const { x, y, width, height, value, index } = props;
               const totalDataPoints = chartData.length;
-              const rx = index === 0 || index === totalDataPoints -1 ? 4 : 0;
-              const ry = index === 0 || index === totalDataPoints -1 ? 4 : 0;
+              const rx = index === 0 ? { left: 4, right: 0 } : index === totalDataPoints - 1 ? { left: 0, right: 4 } : { left: 0, right: 0 };
+
               return (
-                <rect
-                  x={x}
-                  y={y}
-                  width={width + 0.5} 
-                  height={height}
+                <path
+                  d={`
+                    M ${x + rx.left} ${y}
+                    H ${x + width - rx.right}
+                    ${rx.right ? `A ${rx.right} ${rx.right} 0 0 1 ${x + width} ${y + rx.right}` : ''}
+                    V ${y + height - rx.right}
+                    ${rx.right ? `A ${rx.right} ${rx.right} 0 0 1 ${x + width - rx.right} ${y + height}` : ''}
+                    H ${x + rx.left}
+                    ${rx.left ? `A ${rx.left} ${rx.left} 0 0 1 ${x} ${y + height - rx.left}` : ''}
+                    V ${y + rx.left}
+                    ${rx.left ? `A ${rx.left} ${rx.left} 0 0 1 ${x + rx.left} ${y}` : ''}
+                  `}
                   fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
-                  rx={rx}
-                  ry={ry}
                 />
               );
             }}
