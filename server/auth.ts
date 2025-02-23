@@ -130,4 +130,22 @@ export function setupAuth(app: Express) {
     const settings = await storage.updateSettings(req.body);
     res.json(settings);
   });
+
+  // Add new route for updating user preferences
+  app.patch("/api/users/:id/preferences", isApproved, async (req, res) => {
+    // Only allow users to update their own preferences
+    if (req.user?.id !== parseInt(req.params.id)) {
+      return res.status(403).json({ message: "You can only update your own preferences" });
+    }
+
+    const user = await storage.updateUser({
+      id: parseInt(req.params.id),
+      showRefreshInterval: req.body.showRefreshInterval,
+      showLastChecked: req.body.showLastChecked,
+      showServiceUrl: req.body.showServiceUrl,
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  });
 }

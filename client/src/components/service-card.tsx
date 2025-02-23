@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@/types/settings";
 
-
 interface ServiceCardProps {
   service: Service;
 }
@@ -57,6 +56,11 @@ export function ServiceCard({ service }: ServiceCardProps) {
       });
     },
   });
+
+  // Use admin settings or user preferences based on role
+  const showRefreshInterval = isAdmin ? settings?.showRefreshInterval : user?.showRefreshInterval;
+  const showLastChecked = isAdmin ? settings?.showLastChecked : user?.showLastChecked;
+  const showServiceUrl = isAdmin ? settings?.showServiceUrl : user?.showServiceUrl;
 
   return (
     <Card className={`relative ${service.background ? `bg-[url('${service.background}')] bg-cover` : ''}`}>
@@ -111,7 +115,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {settings?.showServiceUrl && (
+        {showServiceUrl && (
           <a
             href={service.url}
             target="_blank"
@@ -122,12 +126,12 @@ export function ServiceCard({ service }: ServiceCardProps) {
             {service.url}
           </a>
         )}
-        {settings?.showLastChecked && (
+        {showLastChecked && (
           <p className="text-xs text-muted-foreground mt-2">
             Last checked: {new Date(service.lastChecked).toLocaleString()}
           </p>
         )}
-        {settings?.showRefreshInterval && (
+        {showRefreshInterval && (
           <p className="text-xs text-muted-foreground">
             Refresh interval: {service.refreshInterval}s
           </p>
