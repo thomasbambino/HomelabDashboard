@@ -31,6 +31,7 @@ export const settings = pgTable("settings", {
   showRefreshInterval: boolean("showRefreshInterval").default(true),
   showLastChecked: boolean("showLastChecked").default(true),
   showServiceUrl: boolean("showServiceUrl").default(true),
+  showUptimeLog: boolean("showUptimeLog").default(false),
   adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
   adminShowLastChecked: boolean("adminShowLastChecked").default(true),
   adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),

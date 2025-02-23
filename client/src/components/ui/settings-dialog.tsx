@@ -37,6 +37,7 @@ export function SettingsDialog() {
       showRefreshInterval: true,
       showLastChecked: true,
       showServiceUrl: true,
+      showUptimeLog: false,
       adminShowRefreshInterval: true,
       adminShowLastChecked: true,
       adminShowServiceUrl: true,
@@ -279,6 +280,22 @@ export function SettingsDialog() {
 
                   <div className="space-y-2">
                     <h3 className="text-base font-medium">Regular User View</h3>
+                    <FormField
+                      control={form.control}
+                      name="showUptimeLog"
+                      render={({ field }) => (
+                        <div className="flex items-center justify-between">
+                          <FormLabel htmlFor="showUptimeLog" className="text-sm text-muted-foreground">
+                            Show Uptime Log
+                          </FormLabel>
+                          <Switch
+                            id="showUptimeLog"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="showRefreshInterval"
