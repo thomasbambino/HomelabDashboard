@@ -55,6 +55,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
     try {
       const formData = new FormData();
       formData.append('image', file);
+      formData.append('type', uploadType); // Add type to formData
 
       const res = await fetch(getUploadEndpoint(), {
         method: 'POST',
@@ -87,7 +88,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ imageUrl: urlInput }),
+        body: JSON.stringify({ imageUrl: urlInput, type: uploadType }), // Add type to JSON body
         credentials: 'include',
       });
 
