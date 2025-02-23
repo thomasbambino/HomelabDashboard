@@ -4,18 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { Service, ServiceStatusLog } from "@shared/schema";
-import { format } from "date-fns";
+import { format, subHours } from "date-fns";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, ScrollText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 export function UptimeLogDialog() {
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [date, setDate] = useState<DateRange | undefined>(() => {
+    const end = new Date();
+    const start = subHours(end, 24);
+    return { from: start, to: end };
+  });
   const [open, setOpen] = useState(false);
 
   // Fetch services for the filter dropdown
@@ -25,13 +29,13 @@ export function UptimeLogDialog() {
 
   // Fetch status logs with filters
   const { data: logs = [] } = useQuery<(ServiceStatusLog & { service: Service })[]>({
-    queryKey: ["/api/services/status-logs", selectedService, selectedStatus, startDate?.toISOString(), endDate?.toISOString()],
+    queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedService !== "all") params.append("serviceId", selectedService);
       if (selectedStatus !== "all") params.append("status", selectedStatus);
-      if (startDate) params.append("startDate", startDate.toISOString());
-      if (endDate) params.append("endDate", endDate.toISOString());
+      if (date?.from) params.append("startDate", date.from.toISOString());
+      if (date?.to) params.append("endDate", date.to.toISOString());
 
       const response = await fetch(`/api/services/status-logs?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch status logs");
@@ -84,54 +88,44 @@ export function UptimeLogDialog() {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
+                      "w-[280px] justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : <span>Start date</span>}
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
                     initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
                   />
                 </PopoverContent>
               </Popover>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : <span>End date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-
-              {(startDate || endDate) && (
+              {date && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    setStartDate(undefined);
-                    setEndDate(undefined);
+                    const end = new Date();
+                    const start = subHours(end, 24);
+                    setDate({ from: start, to: end });
                   }}
                 >
                   <X className="h-4 w-4" />
