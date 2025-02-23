@@ -9,17 +9,14 @@ export const settings = pgTable("settings", {
   defaultRole: roleEnum("defaultRole").notNull().default('pending'),
   siteTitle: text("siteTitle").default("Homelab Dashboard"),
   fontFamily: text("fontFamily").default("Inter"),
-  // Application logos
   logoUrl: text("logoUrl"),
   logoUrlLarge: text("logoUrlLarge"),
   loginDescription: text("loginDescription").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
   onlineColor: text("onlineColor").default("#22c55e"),
   offlineColor: text("offlineColor").default("#ef4444"),
-  // Visibility controls for regular users
   showRefreshInterval: boolean("showRefreshInterval").default(true),
   showLastChecked: boolean("showLastChecked").default(true),
   showServiceUrl: boolean("showServiceUrl").default(true),
-  // Visibility controls for admin users
   adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
   adminShowLastChecked: boolean("adminShowLastChecked").default(true),
   adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
@@ -32,9 +29,8 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default('pending'),
   approved: boolean("approved").notNull().default(false),
   canViewNSFW: boolean("canViewNSFW").notNull().default(false),
-  showRefreshInterval: boolean("showRefreshInterval").default(true),
-  showLastChecked: boolean("showLastChecked").default(true),
-  showServiceUrl: boolean("showServiceUrl").default(true),
+  showUptimeHistory: boolean("showUptimeHistory").default(true),
+  serviceOrder: integer("serviceOrder").array().default([]),
 });
 
 export const services = pgTable("services", {

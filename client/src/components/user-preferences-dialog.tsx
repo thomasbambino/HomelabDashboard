@@ -20,15 +20,13 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
       id: user.id,
-      showRefreshInterval: user.showRefreshInterval,
-      showLastChecked: user.showLastChecked,
-      showServiceUrl: user.showServiceUrl,
+      showUptimeHistory: user.showUptimeHistory ?? true,
     },
   });
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (data: Partial<User>) => {
-      const res = await apiRequest("PATCH", `/api/users/${user.id}/preferences`, data);
+      const res = await apiRequest("PATCH", `/api/user`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -67,45 +65,13 @@ export function UserPreferencesDialog({ user }: { user: User }) {
               <div className="space-y-2">
                 <FormField
                   control={form.control}
-                  name="showRefreshInterval"
+                  name="showUptimeHistory"
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval</Label>
+                        <Label htmlFor="showUptimeHistory" className="cursor-pointer">Show Uptime History</Label>
                         <Switch
-                          id="showRefreshInterval"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="showLastChecked"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time</Label>
-                        <Switch
-                          id="showLastChecked"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="showServiceUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL</Label>
-                        <Switch
-                          id="showServiceUrl"
+                          id="showUptimeHistory"
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />

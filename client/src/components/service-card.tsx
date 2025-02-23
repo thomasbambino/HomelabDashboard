@@ -149,12 +149,14 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <ServiceHealthChart
-          serviceId={service.id}
-          onlineColor={settings?.onlineColor || "#22c55e"}
-          offlineColor={settings?.offlineColor || "#ef4444"}
-          timeScale={timeScale}
-        />
+        {user?.showUptimeHistory && (
+          <ServiceHealthChart
+            serviceId={service.id}
+            onlineColor={settings?.onlineColor || "#22c55e"}
+            offlineColor={settings?.offlineColor || "#ef4444"}
+            timeScale={timeScale}
+          />
+        )}
         {showServiceUrl && (
           <a
             href={service.url}

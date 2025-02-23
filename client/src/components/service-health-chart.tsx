@@ -11,6 +11,11 @@ interface ServiceHealthChartProps {
   timeScale: string;
 }
 
+interface ChartDataPoint {
+  timestamp: Date;
+  status: number;
+}
+
 export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeScale }: ServiceHealthChartProps) {
   const [tooltipTime, setTooltipTime] = useState<string | null>(null);
 
@@ -44,7 +49,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     .filter(record => new Date(record.timestamp) >= startTime);
 
   // Create continuous data with gaps filled
-  const chartData = [];
+  const chartData: ChartDataPoint[] = [];
   let currentTime = startTime;
   let lastStatus = false;
   let hasDataForPeriod = false;
