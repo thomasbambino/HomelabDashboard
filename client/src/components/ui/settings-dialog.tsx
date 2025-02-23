@@ -39,6 +39,7 @@ export function SettingsDialog() {
       adminShowRefreshInterval: settings?.adminShowRefreshInterval ?? true,
       adminShowLastChecked: settings?.adminShowLastChecked ?? true,
       adminShowServiceUrl: settings?.adminShowServiceUrl ?? true,
+      adminShowUptimeLog: settings?.adminShowUptimeLog ?? false,
       logoUrl: settings?.logoUrl ?? "",
       logoUrlLarge: settings?.logoUrlLarge ?? "",
     },
@@ -104,11 +105,27 @@ export function SettingsDialog() {
                     <div className="space-y-3">
                       <FormField
                         control={form.control}
+                        name="adminShowUptimeLog"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="adminShowUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
+                              <Switch
+                                id="adminShowUptimeLog"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="adminShowRefreshInterval"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm cursor-pointer">Admin Refresh Interval</FormLabel>
+                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
                               <Switch
                                 id="adminShowRefreshInterval"
                                 checked={field.value}
@@ -124,7 +141,7 @@ export function SettingsDialog() {
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm cursor-pointer">Admin Last Checked Time</FormLabel>
+                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
                               <Switch
                                 id="adminShowLastChecked"
                                 checked={field.value}
@@ -140,7 +157,7 @@ export function SettingsDialog() {
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm cursor-pointer">Admin Service URL</FormLabel>
+                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm cursor-pointer">Show Service URL</FormLabel>
                               <Switch
                                 id="adminShowServiceUrl"
                                 checked={field.value}
@@ -179,7 +196,7 @@ export function SettingsDialog() {
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Refresh Interval</FormLabel>
+                              <FormLabel htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</FormLabel>
                               <Switch
                                 id="showRefreshInterval"
                                 checked={field.value}
@@ -195,7 +212,7 @@ export function SettingsDialog() {
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showLastChecked" className="text-sm cursor-pointer">Last Checked Time</FormLabel>
+                              <FormLabel htmlFor="showLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</FormLabel>
                               <Switch
                                 id="showLastChecked"
                                 checked={field.value}
@@ -211,7 +228,7 @@ export function SettingsDialog() {
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="showServiceUrl" className="text-sm cursor-pointer">Service URL</FormLabel>
+                              <FormLabel htmlFor="showServiceUrl" className="text-sm cursor-pointer">Show Service URL</FormLabel>
                               <Switch
                                 id="showServiceUrl"
                                 checked={field.value}
