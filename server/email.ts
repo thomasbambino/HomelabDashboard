@@ -28,8 +28,8 @@ export async function sendServiceStatusEmail(
   data: EmailData
 ): Promise<boolean> {
   try {
-    const subject = settings.notificationEmailSubject || 'Service Status Change Alert';
-    let body = settings.notificationEmailTemplate || 'Service {serviceName} is now {status}.\n\nCurrent Status: {status}\nLast Checked: {lastChecked}\nResponse Time: {responseTime}ms';
+    const subject = settings.notification_email_subject || 'Service Status Change Alert';
+    let body = settings.notification_email_template || 'Service {serviceName} is now {status}.\n\nCurrent Status: {status}\nLast Checked: {lastChecked}\nResponse Time: {responseTime}ms';
 
     // Replace template variables
     body = body
