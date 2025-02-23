@@ -68,6 +68,10 @@ export class DatabaseStorage implements IStorage {
       ...insertUser,
       role: settings.default_role ?? 'pending',
       approved: settings.default_role !== 'pending',
+      show_uptime_log: settings.show_uptime_log,
+      show_service_url: settings.show_service_url,
+      show_refresh_interval: settings.show_refresh_interval,
+      show_last_checked: settings.show_last_checked,
     }).returning();
 
     return user;
@@ -147,6 +151,11 @@ export class DatabaseStorage implements IStorage {
           default_role: 'pending',
           site_title: 'Homelab Dashboard',
           font_family: 'Inter',
+          show_uptime_log: true,
+          show_service_url: true,
+          show_refresh_interval: true,
+          show_last_checked: true,
+
         })
         .returning();
       return newSettings;
