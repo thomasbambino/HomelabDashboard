@@ -140,18 +140,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSettings(settingsData: Partial<Settings>): Promise<Settings> {
-    const [existingSettings] = await db.select().from(settingsTable);
-    if (!existingSettings) {
-      const [newSettings] = await db.insert(settingsTable).values(settingsData).returning();
-      return newSettings;
-    }
+    // First get or create settings
+    let settings = await this.getSettings();
 
-    // Use separate queries to avoid the 'where' type error
+    // Now update with new data
     const [updatedSettings] = await db
       .update(settingsTable)
       .set(settingsData)
-      .where(eq(settingsTable.id, existingSettings.id))
+      .where(eq(settingsTable.id, settings.id))
       .returning();
+
     return updatedSettings;
   }
 
