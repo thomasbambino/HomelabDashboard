@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@shared/schema";
 import { ServiceHealthChart } from "./service-health-chart";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ServiceCardProps {
   service: Service;
@@ -29,6 +31,14 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, timeScale }: ServiceCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: service.id });
+
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -76,8 +86,20 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     backgroundPosition: 'center',
   } : {};
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...cardStyle,
+  };
+
   return (
-    <Card className="relative" style={cardStyle}>
+    <Card
+      className="relative cursor-move"
+      style={style}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {service.icon && (

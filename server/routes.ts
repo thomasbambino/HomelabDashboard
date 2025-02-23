@@ -179,22 +179,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/services", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const services = await storage.getAllServices();
+    const services = req.user ?
+      await storage.getUserServiceOrder(req.user.id) :
+      await storage.getAllServices();
     res.json(services);
   });
 
-  app.post("/api/services", async (req, res) => {
+  app.post("/api/services/order", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const data = insertServiceSchema.parse(req.body);
-      const service = await storage.createService(data);
-      res.status(201).json(service);
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
+      const serviceIds: number[] = req.body.serviceIds;
+      if (!Array.isArray(serviceIds)) {
+        return res.status(400).json({ message: "Invalid service order" });
       }
+      await storage.updateUserServiceOrder(req.user.id, serviceIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Service order error:', error);
+      res.status(500).json({ message: "Failed to update service order" });
     }
   });
 

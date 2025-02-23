@@ -1,11 +1,11 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceHealthHistory, InsertServiceHealthHistory, ServiceHealthHistory } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceHealthHistory, InsertServiceHealthHistory, ServiceHealthHistory, userServiceOrder, InsertUserServiceOrder } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, asc } from "drizzle-orm";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
+import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 
-const PostgresSessionStore = connectPg(session);
+const PostgresSessionStore = connectPgSimple(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -25,6 +25,8 @@ export interface IStorage {
   sessionStore: session.Store;
   createServiceHealthRecord(record: InsertServiceHealthHistory): Promise<ServiceHealthHistory>;
   getServiceHealthHistory(serviceId: number, limit?: number): Promise<ServiceHealthHistory[]>;
+  getUserServiceOrder(userId: number): Promise<Service[]>;
+  updateUserServiceOrder(userId: number, serviceIds: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -149,6 +151,43 @@ export class DatabaseStorage implements IStorage {
       .where(eq(serviceHealthHistory.serviceId, serviceId))
       .orderBy(desc(serviceHealthHistory.timestamp))
       .limit(limit);
+  }
+
+  async getUserServiceOrder(userId: number): Promise<Service[]> {
+    const orderedServices = await db
+      .select({
+        service: services,
+        order: userServiceOrder.order,
+      })
+      .from(services)
+      .leftJoin(
+        userServiceOrder,
+        and(
+          eq(userServiceOrder.serviceId, services.id),
+          eq(userServiceOrder.userId, userId)
+        )
+      )
+      .orderBy(asc(userServiceOrder.order), services.id);
+
+    return orderedServices.map(({ service }) => service);
+  }
+
+  async updateUserServiceOrder(userId: number, serviceIds: number[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(userServiceOrder)
+        .where(eq(userServiceOrder.userId, userId));
+
+      await tx
+        .insert(userServiceOrder)
+        .values(
+          serviceIds.map((serviceId, index) => ({
+            userId,
+            serviceId,
+            order: index,
+          }))
+        );
+    });
   }
 }
 
