@@ -63,8 +63,8 @@ export class DatabaseStorage implements IStorage {
     const [settings] = await db.select().from(settingsTable);
     const [user] = await db.insert(users).values({
       ...insertUser,
-      role: settings?.defaultRole ?? 'pending',
-      approved: settings?.defaultRole === 'pending' ? false : true,
+      role: settings?.default_role ?? 'pending',
+      approved: settings?.default_role === 'pending' ? false : true,
     }).returning();
     return user;
   }
@@ -158,22 +158,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog> {
-    console.log('Creating service status log:', { serviceId, status, responseTime, timestamp: new Date() });
-    try {
-      const [newLog] = await db.insert(serviceStatusLogs)
-        .values({
-          serviceId,
-          status,
-          responseTime,
-          timestamp: new Date(),
-        })
-        .returning();
-      console.log('Created service status log:', newLog);
-      return newLog;
-    } catch (error) {
-      console.error('Error in createServiceStatusLog:', error);
-      throw error;
-    }
+    const [newLog] = await db.insert(serviceStatusLogs)
+      .values({
+        serviceId,
+        status,
+        responseTime,
+        timestamp: new Date(),
+      })
+      .returning();
+    return newLog;
   }
 
   async getServiceStatusLogs(filters?: {
@@ -182,76 +175,38 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     status?: boolean;
   }): Promise<ServiceStatusLog[]> {
-    console.log('Starting getServiceStatusLogs with filters:', filters);
+    let query = db.select().from(serviceStatusLogs);
 
-    try {
-      // Start with base query
-      let baseQuery = db
-        .select()
-        .from(serviceStatusLogs)
-        .orderBy(serviceStatusLogs.serviceId, desc(serviceStatusLogs.timestamp));
-
-      // Build conditions array
-      const conditions = [];
-
-      if (filters?.serviceId !== undefined) {
-        console.log('Adding serviceId filter:', filters.serviceId);
-        conditions.push(eq(serviceStatusLogs.serviceId, filters.serviceId));
-      }
-
-      if (filters?.status !== undefined) {
-        console.log('Adding status filter:', filters.status);
-        conditions.push(eq(serviceStatusLogs.status, filters.status));
-      }
-
-      if (filters?.startDate && filters?.endDate) {
-        console.log('Adding date range filter:', {
-          start: filters.startDate,
-          end: filters.endDate
-        });
-        conditions.push(
-          and(
-            gte(serviceStatusLogs.timestamp, filters.startDate),
-            lte(serviceStatusLogs.timestamp, filters.endDate)
-          )
-        );
-      }
-
-      // Apply all conditions if any exist
-      if (conditions.length > 0) {
-        baseQuery = baseQuery.where(and(...conditions));
-      }
-
-      // Execute the query
-      const logs = await baseQuery;
-      console.log('Raw logs count:', logs.length);
-
-      // Filter to only include status changes, tracking last status per service
-      const lastStatusByService = new Map<number, boolean>();
-      const statusChanges = logs.filter((log) => {
-        const lastStatus = lastStatusByService.get(log.serviceId);
-        const isChange = lastStatus === undefined || lastStatus !== log.status;
-        lastStatusByService.set(log.serviceId, log.status);
-        return isChange;
-      });
-
-      console.log('Status changes count:', statusChanges.length);
-      return statusChanges;
-    } catch (error) {
-      console.error('Error in getServiceStatusLogs:', error);
-      throw error;
+    if (filters?.serviceId !== undefined) {
+      query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
     }
+
+    if (filters?.status !== undefined) {
+      query = query.where(eq(serviceStatusLogs.status, filters.status));
+    }
+
+    if (filters?.startDate && filters?.endDate) {
+      query = query.where(
+        and(
+          gte(serviceStatusLogs.timestamp, filters.startDate),
+          lte(serviceStatusLogs.timestamp, filters.endDate)
+        )
+      );
+    }
+
+    return await query.orderBy(desc(serviceStatusLogs.timestamp));
   }
 
   async getService(id: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(eq(services.id, id));
     return service;
   }
+
   async getServiceNotifications(userId: number): Promise<ServiceNotification[]> {
     return await db
       .select()
       .from(serviceNotifications)
-      .where(eq(serviceNotifications.userId, userId));
+      .where(eq(serviceNotifications.user_id, userId));
   }
 
   async getServiceNotification(userId: number, serviceId: number): Promise<ServiceNotification | undefined> {
@@ -260,8 +215,8 @@ export class DatabaseStorage implements IStorage {
       .from(serviceNotifications)
       .where(
         and(
-          eq(serviceNotifications.userId, userId),
-          eq(serviceNotifications.serviceId, serviceId)
+          eq(serviceNotifications.user_id, userId),
+          eq(serviceNotifications.service_id, serviceId)
         )
       );
     return notification;
@@ -281,8 +236,8 @@ export class DatabaseStorage implements IStorage {
       .set({ enabled })
       .where(
         and(
-          eq(serviceNotifications.userId, userId),
-          eq(serviceNotifications.serviceId, serviceId)
+          eq(serviceNotifications.user_id, userId),
+          eq(serviceNotifications.service_id, serviceId)
         )
       )
       .returning();
@@ -294,8 +249,8 @@ export class DatabaseStorage implements IStorage {
       .delete(serviceNotifications)
       .where(
         and(
-          eq(serviceNotifications.userId, userId),
-          eq(serviceNotifications.serviceId, serviceId)
+          eq(serviceNotifications.user_id, userId),
+          eq(serviceNotifications.service_id, serviceId)
         )
       )
       .returning();
