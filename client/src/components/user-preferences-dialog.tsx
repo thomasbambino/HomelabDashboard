@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, updateUserSchema } from "@shared/schema";
@@ -29,7 +29,7 @@ export function UserPreferencesDialog({ user }: { user: User }) {
   });
 
   const updatePreferencesMutation = useMutation({
-    mutationFn: async (data: Partial<User>) => {
+    mutationFn: async (data: Parameters<typeof updateUserSchema.parse>[0]) => {
       const res = await apiRequest("PATCH", `/api/users/${user.id}/preferences`, data);
       return res.json();
     },
@@ -68,63 +68,20 @@ export function UserPreferencesDialog({ user }: { user: User }) {
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
           </TabsList>
+          <TabsContent value="general">
+            <div className="text-sm text-muted-foreground">
+              General settings coming soon
+            </div>
+          </TabsContent>
+          <TabsContent value="branding">
+            <div className="text-sm text-muted-foreground">
+              Branding settings coming soon
+            </div>
+          </TabsContent>
           <TabsContent value="visibility">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Administrator View</h3>
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="show_refresh_interval"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="admin-show_refresh_interval" className="text-sm cursor-pointer">Refresh Interval</Label>
-                              <Switch
-                                id="admin-show_refresh_interval"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="show_last_checked"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="admin-show_last_checked" className="text-sm cursor-pointer">Last Checked Time</Label>
-                              <Switch
-                                id="admin-show_last_checked"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="show_service_url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="admin-show_service_url" className="text-sm cursor-pointer">Service URL</Label>
-                              <Switch
-                                id="admin-show_service_url"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
                   <div>
                     <h3 className="text-sm font-medium mb-3">Regular User View</h3>
                     <div className="space-y-3">
