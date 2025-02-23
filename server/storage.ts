@@ -1,6 +1,6 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceHealthHistory, InsertServiceHealthHistory, ServiceHealthHistory } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -24,8 +24,14 @@ export interface IStorage {
   getSettings(): Promise<Settings>;
   updateSettings(settings: Partial<Settings>): Promise<Settings>;
   sessionStore: session.Store;
-  createServiceHealthRecord(record: InsertServiceHealthHistory): Promise<ServiceHealthHistory>;
-  getServiceHealthHistory(serviceId: number, limit?: number): Promise<ServiceHealthHistory[]>;
+  createServiceStatusLog(serviceId: number, status: boolean): Promise<ServiceStatusLog>;
+  getServiceStatusLogs(filters?: { 
+    serviceId?: number;
+    startDate?: Date;
+    endDate?: Date;
+    status?: boolean;
+  }): Promise<ServiceStatusLog[]>;
+  getService(id: number): Promise<Service | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -146,18 +152,48 @@ export class DatabaseStorage implements IStorage {
     return updatedSettings;
   }
 
-  async createServiceHealthRecord(record: InsertServiceHealthHistory): Promise<ServiceHealthHistory> {
-    const [newRecord] = await db.insert(serviceHealthHistory).values(record).returning();
-    return newRecord;
+  async createServiceStatusLog(serviceId: number, status: boolean): Promise<ServiceStatusLog> {
+    const [newLog] = await db.insert(serviceStatusLogs)
+      .values({
+        serviceId,
+        status,
+        timestamp: new Date(),
+      })
+      .returning();
+    return newLog;
   }
 
-  async getServiceHealthHistory(serviceId: number, limit: number = 100): Promise<ServiceHealthHistory[]> {
-    return await db
-      .select()
-      .from(serviceHealthHistory)
-      .where(eq(serviceHealthHistory.serviceId, serviceId))
-      .orderBy(desc(serviceHealthHistory.timestamp))
-      .limit(limit);
+  async getServiceStatusLogs(filters?: {
+    serviceId?: number;
+    startDate?: Date;
+    endDate?: Date;
+    status?: boolean;
+  }): Promise<ServiceStatusLog[]> {
+    let query = db.select().from(serviceStatusLogs);
+
+    if (filters?.serviceId !== undefined) {
+      query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
+    }
+
+    if (filters?.status !== undefined) {
+      query = query.where(eq(serviceStatusLogs.status, filters.status));
+    }
+
+    if (filters?.startDate) {
+      query = query.where(
+        and(
+          gte(serviceStatusLogs.timestamp, filters.startDate),
+          lte(serviceStatusLogs.timestamp, filters.endDate || new Date())
+        )
+      );
+    }
+
+    return await query.orderBy(desc(serviceStatusLogs.timestamp));
+  }
+
+  async getService(id: number): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service;
   }
 }
 

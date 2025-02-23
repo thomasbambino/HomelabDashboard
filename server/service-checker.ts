@@ -31,9 +31,19 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
 
 async function updateServiceStatus(service: Service) {
   console.log(`Checking service ${service.name} (${service.url})`);
-  const { status, responseTime } = await checkHttpService(service.url);
+  const { status } = await checkHttpService(service.url);
 
-  console.log(`Service ${service.name} status: ${status}, response time: ${responseTime}ms`);
+  console.log(`Service ${service.name} status: ${status}`);
+
+  // Only create a log entry if the status has changed
+  if (service.status !== status) {
+    try {
+      await storage.createServiceStatusLog(service.id, status);
+      console.log(`Status change logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`);
+    } catch (error) {
+      console.error('Error logging status change:', error);
+    }
+  }
 
   // Update service status
   await db
@@ -43,19 +53,6 @@ async function updateServiceStatus(service: Service) {
       lastChecked: new Date().toISOString() 
     })
     .where(eq(services.id, service.id));
-
-  // Record health history
-  try {
-    await storage.createServiceHealthRecord({
-      serviceId: service.id,
-      status,
-      responseTime,
-      timestamp: new Date()
-    });
-    console.log(`Health record created for service ${service.name}`);
-  } catch (error) {
-    console.error('Error creating health record:', error);
-  }
 }
 
 export async function startServiceChecker() {

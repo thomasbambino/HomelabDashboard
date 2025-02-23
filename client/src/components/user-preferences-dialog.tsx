@@ -20,14 +20,13 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
       id: user.id,
-      showUptimeHistory: user.showUptimeHistory ?? true,
       showUptimeLog: user.showUptimeLog ?? false,
     },
   });
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (data: Partial<User>) => {
-      const res = await apiRequest("PATCH", `/api/user`, data);
+      const res = await apiRequest("PATCH", `/api/users/${user.id}/preferences`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -74,22 +73,6 @@ export function UserPreferencesDialog({ user }: { user: User }) {
                           <Label htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</Label>
                           <Switch
                             id="showUptimeLog"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="showUptimeHistory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="showUptimeHistory" className="text-sm cursor-pointer">Show Uptime History Bar</Label>
-                          <Switch
-                            id="showUptimeHistory"
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />

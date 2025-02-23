@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, insertServiceHealthHistorySchema } from "@shared/schema";
+import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { ZodError } from "zod";
 import multer from "multer";
@@ -292,34 +292,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Add new routes for service health history
-  app.get("/api/services/:id/health-history", async (req, res) => {
+  // Add new route for service status logs with filtering
+  app.get("/api/services/status-logs", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const serviceId = parseInt(req.params.id);
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-      const history = await storage.getServiceHealthHistory(serviceId, limit);
-      res.json(history);
-    } catch (error) {
-      console.error('Health history error:', error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
 
-  app.post("/api/services/:id/health-history", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const serviceId = parseInt(req.params.id);
-      const data = insertServiceHealthHistorySchema.parse({ ...req.body, serviceId });
-      const record = await storage.createServiceHealthRecord(data);
-      res.status(201).json(record);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        console.error('Health record error:', error);
-        res.status(500).json({ message: "Internal server error" });
+      const filters: {
+        serviceId?: number;
+        startDate?: Date;
+        endDate?: Date;
+        status?: boolean;
+      } = {};
+
+      if (req.query.serviceId) {
+        filters.serviceId = parseInt(req.query.serviceId as string);
       }
+
+      if (req.query.status) {
+        filters.status = req.query.status === 'true';
+      }
+
+      if (req.query.date) {
+        const date = new Date(req.query.date as string);
+        filters.startDate = new Date(date.setHours(0, 0, 0, 0));
+        filters.endDate = new Date(date.setHours(23, 59, 59, 999));
+      }
+
+      const logs = await storage.getServiceStatusLogs(filters);
+
+      // Fetch service details for each log
+      const logsWithServiceDetails = await Promise.all(
+        logs.map(async (log) => {
+          const service = await storage.getService(log.serviceId);
+          return { ...log, service };
+        })
+      );
+
+      res.json(logsWithServiceDetails);
+    } catch (error) {
+      console.error('Error fetching status logs:', error);
+      res.status(500).json({ message: "Failed to fetch status logs" });
     }
   });
 
