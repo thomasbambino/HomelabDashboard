@@ -234,44 +234,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/game-servers", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const servers = await storage.getAllGameServers();
-    res.json(servers);
-  });
-
-  app.post("/api/game-servers", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const data = insertGameServerSchema.parse(req.body);
-      const server = await storage.createGameServer(data);
-      res.status(201).json(server);
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
-    }
-  });
-
-  app.put("/api/game-servers/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const data = updateGameServerSchema.parse({ ...req.body, id: parseInt(req.params.id) });
-      const server = await storage.updateGameServer(data);
-      if (!server) {
-        return res.status(404).json({ message: "Game server not found" });
-      }
-      res.json(server);
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
-    }
-  });
 
   // Add new routes for service health history
   app.get("/api/services/:id/health-history", async (req, res) => {

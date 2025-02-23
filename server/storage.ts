@@ -71,14 +71,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllServices(): Promise<Service[]> {
-    return await db
-      .select()
-      .from(services)
-      .orderBy(services.order)
-      .then(services => services.map((service, index) => ({
-        ...service,
-        order: service.order ?? index
-      })));
+    return await db.select().from(services);
   }
 
   async getAllGameServers(): Promise<GameServer[]> {

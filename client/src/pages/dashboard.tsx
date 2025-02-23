@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Service, GameServer, Settings } from "@shared/schema";
-import { ServicesGrid } from "@/components/services-grid";
+import { ServiceCard } from "@/components/service-card";
 import { GameServerCard } from "@/components/game-server-card";
 import { AddServiceDialog } from "@/components/add-service-dialog";
 import { AddGameServerDialog } from "@/components/add-game-server-dialog";
@@ -12,7 +12,6 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimeScaleSelector } from "@/components/time-scale-selector";
 import { useState } from "react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -33,17 +32,6 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.role === 'admin';
-
-  const handleServiceReorder = async (reorderedServices: Service[]) => {
-    try {
-      await apiRequest("PUT", "/api/services/reorder", {
-        serviceIds: reorderedServices.map(s => s.id)
-      });
-      queryClient.setQueryData(["/api/services"], reorderedServices);
-    } catch (error) {
-      console.error("Failed to save service order:", error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -106,19 +94,17 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold">Services</h2>
               {isAdmin && <AddServiceDialog />}
             </div>
-            {servicesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array(3).fill(0).map((_, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {servicesLoading ? (
+                Array(3).fill(0).map((_, i) => (
                   <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <ServicesGrid
-                services={services}
-                timeScale={timeScale}
-                onReorder={handleServiceReorder}
-              />
-            )}
+                ))
+              ) : (
+                services.map((service) => (
+                  <ServiceCard key={service.id} service={service} timeScale={timeScale} />
+                ))
+              )}
+            </div>
           </section>
         </div>
       </div>
