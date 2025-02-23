@@ -55,15 +55,21 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
     try {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('type', uploadType); // Add type to formData
+      formData.append('type', uploadType);
 
       const res = await fetch(getUploadEndpoint(), {
         method: 'POST',
         body: formData,
         credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        },
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
 
       const data = await res.json();
       onChange(data.url);
@@ -87,12 +93,16 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ imageUrl: urlInput, type: uploadType }), // Add type to JSON body
+        body: JSON.stringify({ imageUrl: urlInput, type: uploadType }),
         credentials: 'include',
       });
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
 
       const data = await res.json();
       onChange(data.url);
@@ -123,10 +133,14 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
             </div>
           </div>
           <Button
+            type="button"
             variant="destructive"
             size="icon"
             className="absolute right-1 top-1 h-6 w-6"
-            onClick={onClear}
+            onClick={(e) => {
+              e.preventDefault();
+              onClear();
+            }}
           >
             <X className="h-3 w-3" />
           </Button>
@@ -141,6 +155,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
             className="flex-1"
           />
           <Button
+            type="button"
             onClick={handleUrlSubmit}
             disabled={uploading || !urlInput}
             size="sm"
@@ -148,6 +163,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
             {uploading ? "Uploading..." : "Add"}
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowUrlInput(false)}
@@ -171,6 +187,7 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
             />
           </label>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => setShowUrlInput(true)}
