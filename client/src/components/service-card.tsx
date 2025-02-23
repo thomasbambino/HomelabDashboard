@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@shared/schema";
 import { ServiceHealthChart } from "./service-health-chart";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 interface ServiceCardProps {
   service: Service;
@@ -37,6 +37,7 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     setNodeRef,
     transform,
     transition,
+    isDragging
   } = useSortable({ id: service.id });
 
   const [showEdit, setShowEdit] = useState(false);
@@ -44,7 +45,6 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
 
-  // Hide NSFW content from users without permission
   if (service.isNSFW && !user?.canViewNSFW && !isAdmin) {
     return null;
   }
@@ -74,12 +74,10 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     },
   });
 
-  // Use the appropriate visibility settings based on user role
   const showRefreshInterval = isAdmin ? settings?.adminShowRefreshInterval : settings?.showRefreshInterval;
   const showLastChecked = isAdmin ? settings?.adminShowLastChecked : settings?.showLastChecked;
   const showServiceUrl = isAdmin ? settings?.adminShowServiceUrl : settings?.showServiceUrl;
 
-  // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
     backgroundImage: `url('${service.background}')`,
     backgroundSize: 'cover',
@@ -90,13 +88,15 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     ...cardStyle,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className="relative"
+      className="relative touch-none"
     >
       <div 
         {...attributes} 
