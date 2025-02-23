@@ -90,6 +90,7 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
     ...cardStyle,
     zIndex: isDragging ? 50 : 'auto',
     opacity: isDragging ? 0.5 : 1,
+    position: 'relative' as const,
   };
 
   return (
@@ -101,11 +102,11 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
       <div 
         {...attributes} 
         {...listeners}
-        className="absolute inset-x-0 top-0 h-12 cursor-move flex items-center px-4 opacity-0 hover:opacity-100 transition-opacity"
+        className="absolute inset-x-0 top-0 h-12 z-50 cursor-move flex items-center justify-start px-4 hover:bg-accent/50 transition-colors"
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3">
         <div className="flex items-center gap-2">
           {service.icon && (
             <div className="w-6 h-6 flex items-center justify-center">
