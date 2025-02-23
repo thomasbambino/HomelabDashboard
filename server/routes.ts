@@ -304,6 +304,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new route for reordering services
+  app.put("/api/services/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { serviceIds } = req.body;
+
+      // Get all services to verify the IDs
+      const allServices = await storage.getAllServices();
+      const validIds = new Set(allServices.map(s => s.id));
+
+      // Validate that all provided IDs exist
+      if (!Array.isArray(serviceIds) || !serviceIds.every(id => validIds.has(id))) {
+        return res.status(400).json({ message: "Invalid service IDs provided" });
+      }
+
+      // Update each service's order in sequence
+      for (let i = 0; i < serviceIds.length; i++) {
+        await storage.updateService({
+          id: serviceIds[i],
+          order: i,
+        });
+      }
+
+      // Return the reordered services
+      const updatedServices = await storage.getAllServices();
+      res.json(updatedServices);
+    } catch (error) {
+      console.error('Service reorder error:', error);
+      res.status(500).json({ message: "Failed to reorder services" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
