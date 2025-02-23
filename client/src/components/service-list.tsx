@@ -12,20 +12,25 @@ interface ServiceListProps {
 
 export function ServiceList({ services, timeScale }: ServiceListProps) {
   const { user } = useAuth();
-  const { data: settings } = useQuery<Settings>({
+  const { data: settings, isLoading: isSettingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  // Debug log to see what settings we're getting
-  console.log('Settings:', settings);
-  console.log('User role:', user?.role);
-  console.log('Should show uptime log:', user?.role === 'admin' ? settings?.adminShowUptimeLog : settings?.showUptimeLog);
+  // Wait for both user and settings data
+  if (!user || isSettingsLoading || !settings) {
+    return (
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {services.map((service) => (
+          <ServiceCard key={service.id} service={service} />
+        ))}
+      </div>
+    );
+  }
 
-  // Show uptime log if user is admin and adminShowUptimeLog is true
-  // or if user is not admin and showUptimeLog is true
-  const showUptimeLog = user?.role === 'admin' 
-    ? settings?.adminShowUptimeLog 
-    : settings?.showUptimeLog;
+  // Determine if uptime log should be shown based on role and settings
+  const showUptimeLog = user.role === 'admin' 
+    ? settings.adminShowUptimeLog 
+    : settings.showUptimeLog;
 
   return (
     <div className="space-y-4">
