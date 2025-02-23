@@ -273,6 +273,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/game-servers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const id = parseInt(req.params.id);
+      const server = await storage.deleteGameServer(id);
+      if (!server) {
+        return res.status(404).json({ message: "Game server not found" });
+      }
+      res.json(server);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+
   // Add new routes for service health history
   app.get("/api/services/:id/health-history", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
