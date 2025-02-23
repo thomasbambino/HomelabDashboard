@@ -1,6 +1,6 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceHealthHistory, InsertServiceHealthHistory, ServiceHealthHistory } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -23,6 +23,8 @@ export interface IStorage {
   getSettings(): Promise<Settings>;
   updateSettings(settings: Partial<Settings>): Promise<Settings>;
   sessionStore: session.Store;
+  createServiceHealthRecord(record: InsertServiceHealthHistory): Promise<ServiceHealthHistory>;
+  getServiceHealthHistory(serviceId: number, limit?: number): Promise<ServiceHealthHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -133,6 +135,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(settingsTable.id, existingSettings.id))
       .returning();
     return updatedSettings;
+  }
+
+  async createServiceHealthRecord(record: InsertServiceHealthHistory): Promise<ServiceHealthHistory> {
+    const [newRecord] = await db.insert(serviceHealthHistory).values(record).returning();
+    return newRecord;
+  }
+
+  async getServiceHealthHistory(serviceId: number, limit: number = 100): Promise<ServiceHealthHistory[]> {
+    return await db
+      .select()
+      .from(serviceHealthHistory)
+      .where(eq(serviceHealthHistory.serviceId, serviceId))
+      .orderBy(desc(serviceHealthHistory.timestamp))
+      .limit(limit);
   }
 }
 

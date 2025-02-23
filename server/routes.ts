@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema } from "@shared/schema";
+import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, insertServiceHealthHistorySchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
@@ -159,8 +159,8 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     }
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(400).json({ 
-      message: error instanceof Error ? error.message : "Upload failed" 
+    res.status(400).json({
+      message: error instanceof Error ? error.message : "Upload failed"
     });
   }
 };
@@ -263,6 +263,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Game server not found" });
       }
       res.json(server);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  // Add new routes for service health history
+  app.get("/api/services/:id/health-history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const serviceId = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const history = await storage.getServiceHealthHistory(serviceId, limit);
+      res.json(history);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.post("/api/services/:id/health-history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const serviceId = parseInt(req.params.id);
+      const data = insertServiceHealthHistorySchema.parse({ ...req.body, serviceId });
+      const record = await storage.createServiceHealthRecord(data);
+      res.status(201).json(record);
     } catch (error) {
       if (error instanceof Error) {
         res.status(400).json({ message: fromZodError(error).message });

@@ -21,6 +21,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@shared/schema";
+import { ServiceHealthChart } from "./service-health-chart";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 interface ServiceCardProps {
   service: Service;
@@ -28,6 +31,7 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showChart, setShowChart] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
@@ -80,8 +84,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
         <div className="flex items-center gap-2">
           {service.icon && (
             <div className="w-6 h-6 flex items-center justify-center">
-              <img 
-                src={service.icon} 
+              <img
+                src={service.icon}
                 alt={`${service.name} icon`}
                 className="max-w-full max-h-full object-contain"
               />
@@ -146,29 +150,48 @@ export function ServiceCard({ service }: ServiceCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
-        {showServiceUrl && (
-          <a
-            href={service.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {service.url}
-          </a>
-        )}
-        {showLastChecked && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Last checked: {new Date(service.lastChecked).toLocaleString()}
-          </p>
-        )}
-        {showRefreshInterval && (
-          <p className="text-sm text-muted-foreground">
-            Refresh interval: {service.refreshInterval}s
-          </p>
-        )}
-      </CardContent>
+      <Collapsible open={showChart} onOpenChange={setShowChart}>
+        <CardContent>
+          {showServiceUrl && (
+            <a
+              href={service.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {service.url}
+            </a>
+          )}
+          {showLastChecked && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Last checked: {new Date(service.lastChecked).toLocaleString()}
+            </p>
+          )}
+          {showRefreshInterval && (
+            <p className="text-sm text-muted-foreground">
+              Refresh interval: {service.refreshInterval}s
+            </p>
+          )}
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-2 flex items-center justify-center"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${showChart ? 'transform rotate-180' : ''}`} />
+              {showChart ? 'Hide Health Trend' : 'Show Health Trend'}
+            </Button>
+          </CollapsibleTrigger>
+        </CardContent>
+        <CollapsibleContent>
+          <ServiceHealthChart
+            serviceId={service.id}
+            onlineColor={settings?.onlineColor || "#22c55e"}
+            offlineColor={settings?.offlineColor || "#ef4444"}
+          />
+        </CollapsibleContent>
+      </Collapsible>
       {isAdmin && (
         <EditServiceDialog
           service={service}
