@@ -60,12 +60,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [settings] = await db.select().from(settingsTable);
+    // First ensure we have default settings
+    let settings = await this.getSettings();
+
+    // Create the user with default settings
     const [user] = await db.insert(users).values({
       ...insertUser,
-      role: settings?.default_role ?? 'pending',
-      approved: settings?.default_role === 'pending' ? false : true,
+      role: settings.default_role ?? 'pending',
+      approved: settings.default_role !== 'pending',
     }).returning();
+
     return user;
   }
 
@@ -137,7 +141,14 @@ export class DatabaseStorage implements IStorage {
   async getSettings(): Promise<Settings> {
     const [existingSettings] = await db.select().from(settingsTable);
     if (!existingSettings) {
-      const [newSettings] = await db.insert(settingsTable).values({}).returning();
+      // Create default settings if none exist
+      const [newSettings] = await db.insert(settingsTable)
+        .values({
+          default_role: 'pending',
+          site_title: 'Homelab Dashboard',
+          font_family: 'Inter',
+        })
+        .returning();
       return newSettings;
     }
     return existingSettings;
