@@ -21,6 +21,9 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     defaultValues: {
       id: user.id,
       showUptimeLog: user.showUptimeLog ?? false,
+      showServiceUrl: user.showServiceUrl ?? true,
+      showRefreshInterval: user.showRefreshInterval ?? true,
+      showLastChecked: user.showLastChecked ?? true,
     },
   });
 
@@ -73,6 +76,54 @@ export function UserPreferencesDialog({ user }: { user: User }) {
                           <Label htmlFor="showUptimeLog" className="text-sm cursor-pointer">Show Uptime Log</Label>
                           <Switch
                             id="showUptimeLog"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="showServiceUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="showServiceUrl" className="text-sm cursor-pointer">Show Service URL</Label>
+                          <Switch
+                            id="showServiceUrl"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="showRefreshInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="showRefreshInterval" className="text-sm cursor-pointer">Show Refresh Interval</Label>
+                          <Switch
+                            id="showRefreshInterval"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="showLastChecked"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="showLastChecked" className="text-sm cursor-pointer">Show Last Checked Time</Label>
+                          <Switch
+                            id="showLastChecked"
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
