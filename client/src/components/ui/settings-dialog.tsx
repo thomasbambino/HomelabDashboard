@@ -14,7 +14,6 @@ import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
-import { Label } from "@/components/ui/label";
 import { UserPreferencesDialog } from "@/components/user-preferences-dialog";
 
 export function SettingsDialog() {
@@ -30,6 +29,7 @@ export function SettingsDialog() {
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
       id: 1,
+      defaultRole: "pending" as const,
       siteTitle: "",
       fontFamily: "",
       loginDescription: "",
@@ -50,6 +50,7 @@ export function SettingsDialog() {
     if (settings) {
       form.reset({
         id: settings.id,
+        defaultRole: settings.defaultRole,
         siteTitle: settings.siteTitle || "",
         fontFamily: settings.fontFamily || "",
         loginDescription: settings.loginDescription || "",
@@ -68,8 +69,9 @@ export function SettingsDialog() {
   }, [settings, form]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: Settings) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
+    mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
+      const validatedData = updateSettingsSchema.parse(data);
+      const res = await apiRequest("PATCH", "/api/settings", validatedData);
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Failed to update settings: ${errorText}`);
