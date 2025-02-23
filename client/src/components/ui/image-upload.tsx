@@ -9,13 +9,25 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   onClear: () => void;
   className?: string;
+  uploadType?: 'service' | 'site' | 'game';
 }
 
-export function ImageUpload({ value, onChange, onClear, className }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, onClear, className, uploadType = 'service' }: ImageUploadProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
+
+  const getUploadEndpoint = () => {
+    switch (uploadType) {
+      case 'site':
+        return '/api/upload/site';
+      case 'game':
+        return '/api/upload/game';
+      default:
+        return '/api/upload/service';
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,7 +56,7 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
       const formData = new FormData();
       formData.append('image', file);
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(getUploadEndpoint(), {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -70,7 +82,7 @@ export function ImageUpload({ value, onChange, onClear, className }: ImageUpload
 
     setUploading(true);
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(getUploadEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

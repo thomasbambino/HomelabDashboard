@@ -89,6 +89,7 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
                       value={field.value}
                       onChange={field.onChange}
                       onClear={() => field.onChange("")}
+                      uploadType="service"
                     />
                   </FormControl>
                 </FormItem>
@@ -105,6 +106,7 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
                       value={field.value}
                       onChange={field.onChange}
                       onClear={() => field.onChange("")}
+                      uploadType="service"
                     />
                   </FormControl>
                 </FormItem>

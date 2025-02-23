@@ -108,7 +108,7 @@ export function SettingsDialog() {
       formData.append('image', file);
       formData.append('type', type);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/upload/site', {
         method: 'POST',
         body: formData,
       });
