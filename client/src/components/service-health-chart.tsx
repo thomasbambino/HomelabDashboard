@@ -43,10 +43,12 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     case '1m': startTime = subMonths(now, 1); break;
   }
 
-  // Sort history by timestamp and filter to selected time range
+  // Sort history by timestamp
   const sortedHistory = [...healthHistory]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .filter(record => new Date(record.timestamp) >= startTime);
+
+  console.log('Raw history data:', sortedHistory);
 
   // Create continuous data with gaps filled
   const chartData: ChartDataPoint[] = [];
@@ -63,23 +65,19 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
       const mostRecent = recordsInSlot[recordsInSlot.length - 1];
       chartData.push({
         timestamp: currentTime,
-        status: mostRecent.status ? 1 : 0, // 1 for online, 0 for offline
+        status: mostRecent.status ? 1 : 0 // 1 for online, 0 for offline
       });
     } else {
       chartData.push({
         timestamp: currentTime,
-        status: -1, // -1 for no data
+        status: -1 // -1 for no data
       });
     }
 
     currentTime = addSeconds(currentTime, 5);
   }
 
-  // Log the chart data for debugging
-  console.log('Chart Data:', chartData.map(d => ({ 
-    time: d.timestamp.toISOString(),
-    status: d.status 
-  })));
+  console.log('Processed chart data:', chartData);
 
   return (
     <div className="relative h-6 w-full rounded-md overflow-hidden group">
@@ -110,14 +108,19 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
           <YAxis hide domain={[-1, 1]} />
           <Bar
             dataKey="status"
-            fill={onlineColor}
             isAnimationActive={false}
             shape={({ x, y, width, height, value }) => {
-              const color = value === -1 
-                ? '#94a3b8'  // gray for no data
-                : value === 0 
-                  ? offlineColor  // red for offline
-                  : onlineColor;  // green for online
+              let color;
+              // Log the value to see what we're getting
+              console.log('Bar value:', value);
+
+              if (value === -1) {
+                color = '#94a3b8'; // gray for no data
+              } else if (value === 0) {
+                color = offlineColor; // red for offline
+              } else {
+                color = onlineColor; // green for online
+              }
 
               return (
                 <rect
