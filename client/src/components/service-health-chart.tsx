@@ -53,7 +53,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     // Find records in this time slot
     const recordsInSlot = sortedHistory.filter(record => {
       const recordTime = new Date(record.timestamp);
-      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 30);
+      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5); // Reduced from 30s to 5s
     });
 
     if (recordsInSlot.length > 0) {
@@ -68,7 +68,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
       status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1, // -1 indicates no data
     });
 
-    currentTime = addSeconds(currentTime, 30);
+    currentTime = addSeconds(currentTime, 5); // Reduced from 30s to 5s
   }
 
   return (
@@ -110,7 +110,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
                 <rect
                   x={x}
                   y={y}
-                  width={width}
+                  width={width + 0.5} // Slightly increase width to eliminate gaps
                   height={height}
                   fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
                   rx={4}
