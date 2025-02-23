@@ -31,6 +31,10 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: roleEnum("role").notNull().default('pending'),
   approved: boolean("approved").notNull().default(false),
+  canViewNSFW: boolean("canViewNSFW").notNull().default(false),
+  showRefreshInterval: boolean("showRefreshInterval").default(true),
+  showLastChecked: boolean("showLastChecked").default(true),
+  showServiceUrl: boolean("showServiceUrl").default(true),
 });
 
 export const services = pgTable("services", {
@@ -42,6 +46,7 @@ export const services = pgTable("services", {
   icon: text("icon"),
   background: text("background"),
   refreshInterval: integer("refreshInterval").default(30),
+  isNSFW: boolean("isNSFW").default(false),
 });
 
 export const gameServers = pgTable("gameServers", {

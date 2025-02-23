@@ -32,6 +32,11 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
 
+  // Hide NSFW content from users without permission
+  if (service.isNSFW && !user?.canViewNSFW && !isAdmin) {
+    return null;
+  }
+
   const { data: settings } = useQuery<SettingsType>({
     queryKey: ["/api/settings"],
   });
@@ -96,6 +101,18 @@ export function ServiceCard({ service }: ServiceCardProps) {
           >
             {service.status ? "Online" : "Offline"}
           </Badge>
+          {service.isNSFW && (
+            <Badge
+              variant="outline"
+              style={{
+                backgroundColor: "white",
+                color: "#ec4899", // Pink color
+                borderColor: "#ec4899"
+              }}
+            >
+              NSFW
+            </Badge>
+          )}
           {isAdmin && (
             <>
               <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>

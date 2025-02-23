@@ -14,6 +14,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Switch } from "@/components/ui/switch";
 
 interface EditServiceDialogProps {
   service: Service;
@@ -31,6 +32,7 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
       icon: service.icon ?? "",
       background: service.background ?? "",
       refreshInterval: service.refreshInterval,
+      isNSFW: service.isNSFW ?? false,
     },
   });
 
@@ -123,6 +125,23 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
                       onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isNSFW"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>NSFW Content</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
                 </FormItem>
               )}
             />
