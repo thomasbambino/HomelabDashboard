@@ -86,22 +86,26 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     mutationFn: async () => {
       const res = await apiRequest("DELETE", `/api/game-servers/${server.id}`);
       if (!res.ok) {
-        throw new Error(`Failed to delete server: ${await res.text()}`);
+        const errorText = await res.text();
+        throw new Error(`Failed to delete server: ${errorText}`);
       }
       // Don't try to parse JSON for successful deletion
       return true;
     },
     onSuccess: () => {
-      // Invalidate all game server related queries to ensure UI updates
-      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      // First close the dialogs to prevent any state updates on unmounted components
+      setShowDeleteConfirm(false);
+      onOpenChange(false);
+
+      // Then invalidate all game server related queries to ensure UI updates
       queryClient.removeQueries({ queryKey: [`/api/game-servers/${server.id}`] });
+      // Force refetch the game servers list
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"], refetchType: 'all' });
 
       toast({
         title: "Server deleted",
         description: "The game server has been deleted successfully",
       });
-      setShowDeleteConfirm(false);
-      onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
@@ -109,6 +113,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
         description: error.message,
         variant: "destructive",
       });
+      // Keep dialogs open on error
+      setShowDeleteConfirm(false);
     },
   });
 
@@ -320,7 +326,6 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
             <AlertDialogAction
               onClick={() => {
                 deleteMutation.mutate();
-                setShowDeleteConfirm(false);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
