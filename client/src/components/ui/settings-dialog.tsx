@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
@@ -69,31 +68,38 @@ export function SettingsDialog() {
   }, [settings, user, form]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      // Extract user preference
-      const { showUptimeHistory, ...settingsData } = data;
+    mutationFn: async (formData: any) => {
+      try {
+        // Extract user preference and settings data
+        const { showUptimeHistory, ...settingsData } = formData;
 
-      // Update settings first
-      const settingsRes = await apiRequest("PATCH", "/api/settings", settingsData);
-      if (!settingsRes.ok) {
-        throw new Error("Failed to update settings");
+        // Validate settings data
+        const validSettingsData = updateSettingsSchema.parse(settingsData);
+
+        // Make the API calls sequentially to better handle errors
+        const settingsRes = await apiRequest("PATCH", "/api/settings", validSettingsData);
+        if (!settingsRes.ok) {
+          const errorText = await settingsRes.text();
+          throw new Error(`Failed to update settings: ${errorText}`);
+        }
+        const settingsJson = await settingsRes.json();
+
+        // Update user preferences
+        const userRes = await apiRequest("PATCH", "/api/user", { showUptimeHistory });
+        if (!userRes.ok) {
+          const errorText = await userRes.text();
+          throw new Error(`Failed to update user preferences: ${errorText}`);
+        }
+        const userJson = await userRes.json();
+
+        return {
+          settings: settingsJson,
+          user: userJson
+        };
+      } catch (error) {
+        console.error('Update error:', error);
+        throw error;
       }
-
-      // Then update user preferences
-      const userRes = await apiRequest("PATCH", "/api/user", { showUptimeHistory });
-      if (!userRes.ok) {
-        throw new Error("Failed to update user preferences");
-      }
-
-      const [settingsJson, userJson] = await Promise.all([
-        settingsRes.json(),
-        userRes.json()
-      ]);
-
-      return {
-        settings: settingsJson,
-        user: userJson
-      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
@@ -274,7 +280,7 @@ export function SettingsDialog() {
                         name="showUptimeHistory"
                         render={({ field }) => (
                           <div className="flex items-center justify-between">
-                            <Label htmlFor="showUptimeHistory" className="text-sm text-muted-foreground">Show Uptime History Bar</Label>
+                            <FormLabel htmlFor="showUptimeHistory" className="text-sm text-muted-foreground">Show Uptime History Bar</FormLabel>
                             <Switch
                               id="showUptimeHistory"
                               checked={field.value}
