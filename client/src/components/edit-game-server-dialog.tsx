@@ -6,6 +6,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +22,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Loader2 } from "lucide-react";
+
+const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
 
 interface EditGameServerDialogProps {
   server: GameServer;
@@ -29,6 +38,9 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     defaultValues: {
       id: server.id,
       name: server.name,
+      host: server.host,
+      port: server.port,
+      type: server.type,
       icon: server.icon ?? "",
       background: server.background ?? "",
       refreshInterval: server.refreshInterval,
@@ -91,6 +103,70 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4" role="group" aria-label="Server connection details">
+              <FormField
+                control={form.control}
+                name="host"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel id="server-host-label">Host</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="mc.example.com" 
+                        {...field} 
+                        aria-labelledby="server-host-label"
+                        aria-required="true"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="port"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel id="server-port-label">Port</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        aria-labelledby="server-port-label"
+                        aria-required="true"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel id="server-type-label">Server Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    aria-labelledby="server-type-label"
+                  >
+                    <FormControl>
+                      <SelectTrigger aria-label="Select game type">
+                        <SelectValue placeholder="Select a game type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SERVER_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="icon"
@@ -104,6 +180,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                       onClear={() => field.onChange("")}
                       aria-labelledby="server-icon-label"
                       aria-describedby="server-icon-description"
+                      uploadType="service"
                     />
                   </FormControl>
                   <div id="server-icon-description" className="sr-only">
@@ -125,6 +202,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                       onClear={() => field.onChange("")}
                       aria-labelledby="server-bg-label"
                       aria-describedby="server-bg-description"
+                      uploadType="service"
                     />
                   </FormControl>
                   <div id="server-bg-description" className="sr-only">
