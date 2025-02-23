@@ -12,6 +12,7 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimeScaleSelector } from "@/components/time-scale-selector";
 import { useState } from "react";
+import { UptimeLogDialog } from "@/components/uptime-log-dialog";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -32,6 +33,7 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.role === 'admin';
+  const showUptimeLog = isAdmin ? settings?.adminShowUptimeLog : settings?.showUptimeLog;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -52,6 +54,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <TimeScaleSelector value={timeScale} onValueChange={setTimeScale} />
             <ThemeToggle />
+            {showUptimeLog && <UptimeLogDialog />}
             <SettingsDialog />
             {isAdmin && (
               <Link href="/users">
