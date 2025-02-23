@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
+import { Label } from "@/components/ui/label";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -295,15 +296,15 @@ export function SettingsDialog() {
                   {user?.role === 'admin' && (
                     <>
                       <div className="space-y-2">
-                        <Label className="text-base">Administrator View</Label>
+                        <h3 className="text-base font-medium">Administrator View</h3>
                         <FormField
                           control={form.control}
                           name="adminShowRefreshInterval"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="adminShowRefreshInterval" className="text-sm text-muted-foreground">
                                 Refresh Interval
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="adminShowRefreshInterval"
                                 checked={field.value}
@@ -317,9 +318,9 @@ export function SettingsDialog() {
                           name="adminShowLastChecked"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="adminShowLastChecked" className="text-sm text-muted-foreground">
                                 Last Checked Time
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="adminShowLastChecked"
                                 checked={field.value}
@@ -333,9 +334,9 @@ export function SettingsDialog() {
                           name="adminShowServiceUrl"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="adminShowServiceUrl" className="text-sm text-muted-foreground">
                                 Service URL
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="adminShowServiceUrl"
                                 checked={field.value}
@@ -347,15 +348,15 @@ export function SettingsDialog() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-base">Regular User View</Label>
+                        <h3 className="text-base font-medium">Regular User View</h3>
                         <FormField
                           control={form.control}
                           name="showRefreshInterval"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="showRefreshInterval" className="text-sm text-muted-foreground">
                                 Refresh Interval
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="showRefreshInterval"
                                 checked={field.value}
@@ -369,9 +370,9 @@ export function SettingsDialog() {
                           name="showLastChecked"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="showLastChecked" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="showLastChecked" className="text-sm text-muted-foreground">
                                 Last Checked Time
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="showLastChecked"
                                 checked={field.value}
@@ -385,9 +386,9 @@ export function SettingsDialog() {
                           name="showServiceUrl"
                           render={({ field }) => (
                             <div className="flex items-center justify-between">
-                              <Label htmlFor="showServiceUrl" className="text-sm text-muted-foreground">
+                              <FormLabel htmlFor="showServiceUrl" className="text-sm text-muted-foreground">
                                 Service URL
-                              </Label>
+                              </FormLabel>
                               <Switch
                                 id="showServiceUrl"
                                 checked={field.value}
