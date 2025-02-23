@@ -35,14 +35,12 @@ async function updateServiceStatus(service: Service) {
 
   console.log(`Service ${service.name} status: ${status}`);
 
-  // Only create a log entry if the status has changed
-  if (service.status !== status) {
-    try {
-      await storage.createServiceStatusLog(service.id, status);
-      console.log(`Status change logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`);
-    } catch (error) {
-      console.error('Error logging status change:', error);
-    }
+  // Always create a log entry for better history tracking
+  try {
+    await storage.createServiceStatusLog(service.id, status);
+    console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`);
+  } catch (error) {
+    console.error('Error logging status:', error);
   }
 
   // Update service status
