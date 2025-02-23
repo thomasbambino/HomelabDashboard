@@ -14,6 +14,12 @@ import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "./image-upload";
+import { z } from "zod";
+
+// Schema for user preferences form
+const userPreferencesSchema = z.object({
+  showUptimeHistory: z.boolean(),
+});
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -45,6 +51,13 @@ export function SettingsDialog() {
     },
   });
 
+  const preferencesForm = useForm({
+    resolver: zodResolver(userPreferencesSchema),
+    defaultValues: {
+      showUptimeHistory: user?.showUptimeHistory ?? true,
+    },
+  });
+
   useEffect(() => {
     if (settings) {
       form.reset({
@@ -67,11 +80,19 @@ export function SettingsDialog() {
     }
   }, [settings, form]);
 
+  useEffect(() => {
+    if (user) {
+      preferencesForm.reset({
+        showUptimeHistory: user.showUptimeHistory ?? true,
+      });
+    }
+  }, [user, preferencesForm]);
+
   const updateUserPreferences = useMutation({
-    mutationFn: async (showUptimeHistory: boolean) => {
+    mutationFn: async (data: z.infer<typeof userPreferencesSchema>) => {
       const res = await apiRequest("PATCH", "/api/user", {
         id: user?.id,
-        showUptimeHistory,
+        ...data,
       });
       if (!res.ok) {
         const errorText = await res.text();
@@ -276,15 +297,35 @@ export function SettingsDialog() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium mb-3">Personal Preferences</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-sm text-muted-foreground">Show Uptime History Bar</FormLabel>
-                      <Switch
-                        checked={user?.showUptimeHistory ?? true}
-                        onCheckedChange={(checked) => updateUserPreferences.mutate(checked)}
+                  <Form {...preferencesForm}>
+                    <form onSubmit={preferencesForm.handleSubmit((data) => updateUserPreferences.mutate(data))} className="space-y-3">
+                      <FormField
+                        control={preferencesForm.control}
+                        name="showUptimeHistory"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between space-y-0">
+                            <FormLabel className="text-sm text-muted-foreground">Show Uptime History Bar</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
                       />
-                    </div>
-                  </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={updateUserPreferences.isPending}
+                      >
+                        {updateUserPreferences.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save Personal Preferences
+                      </Button>
+                    </form>
+                  </Form>
                 </div>
 
                 {user?.role === 'admin' && (
