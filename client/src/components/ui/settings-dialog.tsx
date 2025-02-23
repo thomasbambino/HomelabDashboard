@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import { ImageUpload } from "./image-upload";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -79,22 +81,143 @@ export function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="visibility">
+        <Tabs defaultValue="general">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
           </TabsList>
+
           <TabsContent value="general">
-            <div className="text-sm text-muted-foreground">
-              General settings coming soon
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="siteTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Site Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Homelab Dashboard" {...field} value={field.value || ""} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="fontFamily"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Font Family</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Inter" {...field} value={field.value || ""} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="loginDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Login Page Description</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Monitor your services and game servers..."
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                  {updateSettingsMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
           </TabsContent>
+
           <TabsContent value="branding">
-            <div className="text-sm text-muted-foreground">
-              Branding settings coming soon
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Header Logo</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          onClear={() => field.onChange("")}
+                          uploadType="site"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="logoUrlLarge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Login Page Logo</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          onClear={() => field.onChange("")}
+                          uploadType="site"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="onlineColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Online Status Color</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input type="color" {...field} value={field.value || "#22c55e"} className="w-16 p-1 h-9" />
+                        </FormControl>
+                        <Input {...field} value={field.value || "#22c55e"} className="flex-1" />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="offlineColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Offline Status Color</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input type="color" {...field} value={field.value || "#ef4444"} className="w-16 p-1 h-9" />
+                        </FormControl>
+                        <Input {...field} value={field.value || "#ef4444"} className="flex-1" />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                  {updateSettingsMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
           </TabsContent>
+
           <TabsContent value="visibility">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-6">
