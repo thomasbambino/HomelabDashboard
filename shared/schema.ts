@@ -21,30 +21,30 @@ export const users = pgTable("users", {
 
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
-  defaultRole: roleEnum("defaultRole").notNull().default('pending'),
-  siteTitle: text("siteTitle").default("Homelab Dashboard"),
-  fontFamily: text("fontFamily").default("Inter"),
-  logoUrl: text("logoUrl"),
-  logoUrlLarge: text("logoUrlLarge"),
-  loginDescription: text("loginDescription").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
-  onlineColor: text("onlineColor").default("#22c55e"),
-  offlineColor: text("offlineColor").default("#ef4444"),
-  showRefreshInterval: boolean("showRefreshInterval").default(true),
-  showLastChecked: boolean("showLastChecked").default(true),
-  showServiceUrl: boolean("showServiceUrl").default(true),
-  showUptimeLog: boolean("showUptimeLog").default(false),
-  adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
-  adminShowLastChecked: boolean("adminShowLastChecked").default(true),
-  adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
-  adminShowUptimeLog: boolean("adminShowUptimeLog").default(false),
-  notificationEmailSubject: text("notificationEmailSubject").default("Service Status Change Alert"),
-  notificationEmailTemplate: text("notificationEmailTemplate").default("Service {serviceName} is now {status}.\n\nCurrent Status: {status}\nLast Checked: {lastChecked}\nResponse Time: {responseTime}ms"),
+  default_role: roleEnum("default_role").notNull().default('pending'),
+  site_title: text("site_title").default("Homelab Dashboard"),
+  font_family: text("font_family").default("Inter"),
+  logo_url: text("logo_url"),
+  logo_url_large: text("logo_url_large"),
+  login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard. Track status, player counts, and get quick access to all your homelab resources."),
+  online_color: text("online_color").default("#22c55e"),
+  offline_color: text("offline_color").default("#ef4444"),
+  show_refresh_interval: boolean("show_refresh_interval").default(true),
+  show_last_checked: boolean("show_last_checked").default(true),
+  show_service_url: boolean("show_service_url").default(true),
+  show_uptime_log: boolean("show_uptime_log").default(false),
+  admin_show_refresh_interval: boolean("admin_show_refresh_interval").default(true),
+  admin_show_last_checked: boolean("admin_show_last_checked").default(true),
+  admin_show_service_url: boolean("admin_show_service_url").default(true),
+  admin_show_uptime_log: boolean("admin_show_uptime_log").default(false),
+  notification_email_subject: text("notification_email_subject").default("Service Status Change Alert"),
+  notification_email_template: text("notification_email_template").default("Service {serviceName} is now {status}.\n\nCurrent Status: {status}\nLast Checked: {lastChecked}\nResponse Time: {responseTime}ms"),
 });
 
-export const serviceNotifications = pgTable("serviceNotifications", {
+export const serviceNotifications = pgTable("service_notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  user_id: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  service_id: integer("service_id").notNull().references(() => services.id, { onDelete: 'cascade' }),
   enabled: boolean("enabled").notNull().default(true),
 });
 
@@ -80,7 +80,7 @@ export const serviceStatusLogs = pgTable("serviceStatusLogs", {
   serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
   status: boolean("status").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  responseTime: integer("responseTime"), 
+  responseTime: integer("responseTime"),
 });
 
 export const insertUserSchema = createInsertSchema(users);
