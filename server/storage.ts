@@ -24,7 +24,7 @@ export interface IStorage {
   getSettings(): Promise<Settings>;
   updateSettings(settings: Partial<Settings>): Promise<Settings>;
   sessionStore: session.Store;
-  createServiceStatusLog(serviceId: number, status: boolean): Promise<ServiceStatusLog>;
+  createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog>;
   getServiceStatusLogs(filters?: {
     serviceId?: number;
     startDate?: Date;
@@ -152,13 +152,14 @@ export class DatabaseStorage implements IStorage {
     return updatedSettings;
   }
 
-  async createServiceStatusLog(serviceId: number, status: boolean): Promise<ServiceStatusLog> {
-    console.log('Creating service status log:', { serviceId, status, timestamp: new Date() });
+  async createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog> {
+    console.log('Creating service status log:', { serviceId, status, responseTime, timestamp: new Date() });
     try {
       const [newLog] = await db.insert(serviceStatusLogs)
         .values({
           serviceId,
           status,
+          responseTime,
           timestamp: new Date(),
         })
         .returning();

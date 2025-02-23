@@ -65,12 +65,13 @@ export const gameServers = pgTable("gameServers", {
   refreshInterval: integer("refreshInterval").default(30),
 });
 
-// Create a new table for service status changes
+// Add responseTime to serviceStatusLogs table
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
   id: serial("id").primaryKey(),
   serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
   status: boolean("status").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
+  responseTime: integer("responseTime"), // Add response time in milliseconds (nullable)
 });
 
 export const insertUserSchema = createInsertSchema(users);

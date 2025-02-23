@@ -32,14 +32,14 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
 
 async function updateServiceStatus(service: Service) {
   console.log(`Checking service ${service.name} (${service.url})`);
-  const { status } = await checkHttpService(service.url);
+  const { status, responseTime } = await checkHttpService(service.url);
 
-  console.log(`Service ${service.name} status: ${status}`);
+  console.log(`Service ${service.name} status: ${status}, response time: ${responseTime}ms`);
 
   // Always create a log entry for better history tracking
   try {
-    const logEntry = await storage.createServiceStatusLog(service.id, status);
-    console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}`, logEntry);
+    const logEntry = await storage.createServiceStatusLog(service.id, status, responseTime);
+    console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`, logEntry);
   } catch (error) {
     console.error('Error logging status:', error);
     // Attempt to log the error details
@@ -49,7 +49,8 @@ async function updateServiceStatus(service: Service) {
         stack: error.stack,
         serviceId: service.id,
         serviceName: service.name,
-        status: status
+        status: status,
+        responseTime: responseTime
       });
     }
   }

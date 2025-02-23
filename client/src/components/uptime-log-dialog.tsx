@@ -163,11 +163,18 @@ export function UptimeLogDialog() {
                   key={log.id}
                   className="flex items-center justify-between p-2 rounded-lg border"
                 >
-                  <div>
-                    <span className="font-medium">{log.service.name}</span>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      {format(new Date(log.timestamp), "PPp")}
-                    </span>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-medium">{log.service.name}</span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {format(new Date(log.timestamp), "PPp")}
+                      </span>
+                    </div>
+                    {log.responseTime && (
+                      <div className="text-sm text-muted-foreground">
+                        Response time: {log.responseTime}ms
+                      </div>
+                    )}
                   </div>
                   <Badge
                     variant="default"
