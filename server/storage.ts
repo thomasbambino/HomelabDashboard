@@ -145,6 +145,8 @@ export class DatabaseStorage implements IStorage {
       const [newSettings] = await db.insert(settingsTable).values(settingsData).returning();
       return newSettings;
     }
+
+    // Use separate queries to avoid the 'where' type error
     const [updatedSettings] = await db
       .update(settingsTable)
       .set(settingsData)
@@ -171,19 +173,18 @@ export class DatabaseStorage implements IStorage {
     endDate?: Date;
     status?: boolean;
   }): Promise<ServiceStatusLog[]> {
-    let query = db.select().from(serviceStatusLogs)
-      .orderBy(desc(serviceStatusLogs.timestamp));
+    let conditions = [];
 
     if (filters?.serviceId !== undefined) {
-      query = query.where(eq(serviceStatusLogs.serviceId, filters.serviceId));
+      conditions.push(eq(serviceStatusLogs.serviceId, filters.serviceId));
     }
 
     if (filters?.status !== undefined) {
-      query = query.where(eq(serviceStatusLogs.status, filters.status));
+      conditions.push(eq(serviceStatusLogs.status, filters.status));
     }
 
     if (filters?.startDate && filters?.endDate) {
-      query = query.where(
+      conditions.push(
         and(
           gte(serviceStatusLogs.timestamp, filters.startDate),
           lte(serviceStatusLogs.timestamp, filters.endDate)
@@ -191,7 +192,11 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    const logs = await query;
+    const query = conditions.length > 0
+      ? db.select().from(serviceStatusLogs).where(and(...conditions))
+      : db.select().from(serviceStatusLogs);
+
+    const logs = await query.orderBy(desc(serviceStatusLogs.timestamp));
 
     // Filter to only include status changes
     const lastStatusByService = new Map<number, boolean>();
