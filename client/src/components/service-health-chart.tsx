@@ -1,7 +1,8 @@
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { ServiceHealthHistory } from "@shared/schema";
 import { format, subHours, subDays, subMonths, addSeconds, isBefore } from "date-fns";
+import { useState } from "react";
 
 interface ServiceHealthChartProps {
   serviceId: number;
@@ -11,6 +12,8 @@ interface ServiceHealthChartProps {
 }
 
 export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeScale }: ServiceHealthChartProps) {
+  const [tooltipTime, setTooltipTime] = useState<string | null>(null);
+
   const { data: healthHistory } = useQuery<ServiceHealthHistory[]>({
     queryKey: [`/api/services/${serviceId}/health-history`, timeScale],
   });
@@ -69,9 +72,26 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
   }
 
   return (
-    <div className="h-6 w-full">
+    <div className="relative h-6 w-full rounded-md overflow-hidden group">
+      {tooltipTime && (
+        <div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
+        >
+          {tooltipTime}
+        </div>
+      )}
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} barGap={0} barCategoryGap={0}>
+        <BarChart
+          data={chartData}
+          barGap={0}
+          barCategoryGap={0}
+          onMouseMove={(e) => {
+            if (e.activeTooltipIndex !== undefined && chartData[e.activeTooltipIndex]) {
+              setTooltipTime(format(chartData[e.activeTooltipIndex].timestamp, "MMM d, HH:mm:ss"));
+            }
+          }}
+          onMouseLeave={() => setTooltipTime(null)}
+        >
           <XAxis
             dataKey="timestamp"
             type="number"
@@ -80,13 +100,6 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
             hide
           />
           <YAxis hide domain={[0, 100]} />
-          <Tooltip
-            labelFormatter={(label) => format(new Date(label), "MMM d, HH:mm:ss")}
-            formatter={(value: number) => {
-              if (value === -1) return ['No data', 'Status'];
-              return [value === 100 ? 'Online' : 'Offline', 'Status'];
-            }}
-          />
           <Bar
             dataKey="status"
             fill={onlineColor}
@@ -100,6 +113,8 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
                   width={width}
                   height={height}
                   fill={value === -1 ? '#94a3b8' : (value === 100 ? onlineColor : offlineColor)}
+                  rx={4}
+                  ry={4}
                 />
               );
             }}
