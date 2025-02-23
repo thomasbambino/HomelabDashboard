@@ -58,8 +58,9 @@ export class DatabaseStorage implements IStorage {
     const [settings] = await db.select().from(settingsTable);
     const [user] = await db.insert(users).values({
       ...insertUser,
-      role: settings?.default_role ?? 'pending',
-      approved: settings?.default_role === 'pending' ? false : true,
+      // Only use default values if role and approved are not provided
+      role: insertUser.role ?? settings?.default_role ?? 'pending',
+      approved: insertUser.approved ?? (settings?.default_role === 'pending' ? false : true),
     }).returning();
     return user;
   }
