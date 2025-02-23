@@ -66,13 +66,25 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         },
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Upload failed: ${errorText}`);
+      let errorMessage = 'Upload failed';
+      try {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (!res.ok) {
+            errorMessage = data.message || data.error || 'Upload failed';
+            throw new Error(errorMessage);
+          }
+          onChange(data.url);
+        } else {
+          const text = await res.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Invalid server response');
+        }
+      } catch (parseError) {
+        console.error('Response parsing error:', parseError);
+        throw new Error(errorMessage);
       }
-
-      const data = await res.json();
-      onChange(data.url);
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -82,7 +94,6 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
       });
     } finally {
       setUploading(false);
-      // Reset the input to allow uploading the same file again
       e.target.value = '';
     }
   };
@@ -102,15 +113,27 @@ export function ImageUpload({ value, onChange, onClear, className, uploadType = 
         credentials: 'include',
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Upload failed: ${errorText}`);
+      let errorMessage = 'Upload failed';
+      try {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (!res.ok) {
+            errorMessage = data.message || data.error || 'Upload failed';
+            throw new Error(errorMessage);
+          }
+          onChange(data.url);
+          setUrlInput("");
+          setShowUrlInput(false);
+        } else {
+          const text = await res.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Invalid server response');
+        }
+      } catch (parseError) {
+        console.error('Response parsing error:', parseError);
+        throw new Error(errorMessage);
       }
-
-      const data = await res.json();
-      onChange(data.url);
-      setUrlInput("");
-      setShowUrlInput(false);
     } catch (error) {
       console.error('URL upload error:', error);
       toast({
