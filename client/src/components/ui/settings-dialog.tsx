@@ -31,9 +31,14 @@ export function SettingsDialog() {
       loginDescription: "",
       onlineColor: "#22c55e",
       offlineColor: "#ef4444",
+      // User visibility settings
       showRefreshInterval: true,
       showLastChecked: true,
       showServiceUrl: true,
+      // Admin visibility settings
+      adminShowRefreshInterval: true,
+      adminShowLastChecked: true,
+      adminShowServiceUrl: true,
     }
   });
 
@@ -50,6 +55,9 @@ export function SettingsDialog() {
         showRefreshInterval: settings.showRefreshInterval ?? true,
         showLastChecked: settings.showLastChecked ?? true,
         showServiceUrl: settings.showServiceUrl ?? true,
+        adminShowRefreshInterval: settings.adminShowRefreshInterval ?? true,
+        adminShowLastChecked: settings.adminShowLastChecked ?? true,
+        adminShowServiceUrl: settings.adminShowServiceUrl ?? true,
       });
     }
   }, [settings, form]);
@@ -207,54 +215,109 @@ export function SettingsDialog() {
                 </FormItem>
               )}
             />
-            <div className="space-y-4">
-              <Label className="text-base">User View Settings</Label>
-              <p className="text-sm text-muted-foreground">
-                Control which elements are visible to regular users. Administrators will always see all elements.
-              </p>
-              <div className="space-y-2">
-                <FormField
-                  control={form.control}
-                  name="showRefreshInterval"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval to Users</Label>
-                      <Switch
-                        id="showRefreshInterval"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </div>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="showLastChecked"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time to Users</Label>
-                      <Switch
-                        id="showLastChecked"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </div>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="showServiceUrl"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL to Users</Label>
-                      <Switch
-                        id="showServiceUrl"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </div>
-                  )}
-                />
+            <div className="space-y-6">
+              {/* Admin View Settings */}
+              <div className="space-y-4">
+                <Label className="text-base">Administrator View Settings</Label>
+                <p className="text-sm text-muted-foreground">
+                  Control which elements are visible to administrators in the service cards.
+                </p>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="adminShowRefreshInterval"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="adminShowRefreshInterval" className="cursor-pointer">Show Refresh Interval</Label>
+                        <Switch
+                          id="adminShowRefreshInterval"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="adminShowLastChecked"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="adminShowLastChecked" className="cursor-pointer">Show Last Checked Time</Label>
+                        <Switch
+                          id="adminShowLastChecked"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="adminShowServiceUrl"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="adminShowServiceUrl" className="cursor-pointer">Show Service URL</Label>
+                        <Switch
+                          id="adminShowServiceUrl"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Regular User View Settings */}
+              <div className="space-y-4">
+                <Label className="text-base">Regular User View Settings</Label>
+                <p className="text-sm text-muted-foreground">
+                  Control which elements are visible to regular users in the service cards.
+                </p>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="showRefreshInterval"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="showRefreshInterval" className="cursor-pointer">Show Refresh Interval</Label>
+                        <Switch
+                          id="showRefreshInterval"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="showLastChecked"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="showLastChecked" className="cursor-pointer">Show Last Checked Time</Label>
+                        <Switch
+                          id="showLastChecked"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="showServiceUrl"
+                    render={({ field }) => (
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="showServiceUrl" className="cursor-pointer">Show Service URL</Label>
+                        <Switch
+                          id="showServiceUrl"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </div>
+                    )}
+                  />
+                </div>
               </div>
             </div>
             <div className="space-y-2">

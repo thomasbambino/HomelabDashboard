@@ -18,6 +18,10 @@ export const settings = pgTable("settings", {
   showRefreshInterval: boolean("showRefreshInterval").default(true),
   showLastChecked: boolean("showLastChecked").default(true),
   showServiceUrl: boolean("showServiceUrl").default(true),
+  // Visibility controls for admin users
+  adminShowRefreshInterval: boolean("adminShowRefreshInterval").default(true),
+  adminShowLastChecked: boolean("adminShowLastChecked").default(true),
+  adminShowServiceUrl: boolean("adminShowServiceUrl").default(true),
 });
 
 export const users = pgTable("users", {

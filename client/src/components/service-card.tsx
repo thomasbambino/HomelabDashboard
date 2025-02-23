@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Settings as SettingsType } from "@/types/settings";
+import { Settings as SettingsType } from "@shared/schema";
 
 interface ServiceCardProps {
   service: Service;
@@ -57,10 +57,10 @@ export function ServiceCard({ service }: ServiceCardProps) {
     },
   });
 
-  // Show all elements for admin users, but respect settings for regular users
-  const showRefreshInterval = isAdmin ? true : settings?.showRefreshInterval;
-  const showLastChecked = isAdmin ? true : settings?.showLastChecked;
-  const showServiceUrl = isAdmin ? true : settings?.showServiceUrl;
+  // Use the appropriate visibility settings based on user role
+  const showRefreshInterval = isAdmin ? settings?.adminShowRefreshInterval : settings?.showRefreshInterval;
+  const showLastChecked = isAdmin ? settings?.adminShowLastChecked : settings?.showLastChecked;
+  const showServiceUrl = isAdmin ? settings?.adminShowServiceUrl : settings?.showServiceUrl;
 
   return (
     <Card className={`relative ${service.background ? `bg-[url('${service.background}')] bg-cover` : ''}`}>
