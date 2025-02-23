@@ -1,4 +1,4 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, UpdateSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
@@ -22,7 +22,7 @@ export interface IStorage {
   deleteService(id: number): Promise<Service | undefined>;
   deleteGameServer(id: number): Promise<GameServer | undefined>;
   getSettings(): Promise<Settings>;
-  updateSettings(settings: Partial<Settings>): Promise<Settings>;
+  updateSettings(settings: UpdateSettings): Promise<Settings>;
   sessionStore: session.Store;
   createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog>;
   getServiceStatusLogs(filters?: {
@@ -133,21 +133,26 @@ export class DatabaseStorage implements IStorage {
   async getSettings(): Promise<Settings> {
     const [existingSettings] = await db.select().from(settingsTable);
     if (!existingSettings) {
+      // Create default settings if none exist
       const [newSettings] = await db.insert(settingsTable).values({}).returning();
       return newSettings;
     }
     return existingSettings;
   }
 
-  async updateSettings(settingsData: Partial<Settings>): Promise<Settings> {
-    // First get or create settings
-    let settings = await this.getSettings();
+  async updateSettings(settingsData: UpdateSettings): Promise<Settings> {
+    const settings = await this.getSettings();
 
-    // Now update with new data
+    // Ensure we have a valid settings record
+    if (!settings) {
+      throw new Error("Settings not found");
+    }
+
+    // Perform the update with proper type handling
     const [updatedSettings] = await db
       .update(settingsTable)
       .set(settingsData)
-      .where(eq(settingsTable.id, settings.id))
+      .where(eq(settingsTable.id, settingsData.id))
       .returning();
 
     return updatedSettings;

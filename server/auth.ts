@@ -121,14 +121,28 @@ export function setupAuth(app: Express) {
   });
 
   // Settings routes
-  app.get("/api/settings", isAdmin, async (req, res) => {
-    const settings = await storage.getSettings();
-    res.json(settings);
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
   });
 
   app.patch("/api/settings", isAdmin, async (req, res) => {
-    const settings = await storage.updateSettings(req.body);
-    res.json(settings);
+    try {
+      const currentSettings = await storage.getSettings();
+      const settings = await storage.updateSettings({
+        id: currentSettings.id,
+        ...req.body
+      });
+      res.json(settings);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
   });
 
   // Add new route for updating user preferences
