@@ -2,15 +2,13 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, GripVertical, Settings, Trash2 } from "lucide-react";
+import { ExternalLink, Settings, Trash2 } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,27 +26,15 @@ import { ServiceHealthChart } from "./service-health-chart";
 interface ServiceCardProps {
   service: Service;
   timeScale: string;
-  isDragOverlay?: boolean;
 }
 
-export function ServiceCard({ service, timeScale, isDragOverlay }: ServiceCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({
-    id: service.id,
-    disabled: isDragOverlay
-  });
-
+export function ServiceCard({ service, timeScale }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
 
+  // Hide NSFW content from users without permission
   if (service.isNSFW && !user?.canViewNSFW && !isAdmin) {
     return null;
   }
@@ -78,39 +64,21 @@ export function ServiceCard({ service, timeScale, isDragOverlay }: ServiceCardPr
     },
   });
 
+  // Use the appropriate visibility settings based on user role
   const showRefreshInterval = isAdmin ? settings?.adminShowRefreshInterval : settings?.showRefreshInterval;
   const showLastChecked = isAdmin ? settings?.adminShowLastChecked : settings?.showLastChecked;
   const showServiceUrl = isAdmin ? settings?.adminShowServiceUrl : settings?.showServiceUrl;
 
+  // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
     backgroundImage: `url('${service.background}')`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   } : {};
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    ...cardStyle,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : 1,
-  };
-
   return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={`relative select-none ${isDragOverlay ? 'cursor-grabbing shadow-lg' : ''}`}
-    >
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-0 left-0 right-0 h-12 cursor-grab hover:bg-accent/10 flex items-center px-4"
-      >
-        <GripVertical className="h-5 w-5 text-muted-foreground" />
-      </div>
-
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-3">
+    <Card className="relative" style={cardStyle}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {service.icon && (
             <div className="w-6 h-6 flex items-center justify-center">

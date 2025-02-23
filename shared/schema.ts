@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, pgEnum, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, pgEnum, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -72,20 +72,11 @@ export const serviceHealthHistory = pgTable("serviceHealthHistory", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
-export const userServiceOrder = pgTable("userServiceOrder", {
-  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
-  order: integer("order").notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.userId, table.serviceId] }),
-}));
-
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertServiceHealthHistorySchema = createInsertSchema(serviceHealthHistory);
-export const insertUserServiceOrderSchema = createInsertSchema(userServiceOrder);
 
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
@@ -117,10 +108,8 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
 export type InsertServiceHealthHistory = z.infer<typeof insertServiceHealthHistorySchema>;
 export type UpdateServiceHealthHistory = z.infer<typeof updateServiceHealthHistorySchema>;
-export type InsertUserServiceOrder = z.infer<typeof insertUserServiceOrderSchema>;
 export type User = typeof users.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type ServiceHealthHistory = typeof serviceHealthHistory.$inferSelect;
-export type UserServiceOrder = typeof userServiceOrder.$inferSelect;
