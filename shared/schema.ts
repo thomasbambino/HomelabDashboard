@@ -29,7 +29,7 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default('pending'),
   approved: boolean("approved").notNull().default(false),
   canViewNSFW: boolean("canViewNSFW").notNull().default(false),
-  showUptimeHistory: boolean("showUptimeHistory").default(true),
+  showUptimeHistory: boolean("showUptimeHistory").notNull().default(true),
   serviceOrder: integer("serviceOrder").array().default([]),
 });
 
