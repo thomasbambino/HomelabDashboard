@@ -4,9 +4,16 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChatPanel } from "./ChatPanel";
 import { useState } from "react";
 import { DiscordButton } from "@/components/discord-button";
+import { useLocation } from "wouter";
 
 export function ChatButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [location] = useLocation();
+
+  // Don't render on the login page
+  if (location === "/login") {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-2">
