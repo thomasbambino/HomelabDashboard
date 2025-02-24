@@ -14,7 +14,7 @@ export function ChatButton() {
           <MessageSquare className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] h-[600px]">
+      <DialogContent className="sm:max-w-[700px] h-[550px]">
         <DialogHeader>
           <DialogTitle>Chat</DialogTitle>
         </DialogHeader>

@@ -33,6 +33,10 @@ export function ChatRoom() {
   const createRoomMutation = useMutation({
     mutationFn: async (name: string) => {
       const res = await apiRequest("POST", "/api/chat/rooms", { name });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create chat room");
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -101,10 +105,10 @@ export function ChatRoom() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-[calc(100%-2rem)]">
       {/* Room List */}
-      <div className="w-64 border-r h-full">
-        <ScrollArea className="h-full">
+      <div className="w-64 border-r h-full flex flex-col">
+        <ScrollArea className="flex-1">
           <div className="p-4 space-y-2">
             <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
               <DialogTrigger asChild>
