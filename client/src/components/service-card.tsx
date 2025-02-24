@@ -116,13 +116,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
               NSFW
             </Badge>
           )}
-          {showUptimeLogButton && (
-            <Button variant="ghost" size="icon" onClick={() => setShowUptimeLog(true)}>
-              <Activity className="h-4 w-4" />
-            </Button>
-          )}
           {isAdmin && (
             <>
+              {showUptimeLogButton && (
+                <Button variant="ghost" size="icon" onClick={() => setShowUptimeLog(true)}>
+                  <Activity className="h-4 w-4" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
