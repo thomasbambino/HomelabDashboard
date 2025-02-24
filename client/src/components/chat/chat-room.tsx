@@ -32,12 +32,14 @@ export function ChatRoom() {
 
   const createRoomMutation = useMutation({
     mutationFn: async (name: string) => {
-      return apiRequest("POST", "/api/chat/rooms", { name });
+      const res = await apiRequest("POST", "/api/chat/rooms", { name });
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/rooms"] });
       setIsCreatingRoom(false);
       setNewRoomName("");
+      setSelectedRoom(data);
       toast({
         title: "Chat room created",
         description: "Your new chat room has been created successfully.",
@@ -72,7 +74,6 @@ export function ChatRoom() {
 
   useEffect(() => {
     chatClient.on("message", (message) => {
-      // Handle new message
       queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedRoom?.id] });
     });
 
@@ -102,7 +103,7 @@ export function ChatRoom() {
   return (
     <div className="flex h-full">
       {/* Room List */}
-      <div className="w-64 border-r">
+      <div className="w-64 border-r h-full">
         <ScrollArea className="h-full">
           <div className="p-4 space-y-2">
             <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
@@ -152,7 +153,7 @@ export function ChatRoom() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map((msg) => (
