@@ -39,10 +39,11 @@
   --str-chat__primary-color: theme('colors.primary.DEFAULT');
   --str-chat__secondary-color: theme('colors.primary.foreground');
   --str-chat__disabled-color: theme('colors.muted.foreground');
+  --str-chat__border-radius: theme('borderRadius.lg');
 
   /* Message styling */
-  --str-chat__message-background-color: theme('colors.card.DEFAULT');
-  --str-chat__message-text-color: theme('colors.card.foreground');
+  --str-chat__message-background-color: theme('colors.muted.DEFAULT');
+  --str-chat__message-text-color: theme('colors.foreground');
   --str-chat__message-bubble-background: theme('colors.primary.DEFAULT');
   --str-chat__message-bubble-text-color: theme('colors.primary.foreground');
 
