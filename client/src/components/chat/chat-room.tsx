@@ -5,8 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Image, Trash2 } from "lucide-react";
-import { Channel as StreamChannel } from 'stream-chat';
-import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
+import { Channel as StreamChannel, Message } from 'stream-chat';
+import type { DefaultStreamChatGenerics } from 'stream-chat';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
@@ -81,11 +81,8 @@ export function ChatRoom() {
     if (!channel) return;
 
     try {
-      // Delete the message using the correct Stream Chat API method
-      await channel.getMessage(messageId).then(async (message) => {
-        if (message) {
-          await message.delete();
-        }
+      await channel.deleteMessage({
+        id: messageId,
       });
 
       toast({
