@@ -5,10 +5,15 @@ import {
   serviceStatusLogs, ServiceStatusLog, notificationPreferences, emailTemplates,
   sentNotifications, NotificationPreference, EmailTemplate, SentNotification,
   InsertNotificationPreference, InsertEmailTemplate, InsertSentNotification,
-  UpdateNotificationPreference, UpdateEmailTemplate
+  UpdateNotificationPreference, UpdateEmailTemplate,
+  // Add new chat-related imports
+  ChatRoom, ChatMember, ChatMessage, ChatAttachment,
+  InsertChatRoom, InsertChatMember, InsertChatMessage, InsertChatAttachment,
+  UpdateChatRoom, UpdateChatMember, UpdateChatMessage, UpdateChatAttachment,
+  chatRooms, chatMembers, chatMessages, chatAttachments
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, or } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -60,6 +65,30 @@ export interface IStorage {
   // Sent Notifications
   createSentNotification(notification: InsertSentNotification): Promise<SentNotification>;
   getRecentSentNotifications(serviceId: number): Promise<SentNotification[]>;
+
+  // Chat Room Methods
+  createChatRoom(room: InsertChatRoom): Promise<ChatRoom>;
+  getChatRoom(id: number): Promise<ChatRoom | undefined>;
+  updateChatRoom(room: UpdateChatRoom): Promise<ChatRoom | undefined>;
+  listChatRooms(userId: number): Promise<ChatRoom[]>;
+  getPublicRoom(): Promise<ChatRoom | undefined>;
+
+  // Chat Member Methods
+  addChatMember(member: InsertChatMember): Promise<ChatMember>;
+  removeChatMember(roomId: number, userId: number): Promise<ChatMember | undefined>;
+  getChatMembers(roomId: number): Promise<ChatMember[]>;
+  isChatMember(roomId: number, userId: number): Promise<boolean>;
+
+  // Chat Message Methods
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessages(roomId: number, limit?: number, before?: Date): Promise<ChatMessage[]>;
+  updateChatMessage(message: UpdateChatMessage): Promise<ChatMessage | undefined>;
+  deleteChatMessage(id: number): Promise<ChatMessage | undefined>;
+
+  // Chat Attachment Methods
+  createChatAttachment(attachment: InsertChatAttachment): Promise<ChatAttachment>;
+  getChatAttachment(id: number): Promise<ChatAttachment | undefined>;
+  getChatAttachments(messageId: number): Promise<ChatAttachment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -353,6 +382,163 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sentNotifications.serviceId, serviceId))
       .orderBy(desc(sentNotifications.sentAt))
       .limit(10);
+  }
+
+  // Chat Room Methods
+  async createChatRoom(room: InsertChatRoom): Promise<ChatRoom> {
+    const [newRoom] = await db.insert(chatRooms).values(room).returning();
+    return newRoom;
+  }
+
+  async getChatRoom(id: number): Promise<ChatRoom | undefined> {
+    const [room] = await db.select().from(chatRooms).where(eq(chatRooms.id, id));
+    return room;
+  }
+
+  async updateChatRoom(room: UpdateChatRoom): Promise<ChatRoom | undefined> {
+    const [updatedRoom] = await db
+      .update(chatRooms)
+      .set(room)
+      .where(eq(chatRooms.id, room.id))
+      .returning();
+    return updatedRoom;
+  }
+
+  async listChatRooms(userId: number): Promise<ChatRoom[]> {
+    // Get public rooms and rooms where user is a member
+    const rooms = await db
+      .select()
+      .from(chatRooms)
+      .where(
+        or(
+          eq(chatRooms.type, 'public'),
+          eq(chatMembers.userId, userId)
+        )
+      )
+      .leftJoin(chatMembers, eq(chatRooms.id, chatMembers.roomId))
+      .orderBy(desc(chatRooms.updatedAt));
+
+    return rooms.map(room => ({
+      ...room.chat_rooms,
+    }));
+  }
+
+  async getPublicRoom(): Promise<ChatRoom | undefined> {
+    const [room] = await db
+      .select()
+      .from(chatRooms)
+      .where(eq(chatRooms.type, 'public'))
+      .limit(1);
+    return room;
+  }
+
+  // Chat Member Methods
+  async addChatMember(member: InsertChatMember): Promise<ChatMember> {
+    const [newMember] = await db.insert(chatMembers).values(member).returning();
+    return newMember;
+  }
+
+  async removeChatMember(roomId: number, userId: number): Promise<ChatMember | undefined> {
+    const [removedMember] = await db
+      .delete(chatMembers)
+      .where(
+        and(
+          eq(chatMembers.roomId, roomId),
+          eq(chatMembers.userId, userId)
+        )
+      )
+      .returning();
+    return removedMember;
+  }
+
+  async getChatMembers(roomId: number): Promise<ChatMember[]> {
+    return await db
+      .select()
+      .from(chatMembers)
+      .where(eq(chatMembers.roomId, roomId));
+  }
+
+  async isChatMember(roomId: number, userId: number): Promise<boolean> {
+    const [member] = await db
+      .select()
+      .from(chatMembers)
+      .where(
+        and(
+          eq(chatMembers.roomId, roomId),
+          eq(chatMembers.userId, userId)
+        )
+      );
+    return !!member;
+  }
+
+  // Chat Message Methods
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db.insert(chatMessages).values(message).returning();
+
+    // Update the room's last message timestamp
+    await db
+      .update(chatRooms)
+      .set({ lastMessageAt: new Date(), updatedAt: new Date() })
+      .where(eq(chatRooms.id, message.roomId));
+
+    return newMessage;
+  }
+
+  async getChatMessages(roomId: number, limit: number = 50, before?: Date): Promise<ChatMessage[]> {
+    let query = db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.roomId, roomId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+
+    if (before) {
+      query = query.where(lte(chatMessages.createdAt, before));
+    }
+
+    return await query;
+  }
+
+  async updateChatMessage(message: UpdateChatMessage): Promise<ChatMessage | undefined> {
+    const [updatedMessage] = await db
+      .update(chatMessages)
+      .set({
+        ...message,
+        isEdited: true,
+        updatedAt: new Date()
+      })
+      .where(eq(chatMessages.id, message.id))
+      .returning();
+    return updatedMessage;
+  }
+
+  async deleteChatMessage(id: number): Promise<ChatMessage | undefined> {
+    const [deletedMessage] = await db
+      .delete(chatMessages)
+      .where(eq(chatMessages.id, id))
+      .returning();
+    return deletedMessage;
+  }
+
+  // Chat Attachment Methods
+  async createChatAttachment(attachment: InsertChatAttachment): Promise<ChatAttachment> {
+    const [newAttachment] = await db.insert(chatAttachments).values(attachment).returning();
+    return newAttachment;
+  }
+
+  async getChatAttachment(id: number): Promise<ChatAttachment | undefined> {
+    const [attachment] = await db
+      .select()
+      .from(chatAttachments)
+      .where(eq(chatAttachments.id, id));
+    return attachment;
+  }
+
+  async getChatAttachments(messageId: number): Promise<ChatAttachment[]> {
+    return await db
+      .select()
+      .from(chatAttachments)
+      .where(eq(chatAttachments.messageId, messageId));
   }
 }
 
