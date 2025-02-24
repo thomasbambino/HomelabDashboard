@@ -428,6 +428,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const apiSpec = await ampService.getAPISpec();
       console.log('API spec available:', !!apiSpec);
 
+      // Get module info
+      const moduleInfo = await ampService.getModuleInfo();
+      console.log('Module info:', moduleInfo);
+
       // Test AMP connection
       const instances = await ampService.getInstances();
 
@@ -437,7 +441,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instanceCount: instances.length,
         instances: instances,
         systemInfo: systemInfo,
-        apiMethods: Object.keys(apiSpec || {})
+        moduleInfo: moduleInfo,
+        availableEndpoints: Object.values(apiSpec || {})
+          .map(method => method.Name)
+          .filter(name => name.toLowerCase().includes('instance'))
       });
     } catch (error) {
       console.error('AMP test endpoint error:', error);

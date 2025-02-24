@@ -40,6 +40,20 @@ interface AMPSystemInfo {
   OSDescription: string;
 }
 
+interface AMPAPIMethod {
+  Name: string;
+  Description: string;
+  ReturnType: string;
+  Parameters: {
+    Name: string;
+    Type: string;
+  }[];
+}
+
+interface AMPAPISpec {
+  [key: string]: AMPAPIMethod;
+}
+
 export class AMPService {
   private baseUrl: string;
   private username: string;
@@ -323,11 +337,11 @@ export class AMPService {
     }
   }
 
-  async getAPISpec(): Promise<any> {
+  async getAPISpec(): Promise<AMPAPISpec> {
     const sessionId = await this.ensureAuthenticated();
     try {
       console.log('Fetching API specification');
-      const response = await axios.get(
+      const response = await axios.get<{ result: AMPAPISpec }>(
         `${this.baseUrl}/API/Core/GetAPISpec`,
         { 
           headers: this.getHeaders(sessionId),
@@ -337,10 +351,41 @@ export class AMPService {
         }
       );
 
-      console.log('API spec response:', response.data);
-      return response.data;
+      const spec = response.data.result || {};
+      console.log('Available API endpoints:', Object.values(spec).map(method => method.Name));
+      console.log('Total available methods:', Object.keys(spec).length);
+
+      // Check for specific instance-related methods
+      const instanceMethods = Object.values(spec)
+        .filter(method => method.Name.toLowerCase().includes('instance'))
+        .map(method => method.Name);
+      console.log('Instance-related methods:', instanceMethods);
+
+      return spec;
     } catch (error) {
       console.error('Failed to fetch API spec:', error);
+      throw error;
+    }
+  }
+
+  async getModuleInfo(): Promise<any> {
+    const sessionId = await this.ensureAuthenticated();
+    try {
+      console.log('Fetching module information');
+      const response = await axios.get(
+        `${this.baseUrl}/API/ADSModule/GetModuleInfo`,
+        { 
+          headers: this.getHeaders(sessionId),
+          validateStatus: function (status) {
+            return status < 500;
+          }
+        }
+      );
+
+      console.log('Module info response:', response.data);
+      return response.data.result;
+    } catch (error) {
+      console.error('Failed to fetch module info:', error);
       throw error;
     }
   }
