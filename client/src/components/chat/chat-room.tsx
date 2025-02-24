@@ -143,25 +143,30 @@ export function ChatRoom() {
               key={index}
               className={`flex ${msg.user?.id === chatClient?.user?.id ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={`rounded-lg px-4 py-2 max-w-[70%] ${
-                  msg.user?.id === chatClient?.user?.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {msg.attachments?.length > 0 ? (
-                  msg.attachments.map((attachment: any, i: number) => (
-                    <img
-                      key={i}
-                      src={attachment.image_url}
-                      alt={attachment.fallback}
-                      className="max-w-full rounded-md my-2"
-                    />
-                  ))
-                ) : (
-                  msg.text
-                )}
+              <div className="flex flex-col">
+                <div
+                  className={`rounded-lg px-4 py-2 max-w-[70%] ${
+                    msg.user?.id === chatClient?.user?.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {msg.attachments?.length > 0 ? (
+                    msg.attachments.map((attachment: any, i: number) => (
+                      <img
+                        key={i}
+                        src={attachment.image_url}
+                        alt={attachment.fallback}
+                        className="max-w-full rounded-md my-2"
+                      />
+                    ))
+                  ) : (
+                    msg.text
+                  )}
+                </div>
+                <span className="text-xs text-foreground opacity-70 mt-1 px-4">
+                  {msg.user?.name || 'Unknown User'}
+                </span>
               </div>
             </div>
           ))}
