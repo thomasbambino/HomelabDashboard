@@ -11,6 +11,7 @@ import { LogOut, ServerCog, Users } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
+import { ChatButton } from "@/components/chat/chat-button";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -49,6 +50,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <ChatButton />
             <SettingsDialog />
             <UptimeLogDialog />
             {isAdmin && (
