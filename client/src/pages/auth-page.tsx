@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
@@ -19,7 +19,9 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
+  const [, params] = useLocation();
+  const searchParams = new URLSearchParams(window.location.search);
+  const showNewPasswordForm = searchParams.get('action') === 'change_password' || loginMutation.error?.message?.includes("PASSWORD_CHANGE_REQUIRED");
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -83,12 +85,11 @@ export default function AuthPage() {
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Password updated",
         description: "Your password has been changed successfully.",
       });
-      setShowNewPasswordForm(false);
-      // Reset forms and mutations to allow login with new password
       loginForm.reset();
       loginMutation.reset();
     },
@@ -110,7 +111,10 @@ export default function AuthPage() {
         : { message: error.message };
 
       if (errorData.code === "PASSWORD_CHANGE_REQUIRED") {
-        setShowNewPasswordForm(true);
+        toast({
+          title: "Password change required",
+          description: "Please set a new password to continue.",
+        });
       } else {
         toast({
           title: "Login failed",
@@ -121,7 +125,7 @@ export default function AuthPage() {
     }
   };
 
-  if (user) {
+  if (user && !user.temp_password) {
     return <Redirect to="/" />;
   }
 
