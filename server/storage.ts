@@ -1,4 +1,12 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, UpdateSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
+import { 
+  Service, GameServer, User, InsertUser, InsertService, InsertGameServer, 
+  UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, 
+  settings as settingsTable, Settings, InsertSettings, UpdateSettings, 
+  serviceStatusLogs, ServiceStatusLog, notificationPreferences, emailTemplates,
+  sentNotifications, NotificationPreference, EmailTemplate, SentNotification,
+  InsertNotificationPreference, InsertEmailTemplate, InsertSentNotification,
+  UpdateNotificationPreference, UpdateEmailTemplate
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
@@ -32,6 +40,24 @@ export interface IStorage {
     status?: boolean;
   }): Promise<ServiceStatusLog[]>;
   getService(id: number): Promise<Service | undefined>;
+
+  // Notification Preferences
+  getNotificationPreference(userId: number, serviceId: number): Promise<NotificationPreference | undefined>;
+  getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]>;
+  createNotificationPreference(preference: InsertNotificationPreference): Promise<NotificationPreference>;
+  updateNotificationPreference(preference: UpdateNotificationPreference): Promise<NotificationPreference | undefined>;
+  deleteNotificationPreference(id: number): Promise<NotificationPreference | undefined>;
+
+  // Email Templates
+  getEmailTemplate(id: number): Promise<EmailTemplate | undefined>;
+  getDefaultEmailTemplate(): Promise<EmailTemplate | undefined>;
+  getAllEmailTemplates(): Promise<EmailTemplate[]>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(template: UpdateEmailTemplate): Promise<EmailTemplate | undefined>;
+
+  // Sent Notifications
+  createSentNotification(notification: InsertSentNotification): Promise<SentNotification>;
+  getRecentSentNotifications(serviceId: number): Promise<SentNotification[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -213,6 +239,108 @@ export class DatabaseStorage implements IStorage {
   async getService(id: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(eq(services.id, id));
     return service;
+  }
+
+  // Notification Preferences
+  async getNotificationPreference(userId: number, serviceId: number): Promise<NotificationPreference | undefined> {
+    const [preference] = await db
+      .select()
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.userId, userId),
+          eq(notificationPreferences.serviceId, serviceId)
+        )
+      );
+    return preference;
+  }
+
+  async getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]> {
+    return await db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+  }
+
+  async createNotificationPreference(preference: InsertNotificationPreference): Promise<NotificationPreference> {
+    const [newPreference] = await db
+      .insert(notificationPreferences)
+      .values(preference)
+      .returning();
+    return newPreference;
+  }
+
+  async updateNotificationPreference(preference: UpdateNotificationPreference): Promise<NotificationPreference | undefined> {
+    const [updatedPreference] = await db
+      .update(notificationPreferences)
+      .set(preference)
+      .where(eq(notificationPreferences.id, preference.id))
+      .returning();
+    return updatedPreference;
+  }
+
+  async deleteNotificationPreference(id: number): Promise<NotificationPreference | undefined> {
+    const [deletedPreference] = await db
+      .delete(notificationPreferences)
+      .where(eq(notificationPreferences.id, id))
+      .returning();
+    return deletedPreference;
+  }
+
+  // Email Templates
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.id, id));
+    return template;
+  }
+
+  async getDefaultEmailTemplate(): Promise<EmailTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.defaultTemplate, true));
+    return template;
+  }
+
+  async getAllEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates);
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [newTemplate] = await db
+      .insert(emailTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(template: UpdateEmailTemplate): Promise<EmailTemplate | undefined> {
+    const [updatedTemplate] = await db
+      .update(emailTemplates)
+      .set(template)
+      .where(eq(emailTemplates.id, template.id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  // Sent Notifications
+  async createSentNotification(notification: InsertSentNotification): Promise<SentNotification> {
+    const [newNotification] = await db
+      .insert(sentNotifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async getRecentSentNotifications(serviceId: number): Promise<SentNotification[]> {
+    return await db
+      .select()
+      .from(sentNotifications)
+      .where(eq(sentNotifications.serviceId, serviceId))
+      .orderBy(desc(sentNotifications.sentAt))
+      .limit(10);
   }
 }
 

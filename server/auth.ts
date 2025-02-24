@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { sendEmail, compileTemplate } from "./email";
 
 declare global {
   namespace Express {
@@ -162,5 +163,84 @@ export function setupAuth(app: Express) {
 
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
+  });
+
+  // Add notification preference routes
+  app.get("/api/notification-preferences", isApproved, async (req, res) => {
+    const preferences = await storage.getUserNotificationPreferences(req.user!.id);
+    res.json(preferences);
+  });
+
+  app.post("/api/notification-preferences", isApproved, async (req, res) => {
+    const { serviceId, email, enabled } = req.body;
+
+    // Check if preference already exists
+    const existingPref = await storage.getNotificationPreference(req.user!.id, serviceId);
+
+    if (existingPref) {
+      const updatedPref = await storage.updateNotificationPreference({
+        id: existingPref.id,
+        email,
+        enabled
+      });
+      res.json(updatedPref);
+    } else {
+      const newPref = await storage.createNotificationPreference({
+        userId: req.user!.id,
+        serviceId,
+        email,
+        enabled
+      });
+      res.json(newPref);
+    }
+  });
+
+  // Email template management (admin only)
+  app.get("/api/email-templates", isAdmin, async (req, res) => {
+    const templates = await storage.getAllEmailTemplates();
+    res.json(templates);
+  });
+
+  app.post("/api/email-templates", isAdmin, async (req, res) => {
+    const template = await storage.createEmailTemplate(req.body);
+    res.json(template);
+  });
+
+  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
+    const template = await storage.updateEmailTemplate({
+      id: parseInt(req.params.id),
+      ...req.body
+    });
+    if (!template) return res.status(404).json({ message: "Template not found" });
+    res.json(template);
+  });
+
+  // Test email notification (admin only)
+  app.post("/api/test-notification", isAdmin, async (req, res) => {
+    const { templateId, email } = req.body;
+
+    const template = await storage.getEmailTemplate(templateId);
+    if (!template) return res.status(404).json({ message: "Template not found" });
+
+    const testData = {
+      serviceName: "Test Service",
+      status: "offline",
+      timestamp: new Date().toISOString(),
+      duration: "5 minutes"
+    };
+
+    const html = compileTemplate(template.template, testData);
+
+    const success = await sendEmail({
+      to: email,
+      subject: template.subject,
+      html
+    });
+
+    if (success) {
+      res.json({ message: "Test email sent successfully" });
+    } else {
+      res.status(500).json({ message: "Failed to send test email" });
+    }
   });
 }

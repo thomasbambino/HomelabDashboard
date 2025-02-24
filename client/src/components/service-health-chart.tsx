@@ -1,6 +1,6 @@
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { ServiceHealthHistory } from "@shared/schema";
+import { ServiceStatusLog } from "@shared/schema";
 import { format, subHours, subDays, subMonths, addSeconds, isBefore } from "date-fns";
 import { useState } from "react";
 
@@ -19,7 +19,7 @@ interface ChartDataPoint {
 export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeScale }: ServiceHealthChartProps) {
   const [tooltipTime, setTooltipTime] = useState<string | null>(null);
 
-  const { data: healthHistory } = useQuery<ServiceHealthHistory[]>({
+  const { data: healthHistory } = useQuery<ServiceStatusLog[]>({
     queryKey: [`/api/services/${serviceId}/health-history`, timeScale],
   });
 
@@ -31,7 +31,6 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     );
   }
 
-  // Calculate start time based on timeScale
   const now = new Date();
   let startTime = now;
   switch (timeScale) {
@@ -43,26 +42,22 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     case '1m': startTime = subMonths(now, 1); break;
   }
 
-  // Sort history by timestamp and filter to selected time range
   const sortedHistory = [...healthHistory]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .filter(record => new Date(record.timestamp) >= startTime);
 
-  // Create continuous data with gaps filled
   const chartData: ChartDataPoint[] = [];
   let currentTime = startTime;
   let lastStatus = false;
   let hasDataForPeriod = false;
 
   while (isBefore(currentTime, now)) {
-    // Find records in this time slot
     const recordsInSlot = sortedHistory.filter(record => {
       const recordTime = new Date(record.timestamp);
       return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5);
     });
 
     if (recordsInSlot.length > 0) {
-      // If we have data, use the most recent status in this slot
       const mostRecent = recordsInSlot[recordsInSlot.length - 1];
       lastStatus = mostRecent.status;
       hasDataForPeriod = true;
@@ -70,7 +65,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
 
     chartData.push({
       timestamp: currentTime,
-      status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1, // -1 indicates no data
+      status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1,
     });
 
     currentTime = addSeconds(currentTime, 5);

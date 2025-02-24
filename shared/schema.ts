@@ -73,11 +73,43 @@ export const serviceStatusLogs = pgTable("serviceStatusLogs", {
   responseTime: integer("responseTime"),
 });
 
+export const notificationPreferences = pgTable("notificationPreferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  email: text("email").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const emailTemplates = pgTable("emailTemplates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  template: text("template").notNull(),
+  defaultTemplate: boolean("defaultTemplate").notNull().default(false),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const sentNotifications = pgTable("sentNotifications", {
+  id: serial("id").primaryKey(),
+  preferenceId: integer("preferenceId").notNull().references(() => notificationPreferences.id, { onDelete: 'cascade' }),
+  templateId: integer("templateId").notNull().references(() => emailTemplates.id, { onDelete: 'cascade' }),
+  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  status: boolean("status").notNull(),
+  sentAt: timestamp("sentAt").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertServiceStatusLogSchema = createInsertSchema(serviceStatusLogs);
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const insertSentNotificationSchema = createInsertSchema(sentNotifications);
 
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
@@ -95,6 +127,14 @@ export const updateSettingsSchema = insertSettingsSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+export const updateNotificationPreferenceSchema = insertNotificationPreferenceSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
+export const updateEmailTemplateSchema = insertEmailTemplateSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
@@ -103,8 +143,16 @@ export type UpdateService = z.infer<typeof updateServiceSchema>;
 export type UpdateGameServer = z.infer<typeof updateGameServerSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type InsertSentNotification = z.infer<typeof insertSentNotificationSchema>;
+export type UpdateNotificationPreference = z.infer<typeof updateNotificationPreferenceSchema>;
+export type UpdateEmailTemplate = z.infer<typeof updateEmailTemplateSchema>;
 export type User = typeof users.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type ServiceStatusLog = typeof serviceStatusLogs.$inferSelect;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type SentNotification = typeof sentNotifications.$inferSelect;
