@@ -3,15 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { Service, ServiceStatusLog } from "@shared/schema";
+import { Service, Settings } from "@shared/schema";
 import { format, subHours } from "date-fns";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ScrollText, X } from "lucide-react";
+import { CalendarIcon, Activity, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/use-auth";
 
 export function UptimeLogDialog() {
   const [selectedService, setSelectedService] = useState<string>("all");
@@ -22,11 +23,23 @@ export function UptimeLogDialog() {
     return { from: start, to: end };
   });
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   // Fetch services for the filter dropdown
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
   });
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
+
+  const showUptimeLog = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
+
+  if (!showUptimeLog) {
+    return null;
+  }
 
   // Fetch status logs with filters
   const { data: logs = [] } = useQuery<(ServiceStatusLog & { service: Service })[]>({
@@ -36,13 +49,11 @@ export function UptimeLogDialog() {
 
       // Add service filter
       if (selectedService !== "all") {
-        console.log('Adding service filter:', selectedService);
         params.append("serviceId", selectedService);
       }
 
       // Add status filter
       if (selectedStatus !== "all") {
-        console.log('Adding status filter:', selectedStatus);
         params.append("status", selectedStatus === "true" ? "true" : "false");
       }
 
@@ -52,7 +63,6 @@ export function UptimeLogDialog() {
 
       const queryString = params.toString();
       const url = `/api/services/status-logs${queryString ? `?${queryString}` : ''}`;
-      console.log('Fetching logs with URL:', url);  // Debug log
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -69,7 +79,7 @@ export function UptimeLogDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <ScrollText className="h-4 w-4 mr-2" />
+          <Activity className="h-4 w-4 mr-2" />
           Uptime Log
         </Button>
       </DialogTrigger>
