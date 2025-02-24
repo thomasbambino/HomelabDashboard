@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Image } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
-import type { DefaultGenerics } from 'stream-chat';
+import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
   const [message, setMessage] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
-  const [channel, setChannel] = useState<StreamChannel<DefaultGenerics> | null>(null);
+  const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -32,14 +32,11 @@ export function ChatRoom() {
 
     const loadChannel = async () => {
       try {
-        const filter = { type: 'team' };
-        const sort = [{ last_message_at: -1 }];
-
-        const channels = await chatClient.queryChannels(filter, sort, {
-          limit: 1,
-          state: true,
-          watch: true,
-        });
+        const channels = await chatClient.queryChannels(
+          { type: 'team' },
+          { last_message_at: -1 },
+          { limit: 1 }
+        );
 
         if (channels.length > 0) {
           const activeChannel = channels[0];

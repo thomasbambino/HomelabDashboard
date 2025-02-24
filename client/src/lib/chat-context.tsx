@@ -2,10 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { StreamChat } from 'stream-chat';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
-import type { DefaultGenerics } from 'stream-chat';
+import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
 type ChatContextType = {
-  chatClient: StreamChat<DefaultGenerics> | null;
+  chatClient: StreamChat<DefaultStreamChatGenerics> | null;
   loading: boolean;
   error: Error | null;
 };
@@ -13,22 +13,32 @@ type ChatContextType = {
 const ChatContext = createContext<ChatContextType | null>(null);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [chatClient, setChatClient] = useState<StreamChat<DefaultGenerics> | null>(null);
+  const [chatClient, setChatClient] = useState<StreamChat<DefaultStreamChatGenerics> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const { data: chatToken } = useQuery({
+  // Only fetch token if user is logged in
+  const { data: chatToken, error: tokenError } = useQuery({
     queryKey: ['/api/chat/token'],
     enabled: !!user,
   });
 
   useEffect(() => {
-    let client: StreamChat<DefaultGenerics> | null = null;
+    let client: StreamChat<DefaultStreamChatGenerics> | null = null;
 
     const initChat = async () => {
       if (!user) {
         console.log('No user logged in');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Chat token response:', chatToken);
+
+      if (tokenError) {
+        console.error('Error fetching chat token:', tokenError);
+        setError(new Error('Failed to get chat token'));
         setLoading(false);
         return;
       }
@@ -39,6 +49,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       const apiKey = import.meta.env.VITE_STREAM_API_KEY;
+      console.log('Environment variables:', {
+        VITE_STREAM_API_KEY: apiKey,
+        hasKey: !!apiKey,
+        user: user.id,
+        token: chatToken.token
+      });
+
       if (!apiKey) {
         console.error('Stream API key not found');
         setError(new Error('Stream API key not configured'));
@@ -47,13 +64,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('Initializing Stream Chat client');
-        client = StreamChat.getInstance<DefaultGenerics>(apiKey);
+        console.log('Initializing Stream Chat client with API key:', apiKey);
+        client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
-        const userId = user.id.toString();
+        console.log('Connecting user:', { userId: user.id, username: user.username });
         await client.connectUser(
           {
-            id: userId,
+            id: user.id.toString(),
             name: user.username,
           },
           chatToken.token
@@ -83,7 +100,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         });
       }
     };
-  }, [user, chatToken]);
+  }, [user, chatToken, tokenError]);
 
   return (
     <ChatContext.Provider value={{ chatClient, loading, error }}>
