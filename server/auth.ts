@@ -29,20 +29,14 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
     if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
       const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
       if (!oldestAttempt) {
-        return res.status(429).json({
-          message: "Too many attempts. Please try again later.",
-          retryAfter: RATE_LIMIT.WINDOW_MS / 1000
-        });
+        return res.sendStatus(429);
       }
 
       const timeSinceOldest = Date.now() - oldestAttempt.timestamp.getTime();
       const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
 
       if (timeRemaining > 0) {
-        return res.status(429).json({
-          message: "Too many attempts. Please try again later.",
-          retryAfter: Math.ceil(timeRemaining / 1000)
-        });
+        return res.sendStatus(429);
       }
 
       // If window has passed, clear old attempts
@@ -134,31 +128,13 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/login", async (req, res, next) => {
+  app.post("/api/login", checkRateLimit, async (req, res, next) => {
     try {
       const identifier = req.body.username;
       const ip = req.ip;
       const type = 'login';
 
-      // Check rate limit before allowing any authentication attempt
-      const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
 
-      if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
-        const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
-        if (oldestAttempt) {
-          const timeSinceOldest = Date.now() - oldestAttempt.timestamp.getTime();
-          const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
-
-          if (timeRemaining > 0) {
-            return res.sendStatus(429); // Only send status code, no message
-          }
-
-          // If window has passed, clear old attempts
-          await storage.clearLoginAttempts(identifier, ip, type);
-        }
-      }
-
-      // Only proceed with authentication if rate limit hasn't been exceeded
       passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);
 
