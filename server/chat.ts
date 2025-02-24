@@ -21,8 +21,12 @@ export class ChatServer {
     try {
       console.log('Generating token for user:', {
         userId: user.id,
-        username: user.username
+        username: user.username,
+        role: user.role
       });
+
+      // Map application roles to Stream Chat roles
+      const streamRole = user.role === 'admin' ? 'admin' : 'user';
 
       // Create a Stream Chat token for the user
       const token = this.streamClient.createToken(user.id.toString());
@@ -32,7 +36,7 @@ export class ChatServer {
       await this.streamClient.upsertUser({
         id: user.id.toString(),
         name: user.username,
-        role: user.role,
+        role: streamRole, // Use the mapped role
       });
 
       console.log('User upserted to Stream Chat');
