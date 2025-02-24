@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Image } from "lucide-react";
+import { Send, Image, Trash2 } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
@@ -54,6 +54,11 @@ export function ChatRoom() {
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
           });
+
+          // Listen for deleted messages
+          activeChannel.on('message.deleted', (event) => {
+            setMessages((prev) => prev.filter((msg) => msg.id !== event.message.id));
+          });
         } else {
           console.log('No public channel found');
         }
@@ -75,6 +80,25 @@ export function ChatRoom() {
       }
     };
   }, [chatClient, toast]);
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!channel) return;
+
+    try {
+      await channel.deleteMessage(messageId);
+      toast({
+        title: 'Message deleted',
+        description: 'Your message has been removed',
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: 'Error deleting message',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleImageUpload = async (file: File) => {
     if (!channel) return;
@@ -153,12 +177,22 @@ export function ChatRoom() {
                 msg.user?.id === chatClient?.user?.id ? 'items-end' : 'items-start'
               }`}>
                 <div
-                  className={`rounded-lg px-4 py-2 break-words ${
+                  className={`relative rounded-lg px-4 py-2 break-words group ${
                     msg.user?.id === chatClient?.user?.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
+                  {msg.user?.id === chatClient?.user?.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteMessage(msg.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                   {msg.attachments?.length > 0 ? (
                     msg.attachments.map((attachment: any, i: number) => (
                       <img
