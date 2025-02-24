@@ -15,7 +15,7 @@ import { useState } from "react";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
-  const [showUptimeLog, setShowUptimeLog] = useState(false);
+  const [uptimeDialogOpen, setUptimeDialogOpen] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -55,11 +55,11 @@ export default function Dashboard() {
             <SettingsDialog />
             {showUptimeLogButton && (
               <>
-                <Button variant="outline" onClick={() => setShowUptimeLog(true)}>
+                <Button variant="outline" onClick={() => setUptimeDialogOpen(true)}>
                   <Activity className="h-4 w-4 mr-2" />
                   Uptime Log
                 </Button>
-                <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
+                <UptimeLogDialog open={uptimeDialogOpen} onOpenChange={setUptimeDialogOpen} />
               </>
             )}
             {isAdmin && (
