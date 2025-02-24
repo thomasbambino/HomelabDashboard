@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Service, GameServer, Settings } from "@shared/schema";
-import { ServiceCard } from "@/components/service-card";
+import { ServiceList } from "@/components/service-list";
 import { GameServerCard } from "@/components/game-server-card";
 import { AddServiceDialog } from "@/components/add-service-dialog";
 import { AddGameServerDialog } from "@/components/add-game-server-dialog";
@@ -32,10 +32,6 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.role === 'admin';
-
-  const sortedServices = [...(services || [])].sort((a, b) => 
-    a.name.localeCompare(b.name)
-  );
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -100,17 +96,15 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold">Services</h2>
               {isAdmin && <AddServiceDialog />}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {servicesLoading ? (
-                Array(3).fill(0).map((_, i) => (
+            {servicesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array(3).fill(0).map((_, i) => (
                   <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                ))
-              ) : (
-                sortedServices.map((service) => (
-                  <ServiceCard key={service.id} service={service} />
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <ServiceList services={services} />
+            )}
           </section>
         </div>
       </div>
