@@ -1,15 +1,23 @@
-import { MailService } from '@sendgrid/mail';
+import formData from 'form-data';
+import Mailgun from 'mailgun.js';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+if (!process.env.MAILGUN_API_KEY) {
+  throw new Error("MAILGUN_API_KEY environment variable must be set");
 }
 
-if (!process.env.SENDGRID_FROM_EMAIL) {
-  throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
+if (!process.env.MAILGUN_DOMAIN) {
+  throw new Error("MAILGUN_DOMAIN environment variable must be set");
 }
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+if (!process.env.MAILGUN_FROM_EMAIL) {
+  throw new Error("MAILGUN_FROM_EMAIL environment variable must be set");
+}
+
+const mailgun = new Mailgun(formData);
+const client = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY,
+});
 
 interface EmailParams {
   to: string;
@@ -20,16 +28,16 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    await mailService.send({
-      to: params.to,
-      from: process.env.SENDGRID_FROM_EMAIL!,
+    await client.messages.create(process.env.MAILGUN_DOMAIN!, {
+      from: process.env.MAILGUN_FROM_EMAIL!,
+      to: [params.to], // Mailgun expects an array of recipients
       subject: params.subject,
-      text: params.text,
-      html: params.html,
+      text: params.text || '',
+      html: params.html || '',
     });
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('Mailgun email error:', error);
     return false;
   }
 }
