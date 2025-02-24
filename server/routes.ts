@@ -300,6 +300,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // Add private chat room routes
+  app.post("/api/chat/private-rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { userId } = req.body;
+      const currentUser = req.user as User;
+
+      if (!userId || typeof userId !== "number") {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      // Check if users already have a private chat
+      const existingRoom = await storage.findPrivateRoom(currentUser.id, userId);
+      if (existingRoom) {
+        return res.json(existingRoom);
+      }
+
+      // Get the other user's info for the room name
+      const otherUser = await storage.getUser(userId);
+      if (!otherUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create new private room
+      const newRoom = await storage.createChatRoom({
+        name: `${currentUser.username} & ${otherUser.username}`,
+        type: "private",
+        createdBy: currentUser.id,
+      });
+
+      // Add both users as members
+      await storage.addChatMember({
+        roomId: newRoom.id,
+        userId: currentUser.id,
+        isAdmin: true,
+      });
+
+      await storage.addChatMember({
+        roomId: newRoom.id,
+        userId: userId,
+        isAdmin: true,
+      });
+
+      res.status(201).json(newRoom);
+    } catch (error) {
+      console.error("Error creating private chat room:", error);
+      res.status(500).json({ message: "Failed to create private chat room" });
+    }
+  });
+
+  app.get("/api/chat/private-rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as User;
+      const rooms = await storage.listPrivateRooms(user.id);
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching private rooms:", error);
+      res.status(500).json({ message: "Failed to fetch private rooms" });
+    }
+  });
+
   // Add chat room routes
   app.post("/api/chat/rooms", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -339,6 +401,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching chat rooms:", error);
       res.status(500).json({ message: "Failed to fetch chat rooms" });
+    }
+  });
+
+  // Add chat message routes
+  app.post("/api/chat/messages/:roomId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { content } = req.body;
+      const roomId = parseInt(req.params.roomId);
+      const user = req.user as User;
+
+      if (!content || typeof content !== "string" || !content.trim()) {
+        return res.status(400).json({ message: "Invalid message content" });
+      }
+
+      // Verify user is a member of the room
+      const isMember = await storage.getChatMember(roomId, user.id);
+      if (!isMember) {
+        return res.status(403).json({ message: "Not a member of this chat room" });
+      }
+
+      const message = await storage.createChatMessage({
+        roomId: roomId,
+        senderId: user.id,
+        type: 'text',
+        content: content.trim(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEdited: false,
+      });
+
+      // Get the complete message with sender info
+      const messageWithSender = {
+        ...message,
+        sender: await storage.getUser(user.id),
+      };
+
+      // Emit the message through WebSocket
+      const chatServer = req.app.get('chatServer');
+      if (chatServer) {
+        chatServer.broadcast(roomId, 'message', messageWithSender);
+      }
+
+      res.status(201).json(messageWithSender);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Add endpoint to get users for private chats
+  app.get("/api/users", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const currentUser = req.user as User;
+      const users = await storage.listUsers();
+      // Filter out the current user and only return necessary fields
+      const filteredUsers = users
+        .filter(user => user.id !== currentUser.id)
+        .map(({ id, username, isOnline, lastSeen }) => ({
+          id,
+          username,
+          isOnline,
+          lastSeen
+        }));
+      res.json(filteredUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 

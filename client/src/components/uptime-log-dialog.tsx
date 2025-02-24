@@ -13,13 +13,11 @@ import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/use-auth";
-import { NotificationPreferencesDialog } from "./notification-preferences-dialog";
 
 export function UptimeLogDialog() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  // Always call hooks at the top level
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>(() => {
@@ -69,143 +67,140 @@ export function UptimeLogDialog() {
   const showUptimeLog = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
 
   if (!showUptimeLog) {
-    return <NotificationPreferencesDialog />;
+    return null;
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <NotificationPreferencesDialog />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            <Activity className="h-4 w-4 mr-2" />
-            Uptime Log
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Service Uptime Log</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              <Select value={selectedService} onValueChange={setSelectedService}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by service" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Services</SelectItem>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={String(service.id)}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Activity className="h-4 w-4 mr-2" />
+          Uptime Log
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Service Uptime Log</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by service" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Services</SelectItem>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={String(service.id)}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="true">Online</SelectItem>
-                  <SelectItem value="false">Offline</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="true">Online</SelectItem>
+                <SelectItem value="false">Offline</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[280px] justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date?.from ? (
-                        date.to ? (
-                          <>
-                            {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
-                          </>
-                        ) : (
-                          format(date.from, "LLL dd, y")
-                        )
-                      ) : (
-                        <span>Pick a date range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={date?.from}
-                      selected={date}
-                      onSelect={setDate}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                {date && (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const end = new Date();
-                      const start = subHours(end, 24);
-                      setDate({ from: start, to: end });
+                    variant={"outline"}
+                    className={cn(
+                      "w-[280px] justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {date && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const end = new Date();
+                    const start = subHours(end, 24);
+                    setDate({ from: start, to: end });
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <ScrollArea className="h-[400px] rounded-md border p-4">
+            <div className="space-y-2">
+              {logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between p-2 rounded-lg border"
+                >
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-medium">{log.service.name}</span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {format(new Date(log.timestamp), "PPp")}
+                      </span>
+                    </div>
+                    {log.responseTime && (
+                      <div className="text-sm text-muted-foreground">
+                        Response time: {log.responseTime}ms
+                      </div>
+                    )}
+                  </div>
+                  <Badge
+                    variant="default"
+                    style={{
+                      backgroundColor: log.status ? "#22c55e" : "#ef4444",
+                      color: "white"
                     }}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+                    {log.status ? "Online" : "Offline"}
+                  </Badge>
+                </div>
+              ))}
+              {logs.length === 0 && (
+                <div className="text-center text-muted-foreground py-4">
+                  No status changes found
+                </div>
+              )}
             </div>
-
-            <ScrollArea className="h-[400px] rounded-md border p-4">
-              <div className="space-y-2">
-                {logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between p-2 rounded-lg border"
-                  >
-                    <div className="space-y-1">
-                      <div>
-                        <span className="font-medium">{log.service.name}</span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          {format(new Date(log.timestamp), "PPp")}
-                        </span>
-                      </div>
-                      {log.responseTime && (
-                        <div className="text-sm text-muted-foreground">
-                          Response time: {log.responseTime}ms
-                        </div>
-                      )}
-                    </div>
-                    <Badge
-                      variant="default"
-                      style={{
-                        backgroundColor: log.status ? "#22c55e" : "#ef4444",
-                        color: "white"
-                      }}
-                    >
-                      {log.status ? "Online" : "Offline"}
-                    </Badge>
-                  </div>
-                ))}
-                {logs.length === 0 && (
-                  <div className="text-center text-muted-foreground py-4">
-                    No status changes found
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </ScrollArea>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -89,6 +89,11 @@ export interface IStorage {
   createChatAttachment(attachment: InsertChatAttachment): Promise<ChatAttachment>;
   getChatAttachment(id: number): Promise<ChatAttachment | undefined>;
   getChatAttachments(messageId: number): Promise<ChatAttachment[]>;
+
+  //Private Chat Methods
+  findPrivateRoom(userId1: number, userId2: number): Promise<ChatRoom | undefined>;
+  listPrivateRooms(userId: number): Promise<ChatRoom[]>;
+  getChatMember(roomId: number, userId: number): Promise<ChatMember | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -539,6 +544,53 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(chatAttachments)
       .where(eq(chatAttachments.messageId, messageId));
+  }
+
+  //Private Chat Methods
+  async findPrivateRoom(userId1: number, userId2: number): Promise<ChatRoom | undefined> {
+    // Find a private room where both users are members
+    const rooms = await db
+      .select()
+      .from(chatRooms)
+      .where(eq(chatRooms.type, 'private'))
+      .leftJoin(chatMembers, eq(chatRooms.id, chatMembers.roomId));
+
+    for (const room of rooms) {
+      const members = await this.getChatMembers(room.chat_rooms.id);
+      const memberIds = new Set(members.map(m => m.userId));
+      if (memberIds.has(userId1) && memberIds.has(userId2)) {
+        return room.chat_rooms;
+      }
+    }
+    return undefined;
+  }
+
+  async listPrivateRooms(userId: number): Promise<ChatRoom[]> {
+    const rooms = await db
+      .select()
+      .from(chatRooms)
+      .where(eq(chatRooms.type, 'private'))
+      .leftJoin(chatMembers, eq(chatRooms.id, chatMembers.roomId))
+      .where(eq(chatMembers.userId, userId));
+
+    return rooms.map(room => room.chat_rooms);
+  }
+
+  async getChatMember(roomId: number, userId: number): Promise<ChatMember | undefined> {
+    const [member] = await db
+      .select()
+      .from(chatMembers)
+      .where(
+        and(
+          eq(chatMembers.roomId, roomId),
+          eq(chatMembers.userId, userId)
+        )
+      );
+    return member;
+  }
+
+    async listUsers(): Promise<User[]> {
+    return await db.select().from(users);
   }
 }
 

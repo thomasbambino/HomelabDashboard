@@ -204,9 +204,19 @@ export class ChatServer {
   }
 
   private async getUserIdFromSession(req: any): Promise<number | null> {
-    // You'll need to implement this based on your session management
-    // For now, return null to indicate unauthorized
-    return null;
+    // Extract user ID from session
+    const sessionId = req.url.split('?')[1]?.split('=')[1];
+    if (!sessionId) return null;
+
+    return new Promise((resolve) => {
+      storage.sessionStore.get(sessionId, (err: any, session: any) => {
+        if (err || !session?.passport?.user) {
+          resolve(null);
+          return;
+        }
+        resolve(session.passport.user);
+      });
+    });
   }
 
   public close() {
