@@ -2,9 +2,8 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, Activity } from "lucide-react";
+import { ExternalLink, Settings, Trash2 } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
-import { UptimeLogDialog } from "./uptime-log-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +28,6 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
-  const [showUptimeLog, setShowUptimeLog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
@@ -68,7 +66,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const showRefreshInterval = isAdmin ? settings?.admin_show_refresh_interval : settings?.show_refresh_interval;
   const showLastChecked = isAdmin ? settings?.admin_show_last_checked : settings?.show_last_checked;
   const showServiceUrl = isAdmin ? settings?.admin_show_service_url : settings?.show_service_url;
-  const showUptimeLogButton = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
 
   // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
@@ -118,11 +115,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
           )}
           {isAdmin && (
             <>
-              {showUptimeLogButton && (
-                <Button variant="ghost" size="icon" onClick={() => setShowUptimeLog(true)}>
-                  <Activity className="h-4 w-4" />
-                </Button>
-              )}
               <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
@@ -182,13 +174,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
           service={service}
           open={showEdit}
           onOpenChange={setShowEdit}
-        />
-      )}
-      {showUptimeLogButton && (
-        <UptimeLogDialog
-          service={service}
-          open={showUptimeLog}
-          onOpenChange={setShowUptimeLog}
         />
       )}
     </Card>

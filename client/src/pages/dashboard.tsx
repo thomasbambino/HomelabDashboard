@@ -7,13 +7,15 @@ import { AddGameServerDialog } from "@/components/add-game-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ServerCog, Users } from "lucide-react";
+import { LogOut, ServerCog, Users, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
+import { useState } from "react";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+  const [showUptimeLog, setShowUptimeLog] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -30,28 +32,36 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.role === 'admin';
-  const showUptimeLog = isAdmin ? settings?.adminShowUptimeLog : settings?.showUptimeLog;
+  const showUptimeLogButton = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
 
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            {settings?.logoUrl ? (
+            {settings?.logo_url ? (
               <img
-                src={settings.logoUrl}
+                src={settings.logo_url}
                 alt="Site Logo"
                 className="h-8 w-8 object-contain"
               />
             ) : (
               <ServerCog className="h-8 w-8 text-primary" />
             )}
-            <h1 className="text-3xl font-bold">{settings?.siteTitle || "Homelab Dashboard"}</h1>
+            <h1 className="text-3xl font-bold">{settings?.site_title || "Homelab Dashboard"}</h1>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <SettingsDialog />
-            {showUptimeLog && <UptimeLogDialog />}
+            {showUptimeLogButton && (
+              <>
+                <Button variant="outline" onClick={() => setShowUptimeLog(true)}>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Uptime Log
+                </Button>
+                <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
+              </>
+            )}
             {isAdmin && (
               <Link href="/users">
                 <Button variant="outline">
