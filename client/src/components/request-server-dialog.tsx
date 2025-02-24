@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import * as z from 'zod';
+import { apiRequest } from "@/lib/queryClient";
 
 // List of supported games from the text file
 const SUPPORTED_GAMES = [
