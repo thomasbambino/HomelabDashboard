@@ -140,7 +140,7 @@ export class AMPService {
               'X-AMP-Version': version
             },
             validateStatus: function (status) {
-              return status < 500; // Accept any status code to handle authentication errors
+              return status < 500; // Accept any status to handle authentication errors
             }
           });
 
@@ -331,7 +331,7 @@ export class AMPService {
   async getSystemInfo(): Promise<AMPSystemInfo> {
     const sessionId = await this.ensureAuthenticated();
     try {
-      console.log('Fetching AMP system info');
+      console.log('Fetching system info');
       const response = await axios.get<{ result: AMPSystemInfo }>(
         `${this.baseUrl}/API/Core/GetSystemInfo`,
         { 
