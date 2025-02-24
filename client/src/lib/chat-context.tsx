@@ -86,6 +86,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           role: userData.role
         });
 
+        // Clear any existing client connection first
+        if (chatClient) {
+          await chatClient.disconnectUser();
+          setChatClient(null);
+        }
+
         await client.connectUser(userData, chatToken.token);
 
         console.log('Successfully connected to Stream Chat');
