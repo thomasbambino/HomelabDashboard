@@ -22,7 +22,8 @@ export class AMPService {
   private sessionId: string | null = null;
 
   constructor() {
-    this.baseUrl = process.env.AMP_API_URL || '';
+    // Remove trailing slash if present
+    this.baseUrl = (process.env.AMP_API_URL || '').replace(/\/$/, '');
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
 
@@ -52,10 +53,18 @@ export class AMPService {
       };
       console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
 
-      const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData);
+      const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'AMPDashboard/1.0',
+          'X-AMP-Version': '2.6.0.6'
+        }
+      });
 
       console.log('Login response status:', response.status);
       console.log('Login response headers:', response.headers);
+      console.log('Login response data:', response.data);
 
       if (!response.data?.sessionId) {
         console.error('Login response data:', response.data);
@@ -87,7 +96,10 @@ export class AMPService {
   private getHeaders(sessionId: string) {
     return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Cookie': `AMPSessionID=${sessionId}`,
+      'User-Agent': 'AMPDashboard/1.0',
+      'X-AMP-Version': '2.6.0.6'
     };
   }
 
