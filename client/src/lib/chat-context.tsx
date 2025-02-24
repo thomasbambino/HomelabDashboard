@@ -67,7 +67,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         console.log('Initializing Stream Chat client with API key:', apiKey);
         client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
-        console.log('Connecting user:', { userId: user.id, username: user.username });
+        console.log('Connecting user:', { userId: user.id.toString(), username: user.username });
         await client.connectUser(
           {
             id: user.id.toString(),

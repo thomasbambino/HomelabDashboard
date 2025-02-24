@@ -19,18 +19,19 @@ export class ChatServer {
 
   async connectUser(user: User) {
     try {
+      const userId = user.id.toString(); // Ensure ID is a string
       console.log('Generating token for user:', {
-        userId: user.id,
+        userId,
         username: user.username
       });
 
       // Create a Stream Chat token for the user
-      const token = this.streamClient.createToken(user.id.toString());
+      const token = this.streamClient.createToken(userId);
       console.log('Generated Stream Chat token:', token);
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
-        id: user.id.toString(),
+        id: userId,
         name: user.username,
         role: user.role,
       });
