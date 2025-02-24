@@ -14,6 +14,7 @@ import http from 'http';
 import sharp from 'sharp';
 import {User} from '@shared/schema';
 import { ChatServer } from './chat';
+import cookieParser from 'cookie-parser';
 
 // Configure multer for image upload
 const upload = multer({
@@ -169,6 +170,9 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add cookie parser middleware before session setup
+  app.use(cookieParser());
+
   setupAuth(app);
 
   // Serve uploaded files
@@ -412,27 +416,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const roomId = parseInt(req.params.roomId);
       const user = req.user as User;
 
+      console.log(`Message send attempt - Room: ${roomId}, User: ${user.id}, Content length: ${content?.length}`);
+
       if (!content || typeof content !== "string" || !content.trim()) {
+        console.log("Invalid message content");
         return res.status(400).json({ message: "Invalid message content" });
       }
 
-      // Get the room to check if it's public
+      // Get the room to check if it exists and its type
       const room = await storage.getChatRoom(roomId);
       if (!room) {
+        console.log(`Room ${roomId} not found`);
         return res.status(404).json({ message: "Chat room not found" });
       }
 
+      console.log(`Processing message for ${room.type} room ${roomId}`);
+
       // For public rooms, ensure user is a member
       if (room.type === 'public') {
+        console.log(`Ensuring user ${user.id} is member of public room`);
         await storage.addUserToPublicRoom(user.id);
       } else {
         // For private/group rooms, verify membership
+        console.log(`Checking membership for user ${user.id} in room ${roomId}`);
         const isMember = await storage.getChatMember(roomId, user.id);
         if (!isMember) {
+          console.log(`User ${user.id} is not a member of room ${roomId}`);
           return res.status(403).json({ message: "Not a member of this chat room" });
         }
       }
 
+      console.log(`Creating message in database`);
       const message = await storage.createChatMessage({
         roomId,
         senderId: user.id,
@@ -452,11 +466,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast the message through WebSocket
       const chatServer = app.get('chatServer');
       if (chatServer) {
+        console.log(`Broadcasting message to room ${roomId}`);
         chatServer.broadcastToRoom(roomId, {
           type: 'message',
           roomId,
           data: messageWithSender,
         });
+      } else {
+        console.warn('Chat server not found for broadcasting');
       }
 
       res.status(201).json(messageWithSender);
@@ -581,11 +598,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Initialize chat server -  Ensuring it's initialized only once.
-  let chatServer: ChatServer | null = null; //added to handle multiple calls
-  if(!chatServer){
-    chatServer = new ChatServer(httpServer);
+  // Initialize chat server with proper error handling
+  try {
+    const chatServer = new ChatServer(httpServer);
     app.set('chatServer', chatServer);
+    console.log('Chat server initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize chat server:', error);
   }
 
   return httpServer;

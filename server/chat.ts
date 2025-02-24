@@ -25,11 +25,15 @@ export class ChatServer {
       server,
       path: '/ws/chat',
       clientTracking: true,
-      // Add verifyClient to reject unauthorized connections early
-      verifyClient: async (info, cb) => {
+      handleProtocols: () => 'chat',
+      verifyClient: async ({ req }, cb) => {
         try {
-          const userId = await this.getUserIdFromSession(info.req);
-          cb(userId !== null, 401, 'Unauthorized');
+          const userId = await this.getUserIdFromSession(req);
+          if (userId) {
+            cb(true, 200, 'Authorized');
+          } else {
+            cb(false, 401, 'Unauthorized');
+          }
         } catch (error) {
           console.error('Error verifying client:', error);
           cb(false, 500, 'Internal Server Error');
@@ -38,8 +42,10 @@ export class ChatServer {
     });
 
     this.setupWebSocketServer();
+    this.setupPingInterval();
+  }
 
-    // Set up ping interval to keep connections alive and detect stale ones
+  private setupPingInterval() {
     this.pingInterval = setInterval(() => {
       this.wss.clients.forEach((client: ChatClient) => {
         if (!client.isAlive) {
@@ -54,17 +60,12 @@ export class ChatServer {
 
   private setupWebSocketServer() {
     this.wss.on('connection', async (ws: ChatClient, req) => {
-      console.log('New WebSocket connection attempt');
-
-      // Extract user ID from the session
       const userId = await this.getUserIdFromSession(req);
       if (!userId) {
-        console.log('WebSocket connection rejected: Unauthorized');
         ws.close(1008, 'Unauthorized');
         return;
       }
 
-      console.log(`WebSocket connection authenticated for user ${userId}`);
       ws.userId = userId;
       ws.isAlive = true;
 
@@ -75,8 +76,12 @@ export class ChatServer {
       this.clients.get(userId)?.add(ws);
 
       // Update user's online status
-      await storage.updateUser({ id: userId, isOnline: true });
-      this.broadcastUserStatus(userId, true);
+      try {
+        await storage.updateUser({ id: userId, isOnline: true });
+        this.broadcastUserStatus(userId, true);
+      } catch (error) {
+        console.error('Error updating user status:', error);
+      }
 
       ws.on('pong', () => {
         ws.isAlive = true;
@@ -88,26 +93,24 @@ export class ChatServer {
           await this.handleMessage(ws, message);
         } catch (error) {
           console.error('Error handling message:', error);
-          ws.send(JSON.stringify({ 
-            type: 'error', 
-            data: { message: 'Invalid message format' } 
-          }));
+          ws.send(JSON.stringify({ type: 'error', data: { message: 'Invalid message format' } }));
         }
       });
 
       ws.on('close', async () => {
-        console.log(`WebSocket connection closed for user ${userId}`);
-        // Remove client from the clients map
         this.clients.get(userId)?.delete(ws);
         if (this.clients.get(userId)?.size === 0) {
           this.clients.delete(userId);
-          // Update user's online status
-          await storage.updateUser({ 
-            id: userId, 
-            isOnline: false,
-            lastSeen: new Date()
-          });
-          this.broadcastUserStatus(userId, false);
+          try {
+            await storage.updateUser({ 
+              id: userId, 
+              isOnline: false,
+              lastSeen: new Date()
+            });
+            this.broadcastUserStatus(userId, false);
+          } catch (error) {
+            console.error('Error updating user status on disconnect:', error);
+          }
         }
       });
 
@@ -140,65 +143,131 @@ export class ChatServer {
     }
   }
 
+  private async getUserIdFromSession(req: any): Promise<number | null> {
+    try {
+      const cookies = parse(req.headers.cookie || '');
+      const sessionId = cookies['connect.sid']?.split('.')[0].slice(2);
+
+      if (!sessionId) {
+        console.log('No session ID found in cookies');
+        return null;
+      }
+
+      return new Promise((resolve) => {
+        storage.sessionStore.get(sessionId, (err: any, session: any) => {
+          if (err || !session?.passport?.user) {
+            console.log('Session store error or no user in session:', err);
+            resolve(null);
+            return;
+          }
+          resolve(session.passport.user);
+        });
+      });
+    } catch (error) {
+      console.error('Error extracting user ID from session:', error);
+      return null;
+    }
+  }
+
   private async handleChatMessage(userId: number, data: { 
     roomId: number, 
     content: string,
     type?: 'text' | 'image' | 'file',
     replyTo?: number 
   }) {
-    // Check if user is a member of the room
-    const member = await storage.getChatMember(data.roomId, userId);
-    if (!member) return;
+    try {
+      // Check if user is a member of the room
+      const room = await storage.getChatRoom(data.roomId);
+      if (!room) {
+        throw new Error('Chat room not found');
+      }
 
-    // Create and save the message
-    const message = await storage.createChatMessage({
-      roomId: data.roomId,
-      senderId: userId,
-      content: data.content,
-      type: data.type || 'text',
-      replyTo: data.replyTo,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isEdited: false,
-    });
+      let isMember = false;
+      if (room.type === 'public') {
+        await storage.addUserToPublicRoom(userId);
+        isMember = true;
+      } else {
+        const member = await storage.getChatMember(data.roomId, userId);
+        isMember = !!member;
+      }
 
-    // Update room's last message timestamp
-    await storage.updateChatRoom({
-      id: data.roomId,
-      lastMessageAt: new Date(),
-    });
+      if (!isMember) {
+        throw new Error('Not a member of this chat room');
+      }
 
-    // Get sender info
-    const sender = await storage.getUser(userId);
-    const messageWithSender = { ...message, sender };
+      // Create and save the message
+      const message = await storage.createChatMessage({
+        roomId: data.roomId,
+        senderId: userId,
+        content: data.content,
+        type: data.type || 'text',
+        replyTo: data.replyTo,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEdited: false,
+      });
 
-    // Broadcast to all room members
-    this.broadcastToRoom(data.roomId, {
-      type: 'message',
-      roomId: data.roomId,
-      data: messageWithSender,
-    });
+      // Update room's last message timestamp
+      await storage.updateChatRoom({
+        id: data.roomId,
+        lastMessageAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Get sender info for the complete message
+      const sender = await storage.getUser(userId);
+      const messageWithSender = { ...message, sender };
+
+      // Broadcast to all room members
+      this.broadcastToRoom(data.roomId, {
+        type: 'message',
+        roomId: data.roomId,
+        data: messageWithSender,
+      });
+    } catch (error) {
+      console.error('Error handling chat message:', error);
+      throw error;
+    }
   }
 
   private async handleTypingIndicator(userId: number, data: { roomId: number }) {
-    this.broadcastToRoom(data.roomId, {
-      type: 'typing',
-      roomId: data.roomId,
-      data: { userId },
-    }, userId); // Exclude sender
+    try {
+      const room = await storage.getChatRoom(data.roomId);
+      if (!room) return;
+
+      const isMember = room.type === 'public' || await storage.isChatMember(data.roomId, userId);
+      if (!isMember) return;
+
+      this.broadcastToRoom(data.roomId, {
+        type: 'typing',
+        roomId: data.roomId,
+        data: { userId },
+      }, userId); // Exclude sender
+    } catch (error) {
+      console.error('Error handling typing indicator:', error);
+    }
   }
 
   private async handleReadReceipt(userId: number, data: { roomId: number }) {
-    const timestamp = new Date();
+    try {
+      const room = await storage.getChatRoom(data.roomId);
+      if (!room) return;
 
-    this.broadcastToRoom(data.roomId, {
-      type: 'read',
-      roomId: data.roomId,
-      data: { userId, timestamp },
-    });
+      const isMember = room.type === 'public' || await storage.isChatMember(data.roomId, userId);
+      if (!isMember) return;
+
+      const timestamp = new Date();
+      this.broadcastToRoom(data.roomId, {
+        type: 'read',
+        roomId: data.roomId,
+        data: { userId, timestamp },
+      });
+    } catch (error) {
+      console.error('Error handling read receipt:', error);
+    }
   }
 
-  private broadcastToRoom(roomId: number, message: BroadcastMessage, excludeUserId?: number) {
+  public broadcastToRoom(roomId: number, message: BroadcastMessage, excludeUserId?: number) {
     storage.getChatMembers(roomId).then(members => {
       members.forEach(member => {
         if (excludeUserId && member.userId === excludeUserId) return;
@@ -207,7 +276,7 @@ export class ChatServer {
     });
   }
 
-  private broadcastUserStatus(userId: number, isOnline: boolean) {
+  public broadcastUserStatus(userId: number, isOnline: boolean) {
     const message: BroadcastMessage = {
       type: 'user_status',
       data: { userId, isOnline, timestamp: new Date() },
@@ -231,34 +300,6 @@ export class ChatServer {
         client.send(messageStr);
       }
     });
-  }
-
-  private async getUserIdFromSession(req: any): Promise<number | null> {
-    try {
-      // Extract session ID from cookie
-      const cookies = parse(req.headers.cookie || '');
-      const sessionId = cookies['connect.sid']?.split('.')[0].slice(2);
-
-      if (!sessionId) {
-        console.log('No session ID found in cookies');
-        return null;
-      }
-
-      return new Promise((resolve) => {
-        storage.sessionStore.get(sessionId, (err: any, session: any) => {
-          if (err || !session?.passport?.user) {
-            console.log('Session store error or no user in session:', err);
-            resolve(null);
-            return;
-          }
-          console.log('Successfully retrieved user ID from session:', session.passport.user);
-          resolve(session.passport.user);
-        });
-      });
-    } catch (error) {
-      console.error('Error extracting user ID from session:', error);
-      return null;
-    }
   }
 
   public close() {

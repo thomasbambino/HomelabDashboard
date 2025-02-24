@@ -76,24 +76,31 @@ class ChatClient {
   }
 
   private handleMessage(message: any) {
-    console.log('Handling message type:', message.type);
+    console.log('Handling WebSocket message:', message);
+
     switch (message.type) {
       case 'message':
+        console.log('Received chat message:', message.data);
         this.emit('message', message.data);
         break;
       case 'typing':
+        console.log('Received typing indicator:', message.data);
         this.emit('typing', message.data);
         break;
       case 'read':
+        console.log('Received read receipt:', message.data);
         this.emit('read', message.data);
         break;
       case 'user_status':
+        console.log('Received user status update:', message.data);
         this.emit('userStatus', message.data);
         break;
       case 'error':
         console.error('Server error:', message.data.message);
         this.emit('error', new Error(message.data.message));
         break;
+      default:
+        console.warn('Unknown message type:', message.type);
     }
   }
 
@@ -113,7 +120,31 @@ class ChatClient {
   }
 
   public sendMessage(roomId: number, content: string, type: 'text' | 'image' | 'file' = 'text', replyTo?: number) {
-    console.log('Sending message:', { roomId, content, type, replyTo });
+    console.log('Attempting to send message:', { roomId, content, type, replyTo });
+
+    // Send message via HTTP POST first
+    fetch(`/api/chat/messages/${roomId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content, type, replyTo }),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Message sent successfully:', data);
+    })
+    .catch(error => {
+      console.error('Error sending message:', error);
+      this.emit('error', error);
+    });
+
+    // Also send via WebSocket for real-time updates
     this.send({
       type: 'send_message',
       data: { roomId, content, type, replyTo }
