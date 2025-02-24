@@ -51,7 +51,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <SettingsDialog />
+            {isAdmin && <SettingsDialog />}
             <NotificationPreferencesDialog />
             <ChatButton />
             <UptimeLogDialog />
