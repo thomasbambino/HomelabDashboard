@@ -8,11 +8,10 @@ import { RequestServerDialog } from "@/components/request-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ServerCog, Users } from "lucide-react";
+import { ServerCog, Users, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
-import { ChatButton } from "@/components/chat/chat-button";
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
 
 export default function Dashboard() {
@@ -54,7 +53,6 @@ export default function Dashboard() {
             <ThemeToggle />
             {isAdmin && <SettingsDialog />}
             <NotificationPreferencesDialog />
-            <ChatButton />
             <UptimeLogDialog />
             {isAdmin && (
               <Link href="/users">
