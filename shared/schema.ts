@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   email: text("email"),
   role: roleEnum("role").notNull().default('pending'),
   approved: boolean("approved").notNull().default(false),
+  enabled: boolean("enabled").notNull().default(true), // New column for account status
   can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
   show_uptime_log: boolean("show_uptime_log").notNull().default(false),
   show_service_url: boolean("show_service_url").notNull().default(true),

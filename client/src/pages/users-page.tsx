@@ -28,7 +28,7 @@ export default function UsersPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean; email?: string }) => {
+    mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean; email?: string; enabled?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -59,7 +59,7 @@ export default function UsersPage() {
       }
       toast({
         title: "Password reset",
-        description: data.tempPassword 
+        description: data.tempPassword
           ? "A temporary password has been generated."
           : "A password reset email has been sent to the user.",
       });
@@ -206,6 +206,15 @@ export default function UsersPage() {
                   <div className="flex items-center gap-4">
                     {u.role !== 'admin' && (
                       <>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={u.enabled}
+                            onCheckedChange={(checked) =>
+                              updateUserMutation.mutate({ id: u.id, enabled: checked })
+                            }
+                          />
+                          <Label>Account Enabled</Label>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Switch
                             checked={u.approved}
