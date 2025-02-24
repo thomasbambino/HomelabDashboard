@@ -50,8 +50,8 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <ChatButton />
             <SettingsDialog />
+            <ChatButton />
             <UptimeLogDialog />
             {isAdmin && (
               <Link href="/users">
