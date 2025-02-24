@@ -12,6 +12,7 @@ import { useChat } from '@/lib/chat-context';
 import { Channel as StreamChannel } from 'stream-chat';
 import { useToast } from '@/hooks/use-toast';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
+import 'stream-chat-react/dist/css/v2/index.css';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
@@ -86,13 +87,13 @@ export function ChatRoom() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="h-[calc(100vh-4rem)] bg-background">
       <Chat client={chatClient} theme="str-chat__theme-light">
         <Channel channel={activeChannel}>
           <Window>
             <ChannelHeader />
             <MessageList />
-            <MessageInput />
+            <MessageInput focus />
           </Window>
           <Thread />
         </Channel>
