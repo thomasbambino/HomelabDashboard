@@ -67,11 +67,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         console.log('Initializing Stream Chat client with API key:', apiKey);
         client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
-        console.log('Connecting user:', { userId: user.id, username: user.username });
+        console.log('Connecting user:', { 
+          userId: user.id, 
+          username: user.username,
+          role: user.role 
+        });
+
         await client.connectUser(
           {
             id: user.id.toString(),
             name: user.username,
+            role: user.role // Include role to match server-side user data
           },
           chatToken.token
         );
