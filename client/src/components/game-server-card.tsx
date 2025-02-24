@@ -39,7 +39,10 @@ export function GameServerCard({ server }: GameServerCardProps) {
   };
 
   const getServerTypeIcon = () => {
-    if (server.icon) return server.icon;
+    if (server.icon) {
+      return <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />;
+    }
+
     switch (server.type.toLowerCase()) {
       case 'satisfactory':
         return '🏭';
