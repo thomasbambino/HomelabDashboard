@@ -34,6 +34,7 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
       refreshInterval: service.refreshInterval,
       isNSFW: service.isNSFW ?? false,
       tooltip: service.tooltip ?? "",
+      show_status_badge: service.show_status_badge ?? true,
     },
   });
 
@@ -128,6 +129,23 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
                       onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="show_status_badge"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Show Status Badge</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
                 </FormItem>
               )}
             />

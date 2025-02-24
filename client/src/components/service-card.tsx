@@ -67,7 +67,6 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
   const showRefreshInterval = isAdmin ? settings?.admin_show_refresh_interval : settings?.show_refresh_interval;
   const showLastChecked = isAdmin ? settings?.admin_show_last_checked : settings?.show_last_checked;
   const showServiceUrl = isAdmin ? settings?.admin_show_service_url : settings?.show_service_url;
-  const showStatusBadge = isAdmin ? settings?.admin_show_status_badge : settings?.show_status_badge;
 
   // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
@@ -100,7 +99,7 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {showStatusBadge && (
+          {service.show_status_badge && (
             <Badge
               variant="default"
               style={{

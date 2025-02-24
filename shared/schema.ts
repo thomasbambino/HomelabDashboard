@@ -59,6 +59,7 @@ export const services = pgTable("services", {
   refreshInterval: integer("refreshInterval").default(30),
   isNSFW: boolean("isNSFW").default(false),
   tooltip: text("tooltip"),
+  show_status_badge: boolean("show_status_badge").default(true),
 });
 
 export const gameServers = pgTable("gameServers", {

@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import * as z from 'zod';
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export function AddServiceDialog() {
   const { toast } = useToast();
@@ -31,6 +32,7 @@ export function AddServiceDialog() {
       url: "",
       status: false,
       lastChecked: new Date().toISOString(),
+      show_status_badge: true,
     },
   });
 
@@ -92,6 +94,23 @@ export function AddServiceDialog() {
                   <FormControl>
                     <Input placeholder="https://plex.local:32400" {...field} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="show_status_badge"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Show Status Badge</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
                 </FormItem>
               )}
             />
