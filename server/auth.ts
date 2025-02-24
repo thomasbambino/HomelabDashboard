@@ -14,6 +14,60 @@ declare global {
   }
 }
 
+// Add type safety to rate limiter IP handling
+class RateLimiter {
+  private attempts: Map<string, { count: number; timestamp: number }> = new Map();
+  private readonly MAX_ATTEMPTS = 5;
+  private readonly LOCKOUT_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+  isRateLimited(ip: string): boolean {
+    const safeIp = ip || 'unknown';
+    const record = this.attempts.get(safeIp);
+    if (!record) return false;
+
+    // Check if lockout period has expired
+    if (Date.now() - record.timestamp >= this.LOCKOUT_DURATION) {
+      this.attempts.delete(safeIp);
+      return false;
+    }
+
+    return record.count >= this.MAX_ATTEMPTS;
+  }
+
+  recordAttempt(ip: string) {
+    const safeIp = ip || 'unknown';
+    const record = this.attempts.get(safeIp);
+    if (record) {
+      record.count += 1;
+      record.timestamp = Date.now();
+    } else {
+      this.attempts.set(safeIp, { count: 1, timestamp: Date.now() });
+    }
+  }
+
+  getRemainingAttempts(ip: string): number {
+    const safeIp = ip || 'unknown';
+    const record = this.attempts.get(safeIp);
+    if (!record) return this.MAX_ATTEMPTS;
+    return Math.max(0, this.MAX_ATTEMPTS - record.count);
+  }
+
+  clearAttempts(ip: string) {
+    const safeIp = ip || 'unknown';
+    this.attempts.delete(safeIp);
+  }
+
+  getTimeRemaining(ip: string): number {
+    const safeIp = ip || 'unknown';
+    const record = this.attempts.get(safeIp);
+    if (!record) return 0;
+    const elapsed = Date.now() - record.timestamp;
+    return Math.max(0, this.LOCKOUT_DURATION - elapsed);
+  }
+}
+
+const rateLimiter = new RateLimiter();
+
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
@@ -108,14 +162,37 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    const ip = req.ip;
+
+    // Check if the IP is rate limited
+    if (rateLimiter.isRateLimited(ip)) {
+      const timeRemaining = Math.ceil(rateLimiter.getTimeRemaining(ip) / 1000);
+      return res.status(429).json({
+        message: `Too many login attempts. Please try again in ${Math.ceil(timeRemaining / 60)} minutes.`,
+        timeRemaining
+      });
+    }
+
     passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
+
       if (!user) {
-        return res.status(401).json({ 
-          message: "Invalid credentials",
-          showResetOption: true
+        // Record failed attempt
+        rateLimiter.recordAttempt(ip);
+        const remainingAttempts = rateLimiter.getRemainingAttempts(ip);
+
+        return res.status(401).json({
+          message: remainingAttempts > 0 
+            ? `Invalid credentials. ${remainingAttempts} attempts remaining.`
+            : "Too many failed attempts. Please try again later.",
+          showResetOption: true,
+          remainingAttempts
         });
       }
+
+      // Clear attempts on successful login
+      rateLimiter.clearAttempts(ip);
+
       req.logIn(user, (err) => {
         if (err) return next(err);
         res.json(user);

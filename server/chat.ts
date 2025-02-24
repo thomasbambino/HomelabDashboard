@@ -1,9 +1,12 @@
 import { StreamChat } from 'stream-chat';
 import { storage } from './storage';
 import { User } from '@shared/schema';
+import { Server } from 'http';
+import WebSocket from 'ws';
 
 export class ChatServer {
   private streamClient: StreamChat;
+  private wsServer: WebSocket.Server | null = null;
 
   constructor() {
     if (!process.env.STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
@@ -17,6 +20,44 @@ export class ChatServer {
     console.log('Stream Chat server initialized');
   }
 
+  initialize(httpServer: Server) {
+    // Initialize WebSocket server
+    this.wsServer = new WebSocket.Server({ server: httpServer });
+
+    this.wsServer.on('connection', (ws: WebSocket) => {
+      console.log('New WebSocket connection established');
+
+      ws.on('message', (message: WebSocket.RawData) => {
+        try {
+          const data = JSON.parse(message.toString());
+          console.log('Received message:', data);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      });
+
+      ws.on('error', (error: Error) => {
+        console.error('WebSocket error:', error);
+      });
+    });
+
+    console.log('WebSocket server initialized');
+  }
+
+  broadcastToRoom(roomId: number, message: unknown) {
+    if (!this.wsServer) {
+      console.warn('WebSocket server not initialized');
+      return;
+    }
+
+    const messageStr = JSON.stringify(message);
+    this.wsServer.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(messageStr);
+      }
+    });
+  }
+
   async connectUser(user: User) {
     try {
       console.log('Generating token for user:', {
@@ -28,10 +69,11 @@ export class ChatServer {
 
       // Map application roles to Stream Chat roles
       const streamRole = user.role === 'admin' ? 'admin' : 'user';
+      const userIdStr = user.id.toString();
 
       // First, try to disconnect any existing connections
       try {
-        await this.streamClient.disconnectUser(user.id.toString());
+        await this.streamClient.disconnectUser(userIdStr);
         console.log('Disconnected existing user connection');
       } catch (error) {
         // Ignore errors if user wasn't connected
@@ -39,7 +81,7 @@ export class ChatServer {
       }
 
       // Create a Stream Chat token for the user
-      const token = this.streamClient.createToken(user.id.toString());
+      const token = this.streamClient.createToken(userIdStr);
       console.log('Generated Stream Chat token:', token);
       console.log('Generated Stream Chat token structure:', JSON.stringify(token, null, 2));
 
@@ -50,14 +92,14 @@ export class ChatServer {
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
-        id: user.id.toString(),
+        id: userIdStr,
         name: user.username,
         role: streamRole,
       });
       console.log('User object passed to connectUser:', user);
 
       // Ensure user is added to public channel
-      await this.ensurePublicChannel(user.id.toString());
+      await this.ensurePublicChannel(userIdStr);
 
       console.log('User upserted to Stream Chat');
       return { token };
@@ -126,6 +168,8 @@ export class ChatServer {
   }
 
   public close() {
-    // No need to explicitly close Stream Chat client
+    if (this.wsServer) {
+      this.wsServer.close();
+    }
   }
 }

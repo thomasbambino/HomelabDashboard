@@ -16,6 +16,7 @@ import {User} from '@shared/schema';
 import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email'; // Import sendEmail function
+import { pgTable, text } from "drizzle-orm/pg-core";
 
 
 // Configure multer for image upload
@@ -177,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Initialize chat server
+  // Initialize chat server without passing server instance
   const chatServer = new ChatServer();
   app.set('chatServer', chatServer);
 
@@ -514,8 +515,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: content.trim(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        isEdited: false,
-      });
+        isEdited: false
+      } as const);
 
       // Get the complete message with sender info
       const messageWithSender = {
@@ -656,7 +657,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Initialize chat server with http server instance
+  chatServer.initialize(httpServer);
+
   console.log('Chat server initialized successfully');
 
   return httpServer;
 }
+
+// Export chat room schema
+export const chatRooms = pgTable("chatRooms", {
+  // ... other fields remain unchanged ...
+  streamChannelId: text("streamChannelId"),
+});
