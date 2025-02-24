@@ -19,8 +19,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   // Only fetch token if user is logged in
-  const { data: chatToken, error: tokenError } = useQuery({
-    queryKey: ['/api/chat/token'],
+  const { data: chatToken } = useQuery({
+    queryKey: ['/api/chat/token', user?.id], // Add user.id to query key to ensure fresh data
     enabled: !!user,
   });
 
@@ -30,15 +30,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const initChat = async () => {
       if (!user) {
         console.log('No user logged in');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Chat token response:', chatToken);
-
-      if (tokenError) {
-        console.error('Error fetching chat token:', tokenError);
-        setError(new Error('Failed to get chat token'));
         setLoading(false);
         return;
       }
@@ -68,6 +59,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        // Cleanup any existing client first
+        if (chatClient) {
+          await chatClient.disconnectUser();
+          setChatClient(null);
+        }
+
         console.log('Initializing Stream Chat client with API key:', apiKey);
         client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
@@ -75,22 +72,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const streamRole = user.role === 'admin' ? 'admin' : 'user';
 
         const userData = {
-          id: user.id.toString(), // Ensure ID is always a string
+          id: user.id.toString(),
           name: user.username,
-          role: streamRole // Use the mapped role
+          role: streamRole
         };
 
-        console.log('Connecting user:', { 
-          userId: userData.id,
-          username: userData.name,
-          role: userData.role
-        });
-
-        // Clear any existing client connection first
-        if (chatClient) {
-          await chatClient.disconnectUser();
-          setChatClient(null);
-        }
+        console.log('Connecting user:', userData);
 
         await client.connectUser(userData, chatToken.token);
 
@@ -118,7 +105,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         });
       }
     };
-  }, [user, chatToken, tokenError]);
+  }, [user, chatToken]); // Only depend on user and chatToken
 
   return (
     <ChatContext.Provider value={{ chatClient, loading, error }}>
