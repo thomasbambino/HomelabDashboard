@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useChat } from '@/lib/chat-context';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Image } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
@@ -14,6 +14,7 @@ export function ChatRoom() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!chatClient) {
@@ -60,6 +61,33 @@ export function ChatRoom() {
       }
     };
   }, [chatClient, toast]);
+
+  const handleImageUpload = async (file: File) => {
+    if (!channel) return;
+
+    try {
+      const response = await channel.sendImage(file);
+      const url = response.file;
+
+      await channel.sendMessage({
+        text: '',
+        attachments: [
+          {
+            type: 'image',
+            image_url: url,
+            fallback: file.name,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Error uploading image',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSend = async () => {
     if (!message.trim() || !channel) return;
@@ -114,7 +142,18 @@ export function ChatRoom() {
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {msg.text}
+                {msg.attachments?.length > 0 ? (
+                  msg.attachments.map((attachment: any, i: number) => (
+                    <img
+                      key={i}
+                      src={attachment.image_url}
+                      alt={attachment.fallback}
+                      className="max-w-full rounded-md my-2"
+                    />
+                  ))
+                ) : (
+                  msg.text
+                )}
               </div>
             </div>
           ))}
@@ -129,6 +168,26 @@ export function ChatRoom() {
           }}
           className="flex items-center gap-2"
         >
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleImageUpload(file);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Image className="h-4 w-4" />
+          </Button>
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
