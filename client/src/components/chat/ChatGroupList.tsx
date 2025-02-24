@@ -1,15 +1,25 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
-import { ChatRoom } from "@shared/schema";
+import { ChatRoom, User } from "@shared/schema";
 import { format } from "date-fns";
 import { Plus, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { chatClient } from "@/lib/chat";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function ChatGroupList() {
+  const { user } = useAuth();
   const { data: groupRooms = [] } = useQuery<ChatRoom[]>({
     queryKey: ["/api/chat/group-rooms"],
   });
+
+  useEffect(() => {
+    if (user?.id) {
+      chatClient.setUserId(user.id);
+    }
+  }, [user?.id]);
 
   return (
     <div className="flex flex-col h-full">

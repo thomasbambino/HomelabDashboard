@@ -2,9 +2,6 @@ import { ChatMessage, ChatRoom, User } from "@shared/schema";
 
 interface ChatEvents {
   message: (message: ChatMessage) => void;
-  typing: (data: { userId: number; roomId: number }) => void;
-  read: (data: { userId: number; roomId: number; timestamp: Date }) => void;
-  userStatus: (data: { userId: number; isOnline: boolean; timestamp: Date }) => void;
   error: (error: Error) => void;
   connected: () => void;
   disconnected: () => void;
@@ -18,49 +15,61 @@ class ChatClient {
   private maxReconnectAttempts = 5;
   private reconnectTimeout: number = 1000;
   private events: Map<keyof ChatEvents, Set<EventCallback>> = new Map();
+  private userId: number | null = null;
 
   constructor() {
+    // Delay connection until setUserId is called
+  }
+
+  public setUserId(userId: number) {
+    console.log('Setting user ID:', userId);
+    this.userId = userId;
     this.connect();
   }
 
   private connect() {
-    try {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
-      console.log('Attempting to connect to WebSocket:', wsUrl);
-
-      this.socket = new WebSocket(wsUrl);
-
-      this.socket.onopen = () => {
-        console.log('WebSocket connection established');
-        this.reconnectAttempts = 0;
-        this.emit('connected');
-      };
-
-      this.socket.onclose = () => {
-        console.log('WebSocket connection closed');
-        this.emit('disconnected');
-        this.handleReconnect();
-      };
-
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.emit('error', new Error('WebSocket connection error'));
-      };
-
-      this.socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          console.log('Received WebSocket message:', message);
-          this.handleMessage(message);
-        } catch (error) {
-          console.error('Error parsing message:', error);
-        }
-      };
-    } catch (error) {
-      console.error('Error connecting to WebSocket:', error);
-      this.handleReconnect();
+    if (!this.userId) {
+      console.error('No userId set, cannot connect');
+      return;
     }
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat?userId=${this.userId}`;
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    this.socket = new WebSocket(wsUrl);
+
+    this.socket.onopen = () => {
+      console.log('WebSocket connected');
+      this.reconnectAttempts = 0;
+      this.emit('connected');
+    };
+
+    this.socket.onclose = () => {
+      console.log('WebSocket disconnected');
+      this.emit('disconnected');
+      this.handleReconnect();
+    };
+
+    this.socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      this.emit('error', new Error('WebSocket connection error'));
+    };
+
+    this.socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Received message:', message);
+
+        if (message.type === 'message') {
+          this.emit('message', message.data);
+        } else if (message.type === 'error') {
+          this.emit('error', new Error(message.data.message));
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
+    };
   }
 
   private handleReconnect() {
@@ -69,38 +78,6 @@ class ChatClient {
       const delay = this.reconnectTimeout * this.reconnectAttempts;
       console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
       setTimeout(() => this.connect(), delay);
-    } else {
-      console.error('Max reconnection attempts reached');
-      this.emit('error', new Error('Unable to establish WebSocket connection'));
-    }
-  }
-
-  private handleMessage(message: any) {
-    console.log('Handling WebSocket message:', message);
-
-    switch (message.type) {
-      case 'message':
-        console.log('Received chat message:', message.data);
-        this.emit('message', message.data);
-        break;
-      case 'typing':
-        console.log('Received typing indicator:', message.data);
-        this.emit('typing', message.data);
-        break;
-      case 'read':
-        console.log('Received read receipt:', message.data);
-        this.emit('read', message.data);
-        break;
-      case 'user_status':
-        console.log('Received user status update:', message.data);
-        this.emit('userStatus', message.data);
-        break;
-      case 'error':
-        console.error('Server error:', message.data.message);
-        this.emit('error', new Error(message.data.message));
-        break;
-      default:
-        console.warn('Unknown message type:', message.type);
     }
   }
 
@@ -119,21 +96,17 @@ class ChatClient {
     this.events.get(event)?.forEach(callback => callback(data));
   }
 
-  public sendMessage(roomId: number, content: string, type: 'text' | 'image' | 'file' = 'text', replyTo?: number) {
-    console.log('Attempting to send message:', { roomId, content, type, replyTo });
+  public sendMessage(roomId: number, content: string) {
+    console.log('Sending message:', { roomId, content });
 
-    // Send message via HTTP POST first
+    // Send via HTTP POST
     fetch(`/api/chat/messages/${roomId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content, type, replyTo }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
     })
     .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     })
     .then(data => {
@@ -143,43 +116,15 @@ class ChatClient {
       console.error('Error sending message:', error);
       this.emit('error', error);
     });
-
-    // Also send via WebSocket for real-time updates
-    this.send({
-      type: 'send_message',
-      data: { roomId, content, type, replyTo }
-    });
-  }
-
-  public sendTypingIndicator(roomId: number) {
-    this.send({
-      type: 'typing',
-      data: { roomId }
-    });
-  }
-
-  public sendReadReceipt(roomId: number) {
-    this.send({
-      type: 'read',
-      data: { roomId }
-    });
-  }
-
-  private send(message: any) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      const messageStr = JSON.stringify(message);
-      console.log('Sending WebSocket message:', messageStr);
-      this.socket.send(messageStr);
-    } else {
-      console.warn('WebSocket not ready, message not sent:', message);
-    }
   }
 
   public close() {
-    console.log('Closing WebSocket connection');
-    this.socket?.close();
+    if (this.socket) {
+      console.log('Closing WebSocket connection');
+      this.socket.close();
+      this.socket = null;
+    }
   }
 }
 
-// Create a singleton instance
 export const chatClient = new ChatClient();
