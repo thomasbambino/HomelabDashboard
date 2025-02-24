@@ -33,7 +33,6 @@ export function ChatRoom() {
     const loadChannel = async () => {
       try {
         console.log('Querying channels for public chat');
-        // Connect to the public channel
         const channels = await chatClient.queryChannels(
           { type: 'messaging', id: 'public' },
           { last_message_at: -1 },
@@ -150,11 +149,13 @@ export function ChatRoom() {
               key={index}
               className={`flex ${msg.user?.id === chatClient?.user?.id ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="flex flex-col w-full max-w-[70%]">
+              <div className={`flex flex-col max-w-[70%] ${
+                msg.user?.id === chatClient?.user?.id ? 'items-end' : 'items-start'
+              }`}>
                 <div
                   className={`rounded-lg px-4 py-2 break-words ${
                     msg.user?.id === chatClient?.user?.id
-                      ? 'bg-primary text-primary-foreground ml-auto'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -171,9 +172,7 @@ export function ChatRoom() {
                     <span className="whitespace-pre-wrap">{msg.text}</span>
                   )}
                 </div>
-                <span className={`text-xs text-foreground opacity-70 mt-1 ${
-                  msg.user?.id === chatClient?.user?.id ? 'text-right' : 'text-left'
-                }`}>
+                <span className="text-xs text-foreground opacity-70 mt-1 px-1">
                   {msg.user?.name || 'Unknown User'}
                 </span>
               </div>
