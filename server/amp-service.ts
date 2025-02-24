@@ -2,6 +2,19 @@ import axios, { AxiosError } from 'axios';
 import https from 'https';
 import axiosRetry from 'axios-retry';
 
+interface AMPModuleInfo {
+  Modules: {
+    [key: string]: {
+      ModuleID: string;
+      FriendlyName: string;
+      Description: string;
+      Version: string;
+      Author: string;
+    };
+  };
+  AvailableModules: string[];
+}
+
 interface AMPLoginResponse {
   result: number;
   resultReason: string;
@@ -368,12 +381,12 @@ export class AMPService {
     }
   }
 
-  async getModuleInfo(): Promise<any> {
+  async getModuleInfo(): Promise<AMPModuleInfo> {
     const sessionId = await this.ensureAuthenticated();
     try {
       console.log('Fetching module information');
-      const response = await axios.get(
-        `${this.baseUrl}/API/ADSModule/GetModuleInfo`,
+      const response = await axios.get<{ result: AMPModuleInfo }>(
+        `${this.baseUrl}/API/Core/GetModuleInfo`,
         { 
           headers: this.getHeaders(sessionId),
           validateStatus: function (status) {

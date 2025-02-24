@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new diagnostic endpoint for AMP testing
+  // Update the AMP test endpoint
   app.get("/api/amp-test", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
