@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { StreamChat } from 'stream-chat';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
-import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
+import type { DefaultStreamChatGenerics } from 'stream-chat';
 
 type ChatContextType = {
   chatClient: StreamChat<DefaultStreamChatGenerics> | null;
@@ -18,8 +18,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  // Only fetch token if user is logged in
-  const { data: chatToken, error: tokenError } = useQuery({
+  const { data: chatToken } = useQuery({
     queryKey: ['/api/chat/token'],
     enabled: !!user,
   });
@@ -34,28 +33,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log('Chat token response:', chatToken);
-
-      if (tokenError) {
-        console.error('Error fetching chat token:', tokenError);
-        setError(new Error('Failed to get chat token'));
-        setLoading(false);
-        return;
-      }
-
       if (!chatToken) {
         console.log('Waiting for chat token...');
         return;
       }
 
       const apiKey = import.meta.env.VITE_STREAM_API_KEY;
-      console.log('Environment variables:', {
-        VITE_STREAM_API_KEY: apiKey,
-        hasKey: !!apiKey,
-        user: user.id,
-        token: chatToken.token
-      });
-
       if (!apiKey) {
         console.error('Stream API key not found');
         setError(new Error('Stream API key not configured'));
@@ -64,11 +47,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('Initializing Stream Chat client with API key:', apiKey);
+        console.log('Initializing Stream Chat client');
         client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
         const userId = user.id.toString();
-        console.log('Connecting user:', { userId, username: user.username });
+        console.log('Connecting user to Stream Chat:', {
+          userId,
+          username: user.username,
+          token: chatToken.token
+        });
 
         await client.connectUser(
           {
@@ -102,7 +89,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         });
       }
     };
-  }, [user, chatToken, tokenError]);
+  }, [user, chatToken]);
 
   return (
     <ChatContext.Provider value={{ chatClient, loading, error }}>
