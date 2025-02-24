@@ -1,4 +1,5 @@
 import axios from 'axios';
+import https from 'https';
 
 interface AMPLoginResponse {
   sessionId: string;
@@ -32,19 +33,32 @@ export class AMPService {
         hasPassword: !!this.password
       });
     }
+
+    // Configure axios to ignore SSL certificate issues if needed
+    axios.defaults.httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
   }
 
   private async login(): Promise<string> {
     try {
       console.log('Attempting to login to AMP at:', this.baseUrl);
-      const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, {
+
+      const loginData = {
         username: this.username,
         password: this.password,
         token: '',
         rememberMe: false,
-      });
+      };
+      console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
+
+      const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData);
+
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
 
       if (!response.data?.sessionId) {
+        console.error('Login response data:', response.data);
         throw new Error('No session ID received from AMP login');
       }
 
@@ -55,6 +69,9 @@ export class AMPService {
       console.error('AMP login failed:', error);
       if (axios.isAxiosError(error)) {
         console.error('Response:', error.response?.data);
+        console.error('Request URL:', error.config?.url);
+        console.error('Request method:', error.config?.method);
+        console.error('Request headers:', error.config?.headers);
       }
       throw new Error('Failed to authenticate with AMP');
     }
@@ -91,6 +108,9 @@ export class AMPService {
       console.error('Failed to fetch AMP instances:', error);
       if (axios.isAxiosError(error)) {
         console.error('Response:', error.response?.data);
+        console.error('Request URL:', error.config?.url);
+        console.error('Request method:', error.config?.method);
+        console.error('Request headers:', error.config?.headers);
       }
       return []; // Return empty array on error instead of throwing
     }
