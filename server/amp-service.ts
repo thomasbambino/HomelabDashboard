@@ -120,7 +120,7 @@ export class AMPService {
       console.log('Attempting to login to AMP at:', this.baseUrl);
 
       const loginData = {
-        username: this.username,
+        username: this.username, // Preserve the case exactly as provided
         password: this.password,
         token: '',
         rememberMe: false,
@@ -158,6 +158,7 @@ export class AMPService {
             // Set session expiry to 1 hour from now
             this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
             console.log('Successfully logged in to AMP using API version:', version);
+            console.log('User permissions:', response.data.permissions);
             return this.sessionId;
           } else {
             console.log(`No session ID in response for version ${version}:`, response.data);
