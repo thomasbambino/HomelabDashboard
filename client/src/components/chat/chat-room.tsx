@@ -78,12 +78,10 @@ export function ChatRoom() {
   }, [chatClient, toast]);
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!channel) return;
+    if (!chatClient) return;
 
     try {
-      await channel.deleteMessage({
-        id: messageId,
-      });
+      await chatClient.deleteMessage(messageId);
 
       toast({
         title: 'Message deleted',
