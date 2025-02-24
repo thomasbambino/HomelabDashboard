@@ -65,19 +65,17 @@ export function GameServerCard({ server }: GameServerCardProps) {
           </CardTitle>
         </div>
         <div className="flex items-center gap-2">
-          {server.show_status_badge !== false && (
-            <Badge
-              variant="default"
-              style={{
-                backgroundColor: server.status ?
-                  settings?.onlineColor || "#22c55e" :
-                  settings?.offlineColor || "#ef4444",
-                color: "white"
-              }}
-            >
-              {server.status ? "Online" : "Offline"}
-            </Badge>
-          )}
+          <Badge
+            variant="default"
+            style={{
+              backgroundColor: server.status ?
+                settings?.onlineColor || "#22c55e" :
+                settings?.offlineColor || "#ef4444",
+              color: "white"
+            }}
+          >
+            {server.status ? "Online" : "Offline"}
+          </Badge>
           {isAdmin && (
             <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
               <Settings className="h-4 w-4" />
@@ -87,18 +85,16 @@ export function GameServerCard({ server }: GameServerCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {server.show_player_count !== false && (
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Players</span>
-                <span>{server.playerCount ?? 0}/{server.maxPlayers ?? 0}</span>
-              </div>
-              <Progress
-                value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
-                className="h-2"
-              />
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span>Players</span>
+              <span>{server.playerCount ?? 0}/{server.maxPlayers ?? 0}</span>
             </div>
-          )}
+            <Progress
+              value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
+              className="h-2"
+            />
+          </div>
 
           <div className="grid gap-2">
             <Button
