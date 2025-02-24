@@ -32,6 +32,7 @@ export function ChatRoom() {
 
     const loadChannel = async () => {
       try {
+        console.log('Querying channels for public chat');
         // Connect to the public channel
         const channels = await chatClient.queryChannels(
           { type: 'messaging', id: 'public' },
@@ -39,18 +40,23 @@ export function ChatRoom() {
           { limit: 1 }
         );
 
+        console.log('Found channels:', channels);
+
         if (channels.length > 0) {
           const activeChannel = channels[0];
           setChannel(activeChannel);
 
           // Load existing messages
           const messages = await activeChannel.watch();
+          console.log('Loaded messages:', messages);
           setMessages(messages.messages || []);
 
           // Listen for new messages
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
           });
+        } else {
+          console.log('No public channel found');
         }
       } catch (error) {
         console.error('Error loading channel:', error);

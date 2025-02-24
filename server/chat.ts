@@ -32,6 +32,15 @@ export class ChatServer {
       const token = this.streamClient.createToken(user.id.toString());
       console.log('Generated Stream Chat token:', token);
 
+      // First, try to disconnect any existing connections
+      try {
+        await this.streamClient.disconnectUser(user.id.toString());
+        console.log('Disconnected existing user connection');
+      } catch (error) {
+        // Ignore errors if user wasn't connected
+        console.log('No existing connection to disconnect');
+      }
+
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
         id: user.id.toString(),
@@ -84,6 +93,7 @@ export class ChatServer {
 
   async createChannel(channelType: 'messaging' | 'team', channelId: string, name: string, members: string[]) {
     try {
+      console.log('Creating channel:', { channelType, channelId, name, members });
       const channel = this.streamClient.channel(channelType, channelId, {
         name,
         members,
