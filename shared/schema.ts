@@ -35,6 +35,7 @@ export const settings = pgTable("settings", {
   login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard."),
   online_color: text("online_color").default("#22c55e"),
   offline_color: text("offline_color").default("#ef4444"),
+  discord_url: text("discord_url").default("https://discord.gg/YhGnr92Bep"),
   show_refresh_interval: boolean("show_refresh_interval").default(true),
   show_last_checked: boolean("show_last_checked").default(true),
   show_service_url: boolean("show_service_url").default(true),
