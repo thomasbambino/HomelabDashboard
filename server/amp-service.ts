@@ -115,7 +115,7 @@ export class AMPService {
       console.log('Using username:', this.username); // Log the exact username being used
 
       const loginData = {
-        username: this.username, // Do not modify the username case
+        username: this.username,
         password: this.password,
         token: '',
         rememberMe: false,
@@ -379,6 +379,8 @@ export class AMPService {
         .filter(method => method.Name.toLowerCase().includes('instance'))
         .map(method => method.Name);
       console.log('Instance-related methods:', instanceMethods);
+
+      console.log("Detailed API Specification:", JSON.stringify(spec, null, 2)); //Added detailed logging
 
       return spec;
     } catch (error) {
