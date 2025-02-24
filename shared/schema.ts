@@ -77,6 +77,10 @@ export const gameServers = pgTable("gameServers", {
   background: text("background"),
   show_player_count: boolean("show_player_count").default(true),
   show_status_badge: boolean("show_status_badge").default(true),
+  ampInstanceId: text("ampInstanceId"), // AMP instance ID for linking
+  refreshInterval: integer("refreshInterval").default(30), // Status check interval in seconds
+  autoStart: boolean("autoStart").default(false), // Whether to automatically start the server
+  lastStatusCheck: timestamp("lastStatusCheck"), // When the status was last checked
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {

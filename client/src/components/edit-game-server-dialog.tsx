@@ -31,7 +31,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Play, PowerOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
@@ -57,10 +57,11 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
       type: server.type,
       icon: server.icon ?? "",
       background: server.background ?? "",
-      refreshInterval: server.refreshInterval,
+      refreshInterval: server.refreshInterval ?? 30,
       show_player_count: server.show_player_count ?? false,
       show_status_badge: server.show_status_badge ?? false,
-
+      ampInstanceId: server.ampInstanceId ?? "",
+      autoStart: server.autoStart ?? false,
     },
   });
 
@@ -86,6 +87,48 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     },
   });
 
+  const startServerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/game-servers/${server.id}/start`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server started",
+        description: "The game server is starting up",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to start server",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const stopServerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/game-servers/${server.id}/stop`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server stopped",
+        description: "The game server is shutting down",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to stop server",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("DELETE", `/api/game-servers/${server.id}`);
@@ -93,19 +136,13 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
         const errorText = await res.text();
         throw new Error(`Failed to delete server: ${errorText}`);
       }
-      // Don't try to parse JSON for successful deletion
       return true;
     },
     onSuccess: () => {
-      // First close the dialogs to prevent any state updates on unmounted components
       setShowDeleteConfirm(false);
       onOpenChange(false);
-
-      // Then invalidate all game server related queries to ensure UI updates
       queryClient.removeQueries({ queryKey: [`/api/game-servers/${server.id}`] });
-      // Force refetch the game servers list
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"], refetchType: 'all' });
-
       toast({
         title: "Server deleted",
         description: "The game server has been deleted successfully",
@@ -117,7 +154,6 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
         description: error.message,
         variant: "destructive",
       });
-      // Keep dialogs open on error
       setShowDeleteConfirm(false);
     },
   });
@@ -223,6 +259,22 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
               />
               <FormField
                 control={form.control}
+                name="ampInstanceId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel id="amp-instance-label">AMP Instance ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter AMP Instance ID"
+                        aria-labelledby="amp-instance-label"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="icon"
                 render={({ field }) => (
                   <FormItem>
@@ -322,6 +374,53 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="autoStart"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Auto Start Server</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => startServerMutation.mutate()}
+                  disabled={startServerMutation.isPending || !server.ampInstanceId}
+                  aria-label="Start server"
+                >
+                  {startServerMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Start
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => stopServerMutation.mutate()}
+                  disabled={stopServerMutation.isPending || !server.ampInstanceId}
+                  aria-label="Stop server"
+                >
+                  {stopServerMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <PowerOff className="h-4 w-4" />
+                  )}
+                  Stop
+                </Button>
+              </div>
               <div className="flex justify-between gap-4">
                 <Button
                   type="button"

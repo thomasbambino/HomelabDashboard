@@ -16,7 +16,7 @@ import {User} from '@shared/schema';
 import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email'; // Import sendEmail function
-
+import { ampService } from './amp-service';
 
 // Configure multer for image upload
 const upload = multer({
@@ -263,8 +263,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const servers = await storage.getAllGameServers();
-    res.json(servers);
+    try {
+      const servers = await storage.getAllGameServers();
+
+      // Get AMP instance statuses for servers with ampInstanceId
+      const ampServers = servers.filter(server => server.ampInstanceId);
+      if (ampServers.length > 0) {
+        const ampInstances = await ampService.getInstances();
+
+        // Update server statuses with AMP data
+        servers.forEach(server => {
+          if (server.ampInstanceId) {
+            const ampInstance = ampInstances.find(instance =>
+              instance.InstanceID === server.ampInstanceId
+            );
+            if (ampInstance) {
+              server.status = ampInstance.Running;
+              server.playerCount = ampInstance.ActiveUsers;
+              server.maxPlayers = ampInstance.MaxUsers;
+            }
+          }
+        });
+      }
+
+      res.json(servers);
+    } catch (error) {
+      console.error('Error fetching game servers:', error);
+      res.status(500).json({ message: "Failed to fetch game servers" });
+    }
   });
 
   app.post("/api/game-servers", async (req, res) => {
@@ -322,7 +348,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Add this new endpoint after existing routes, before the httpServer creation
+  // Add new route for starting a game server
+  app.post("/api/game-servers/:id/start", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const id = parseInt(req.params.id);
+      const server = await storage.getGameServer(id);
+      if (!server) {
+        return res.status(404).json({ message: "Game server not found" });
+      }
+      if (!server.ampInstanceId) {
+        return res.status(400).json({ message: "This server is not managed by AMP" });
+      }
+
+      await ampService.startInstance(server.ampInstanceId);
+      res.json({ message: "Server starting" });
+    } catch (error) {
+      console.error('Error starting game server:', error);
+      res.status(500).json({ message: "Failed to start game server" });
+    }
+  });
+
+  // Add new route for stopping a game server
+  app.post("/api/game-servers/:id/stop", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const id = parseInt(req.params.id);
+      const server = await storage.getGameServer(id);
+      if (!server) {
+        return res.status(404).json({ message: "Game server not found" });
+      }
+      if (!server.ampInstanceId) {
+        return res.status(400).json({ message: "This server is not managed by AMP" });
+      }
+
+      await ampService.stopInstance(server.ampInstanceId);
+      res.json({ message: "Server stopping" });
+    } catch (error) {
+      console.error('Error stopping game server:', error);
+      res.status(500).json({ message: "Failed to stop game server" });
+    }
+  });
+
   app.post("/api/game-servers/request", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
