@@ -25,7 +25,7 @@
 
   /* Message styling */
   --str-chat__message-background-color: theme('colors.card.DEFAULT');
-  --str-chat__message-text-color: theme('colors.card.foreground');
+  --str-chat__message-text-color: theme('colors.foreground');
   --str-chat__message-bubble-background: theme('colors.primary.DEFAULT');
   --str-chat__message-bubble-text-color: theme('colors.primary.foreground');
 
@@ -42,7 +42,7 @@
   --str-chat__border-radius: theme('borderRadius.lg');
 
   /* Message styling */
-  --str-chat__message-background-color: theme('colors.muted.DEFAULT');
+  --str-chat__message-background-color: theme('colors.card.DEFAULT');
   --str-chat__message-text-color: theme('colors.foreground');
   --str-chat__message-bubble-background: theme('colors.primary.DEFAULT');
   --str-chat__message-bubble-text-color: theme('colors.primary.foreground');
@@ -61,7 +61,7 @@
 }
 
 .str-chat__input-flat {
-  @apply border-t bg-card;
+  @apply border-t border-border bg-card;
 }
 
 .str-chat__input-flat-wrapper {
@@ -98,4 +98,50 @@
 
 .str-chat__message--system {
   @apply text-muted-foreground text-sm;
+}
+
+/* Additional dark mode specific overrides */
+.dark .str-chat__message-list {
+  @apply bg-background;
+}
+
+.dark .str-chat__input-flat {
+  @apply bg-background border-border;
+}
+
+.dark .str-chat__message-bubble {
+  @apply bg-primary text-primary-foreground;
+}
+
+.dark .str-chat__message-text-inner {
+  @apply text-foreground;
+}
+
+.dark .str-chat__message-attachment {
+  @apply bg-card border-border;
+}
+
+.dark .str-chat__avatar {
+  @apply border-border;
+}
+
+/* Dark mode specific message styling */
+.dark .str-chat__message--other .str-chat__message-text-inner {
+  @apply bg-card text-foreground;
+}
+
+.dark .str-chat__message--me .str-chat__message-text-inner {
+  @apply bg-primary text-primary-foreground;
+}
+
+.dark .str-chat__input-flat {
+  @apply bg-card;
+}
+
+.dark .str-chat__message-attachment-card {
+  @apply bg-card border-border;
+}
+
+.dark .str-chat__message-attachment-card--content {
+  @apply text-foreground;
 }
