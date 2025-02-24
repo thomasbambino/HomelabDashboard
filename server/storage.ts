@@ -1,6 +1,6 @@
-import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, UpdateSettings, serviceStatusLogs, ServiceStatusLog, serviceHealthHistory, ServiceHealthHistory } from "@shared/schema";
+import { Service, GameServer, User, InsertUser, InsertService, InsertGameServer, UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, settings as settingsTable, Settings, InsertSettings, UpdateSettings, serviceStatusLogs, ServiceStatusLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, asc } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -32,8 +32,6 @@ export interface IStorage {
     status?: boolean;
   }): Promise<ServiceStatusLog[]>;
   getService(id: number): Promise<Service | undefined>;
-  createServiceHealthHistory(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceHealthHistory>;
-  getServiceHealthHistory(serviceId: number, timeRange: { start: Date; end: Date }): Promise<ServiceHealthHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -60,7 +58,6 @@ export class DatabaseStorage implements IStorage {
     const [settings] = await db.select().from(settingsTable);
     const [user] = await db.insert(users).values({
       ...insertUser,
-      // Only use default values if role and approved are not provided
       role: insertUser.role ?? settings?.default_role ?? 'pending',
       approved: insertUser.approved ?? (settings?.default_role === 'pending' ? false : true),
     }).returning();
@@ -216,32 +213,6 @@ export class DatabaseStorage implements IStorage {
   async getService(id: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(eq(services.id, id));
     return service;
-  }
-
-  async createServiceHealthHistory(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceHealthHistory> {
-    const [newHistory] = await db.insert(serviceHealthHistory)
-      .values({
-        serviceId,
-        status,
-        responseTime,
-        timestamp: new Date(),
-      })
-      .returning();
-    return newHistory;
-  }
-
-  async getServiceHealthHistory(serviceId: number, timeRange: { start: Date; end: Date }): Promise<ServiceHealthHistory[]> {
-    return await db
-      .select()
-      .from(serviceHealthHistory)
-      .where(
-        and(
-          eq(serviceHealthHistory.serviceId, serviceId),
-          gte(serviceHealthHistory.timestamp, timeRange.start),
-          lte(serviceHealthHistory.timestamp, timeRange.end)
-        )
-      )
-      .orderBy(asc(serviceHealthHistory.timestamp));
   }
 }
 

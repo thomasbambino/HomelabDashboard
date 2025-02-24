@@ -37,12 +37,7 @@ async function updateServiceStatus(service: Service) {
   console.log(`Service ${service.name} status: ${status}, response time: ${responseTime}ms`);
 
   try {
-    // Create both status log and health history entries
-    const [logEntry, historyEntry] = await Promise.all([
-      storage.createServiceStatusLog(service.id, status, responseTime),
-      storage.createServiceHealthHistory(service.id, status, responseTime)
-    ]);
-
+    const logEntry = await storage.createServiceStatusLog(service.id, status, responseTime);
     console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`, logEntry);
   } catch (error) {
     console.error('Error logging status:', error);

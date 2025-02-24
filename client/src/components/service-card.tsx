@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ServiceHealthChart } from "./service-health-chart";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,10 +24,9 @@ import { Settings as SettingsType } from "@shared/schema";
 
 interface ServiceCardProps {
   service: Service;
-  timeScale: string;
 }
 
-export function ServiceCard({ service, timeScale }: ServiceCardProps) {
+export function ServiceCard({ service }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -149,12 +147,6 @@ export function ServiceCard({ service, timeScale }: ServiceCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <ServiceHealthChart
-          serviceId={service.id}
-          onlineColor={settings?.online_color || "#22c55e"}
-          offlineColor={settings?.offline_color || "#ef4444"}
-          timeScale={timeScale}
-        />
         {showServiceUrl && (
           <a
             href={service.url}
