@@ -16,7 +16,7 @@ export function DiscordButton() {
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       onClick={handleDiscordClick}
       aria-label="Join Discord"
