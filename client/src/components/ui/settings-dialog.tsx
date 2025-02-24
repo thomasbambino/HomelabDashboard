@@ -34,6 +34,7 @@ export function SettingsDialog() {
       login_description: settings?.login_description ?? "",
       online_color: settings?.online_color ?? "#22c55e",
       offline_color: settings?.offline_color ?? "#ef4444",
+      discord_url: settings?.discord_url ?? "https://discord.gg/YhGnr92Bep",
       show_refresh_interval: settings?.show_refresh_interval ?? true,
       show_last_checked: settings?.show_last_checked ?? true,
       show_service_url: settings?.show_service_url ?? true,
@@ -104,6 +105,18 @@ export function SettingsDialog() {
                 />
                 <FormField
                   control={form.control}
+                  name="discord_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discord Invite URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://discord.gg/..." {...field} value={field.value || ""} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="font_family"
                   render={({ field }) => (
                     <FormItem>
@@ -139,7 +152,6 @@ export function SettingsDialog() {
               </form>
             </Form>
           </TabsContent>
-
           <TabsContent value="branding">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
@@ -216,12 +228,10 @@ export function SettingsDialog() {
               </form>
             </Form>
           </TabsContent>
-
           <TabsContent value="visibility">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-6">
                 <div className="space-y-6">
-                  {/* Admin Settings Section */}
                   <div>
                     <h3 className="text-sm font-medium mb-3">Administrator View</h3>
                     <div className="space-y-3">
@@ -291,8 +301,6 @@ export function SettingsDialog() {
                       />
                     </div>
                   </div>
-
-                  {/* User Settings Section */}
                   <div>
                     <h3 className="text-sm font-medium mb-3">Regular User View</h3>
                     <div className="space-y-3">
