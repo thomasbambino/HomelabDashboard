@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Service, GameServer, Settings } from "@shared/schema";
 import { ServiceList } from "@/components/service-list";
-import { GameServerCard } from "@/components/game-server-card";
+import { GameServerList } from "@/components/game-server-list";
 import { AddServiceDialog } from "@/components/add-service-dialog";
-import { AddGameServerDialog } from "@/components/add-game-server-dialog";
 import { RequestServerDialog } from "@/components/request-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,11 +22,6 @@ export default function Dashboard() {
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
     queryKey: ["/api/services"],
-    refetchInterval: 30000,
-  });
-
-  const { data: gameServers = [], isLoading: serversLoading } = useQuery<GameServer[]>({
-    queryKey: ["/api/game-servers"],
     refetchInterval: 30000,
   });
 
@@ -75,20 +69,9 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold">Game Servers</h2>
               <div className="flex gap-2">
                 <RequestServerDialog />
-                {isAdmin && <AddGameServerDialog />}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {serversLoading ? (
-                Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="h-[160px] bg-card animate-pulse rounded-lg" />
-                ))
-              ) : (
-                gameServers.map((server) => (
-                  <GameServerCard key={server.id} server={server} />
-                ))
-              )}
-            </div>
+            <GameServerList />
           </section>
 
           <section>

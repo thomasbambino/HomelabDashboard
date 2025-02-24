@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Copy, Settings } from "lucide-react";
+import { Eye, EyeOff, Play, PowerOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { EditGameServerDialog } from "./edit-game-server-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Settings {
   onlineColor?: string;
@@ -21,49 +21,86 @@ interface GameServerCardProps {
 
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
-  const [showEdit, setShowEdit] = useState(false);
-  const connectionString = `${server.host}:${server.port}`;
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(connectionString);
-    toast({
-      title: "Copied to clipboard",
-      description: "Server address has been copied to your clipboard",
-    });
-  };
+  // Mutations for server control
+  const startServerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/start`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server starting",
+        description: "The game server is starting up",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to start server",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const getServerTypeIcon = () => {
-    if (server.icon) {
-      return <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />;
-    }
+  const stopServerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/stop`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server stopping",
+        description: "The game server is shutting down",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to stop server",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-    switch (server.type.toLowerCase()) {
-      case 'satisfactory':
-        return '🏭';
-      case 'minecraft':
-        return '⛏️';
-      default:
-        return '🎮';
-    }
-  };
-
-  const capitalizedType = server.type.charAt(0).toUpperCase() + server.type.slice(1);
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/hide`, {
+        hidden: !server.hidden,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: server.hidden ? "Server visible" : "Server hidden",
+        description: `The game server is now ${server.hidden ? "visible" : "hidden"} from the dashboard`,
+      });
+    },
+  });
 
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{getServerTypeIcon()}</span>
+          {server.icon ? (
+            <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+          ) : (
+            <span className="text-xl">🎮</span>
+          )}
           <CardTitle className="text-sm font-medium">
-            {server.name}
+            {server.displayName || server.name}
             <span className="text-xs text-muted-foreground ml-2">
-              {capitalizedType}
+              {server.type}
             </span>
           </CardTitle>
         </div>
@@ -82,9 +119,32 @@ export function GameServerCard({ server }: GameServerCardProps) {
             </Badge>
           )}
           {isAdmin && (
-            <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
-              <Settings className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleVisibilityMutation.mutate()}
+                disabled={toggleVisibilityMutation.isPending}
+              >
+                {server.hidden ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => server.status ? stopServerMutation.mutate() : startServerMutation.mutate()}
+                disabled={startServerMutation.isPending || stopServerMutation.isPending}
+              >
+                {server.status ? (
+                  <PowerOff className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+            </>
           )}
         </div>
       </CardHeader>
@@ -102,33 +162,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
               />
             </div>
           )}
-
-          <div className="grid gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={copyToClipboard}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              {connectionString}
-            </Button>
-
-            {server.info && typeof server.info === 'object' && 'version' in server.info && (
-              <p className="text-xs text-muted-foreground">
-                Version: {(server.info as { version: string }).version}
-              </p>
-            )}
-          </div>
         </div>
       </CardContent>
-      {isAdmin && (
-        <EditGameServerDialog
-          server={server}
-          open={showEdit}
-          onOpenChange={setShowEdit}
-        />
-      )}
     </Card>
   );
 }
