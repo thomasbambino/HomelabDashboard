@@ -12,8 +12,8 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
-import {User} from '@shared/schema'; // Assuming User type is here
-
+import {User} from '@shared/schema';
+import { ChatServer } from './chat';
 
 // Configure multer for image upload
 const upload = multer({
@@ -416,14 +416,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid message content" });
       }
 
-      // Verify user is a member of the room
-      const isMember = await storage.getChatMember(roomId, user.id);
-      if (!isMember) {
-        return res.status(403).json({ message: "Not a member of this chat room" });
+      // Get the room to check if it's public
+      const room = await storage.getChatRoom(roomId);
+      if (!room) {
+        return res.status(404).json({ message: "Chat room not found" });
+      }
+
+      // For public rooms, ensure user is a member
+      if (room.type === 'public') {
+        await storage.addUserToPublicRoom(user.id);
+      } else {
+        // For private/group rooms, verify membership
+        const isMember = await storage.getChatMember(roomId, user.id);
+        if (!isMember) {
+          return res.status(403).json({ message: "Not a member of this chat room" });
+        }
       }
 
       const message = await storage.createChatMessage({
-        roomId: roomId,
+        roomId,
         senderId: user.id,
         type: 'text',
         content: content.trim(),
@@ -438,10 +449,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sender: await storage.getUser(user.id),
       };
 
-      // Emit the message through WebSocket
-      const chatServer = req.app.get('chatServer');
+      // Broadcast the message through WebSocket
+      const chatServer = app.get('chatServer');
       if (chatServer) {
-        chatServer.broadcast(roomId, 'message', messageWithSender);
+        chatServer.broadcastToRoom(roomId, {
+          type: 'message',
+          roomId,
+          data: messageWithSender,
+        });
       }
 
       res.status(201).json(messageWithSender);
@@ -530,7 +545,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch status logs" });
     }
   });
+  // Inside /api/register route
+  app.post("/api/register", async (req, res) => {
+    if (req.isAuthenticated()) {
+      return res.status(400).json({ message: "Already logged in" });
+    }
+
+    try {
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const user = await storage.createUser({
+        ...req.body,
+        role: 'user',
+        approved: true,
+      });
+
+      // Add user to public chat room
+      await storage.addUserToPublicRoom(user.id);
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error after registration:", err);
+          return res.status(500).json({ message: "Error during login" });
+        }
+        res.json(user);
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Error creating user" });
+    }
+  });
 
   const httpServer = createServer(app);
+
+  // Initialize chat server
+  const chatServer = new ChatServer(httpServer);
+  app.set('chatServer', chatServer);
+
   return httpServer;
 }

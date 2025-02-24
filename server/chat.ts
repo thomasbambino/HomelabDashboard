@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { storage } from './storage';
 import { ChatMessage, ChatRoom, User } from '@shared/schema';
+import { parse } from 'cookie';
 
 interface ChatClient extends WebSocket {
   userId?: number;
@@ -22,7 +23,7 @@ export class ChatServer {
   constructor(server: Server) {
     this.wss = new WebSocketServer({ server, path: '/ws/chat' });
     this.setupWebSocketServer();
-    
+
     // Set up ping interval to keep connections alive and detect stale ones
     this.pingInterval = setInterval(() => {
       this.wss.clients.forEach((client: ChatClient) => {
@@ -38,13 +39,17 @@ export class ChatServer {
 
   private setupWebSocketServer() {
     this.wss.on('connection', async (ws: ChatClient, req) => {
-      // Extract user ID from the session (you'll need to implement this)
+      console.log('New WebSocket connection attempt');
+
+      // Extract user ID from the session
       const userId = await this.getUserIdFromSession(req);
       if (!userId) {
+        console.log('WebSocket connection rejected: Unauthorized');
         ws.close(1008, 'Unauthorized');
         return;
       }
 
+      console.log(`WebSocket connection authenticated for user ${userId}`);
       ws.userId = userId;
       ws.isAlive = true;
 
@@ -76,6 +81,7 @@ export class ChatServer {
       });
 
       ws.on('close', async () => {
+        console.log(`WebSocket connection closed for user ${userId}`);
         // Remove client from the clients map
         this.clients.get(userId)?.delete(ws);
         if (this.clients.get(userId)?.size === 0) {
@@ -89,11 +95,17 @@ export class ChatServer {
           this.broadcastUserStatus(userId, false);
         }
       });
+
+      ws.on('error', (error) => {
+        console.error(`WebSocket error for user ${userId}:`, error);
+      });
     });
   }
 
   private async handleMessage(ws: ChatClient, message: any) {
     if (!ws.userId) return;
+
+    console.log(`Handling message of type ${message.type} from user ${ws.userId}`);
 
     switch (message.type) {
       case 'send_message':
@@ -169,7 +181,7 @@ export class ChatServer {
   }
 
   private broadcastToRoom(roomId: number, message: BroadcastMessage, excludeUserId?: number) {
-    storage.getChatRoomMembers(roomId).then(members => {
+    storage.getChatMembers(roomId).then(members => {
       members.forEach(member => {
         if (excludeUserId && member.userId === excludeUserId) return;
         this.sendToUser(member.userId, message);
@@ -182,7 +194,7 @@ export class ChatServer {
       type: 'user_status',
       data: { userId, isOnline, timestamp: new Date() },
     };
-    
+
     // Broadcast to all connected clients
     this.wss.clients.forEach((client: ChatClient) => {
       if (client.readyState === WebSocket.OPEN && client.userId !== userId) {
@@ -204,19 +216,31 @@ export class ChatServer {
   }
 
   private async getUserIdFromSession(req: any): Promise<number | null> {
-    // Extract user ID from session
-    const sessionId = req.url.split('?')[1]?.split('=')[1];
-    if (!sessionId) return null;
+    try {
+      // Extract session ID from cookie
+      const cookies = parse(req.headers.cookie || '');
+      const sessionId = cookies['connect.sid']?.split('.')[0].slice(2);
 
-    return new Promise((resolve) => {
-      storage.sessionStore.get(sessionId, (err: any, session: any) => {
-        if (err || !session?.passport?.user) {
-          resolve(null);
-          return;
-        }
-        resolve(session.passport.user);
+      if (!sessionId) {
+        console.log('No session ID found in cookies');
+        return null;
+      }
+
+      return new Promise((resolve) => {
+        storage.sessionStore.get(sessionId, (err: any, session: any) => {
+          if (err || !session?.passport?.user) {
+            console.log('Session store error or no user in session:', err);
+            resolve(null);
+            return;
+          }
+          console.log('Successfully retrieved user ID from session:', session.passport.user);
+          resolve(session.passport.user);
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error extracting user ID from session:', error);
+      return null;
+    }
   }
 
   public close() {

@@ -72,6 +72,9 @@ export interface IStorage {
   updateChatRoom(room: UpdateChatRoom): Promise<ChatRoom | undefined>;
   listChatRooms(userId: number): Promise<ChatRoom[]>;
   getPublicRoom(): Promise<ChatRoom | undefined>;
+  createPublicRoom(): Promise<ChatRoom>;
+  ensurePublicRoom(): Promise<ChatRoom>;
+  addUserToPublicRoom(userId: number): Promise<void>;
 
   // Chat Member Methods
   addChatMember(member: InsertChatMember): Promise<ChatMember>;
@@ -94,6 +97,7 @@ export interface IStorage {
   findPrivateRoom(userId1: number, userId2: number): Promise<ChatRoom | undefined>;
   listPrivateRooms(userId: number): Promise<ChatRoom[]>;
   getChatMember(roomId: number, userId: number): Promise<ChatMember | undefined>;
+  listUsers(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -437,6 +441,39 @@ export class DatabaseStorage implements IStorage {
     return room;
   }
 
+  async createPublicRoom(): Promise<ChatRoom> {
+    const [room] = await db
+      .insert(chatRooms)
+      .values({
+        name: "Public Chat",
+        type: "public",
+        createdBy: 1, // System user ID
+      })
+      .returning();
+    return room;
+  }
+
+  async ensurePublicRoom(): Promise<ChatRoom> {
+    let publicRoom = await this.getPublicRoom();
+    if (!publicRoom) {
+      publicRoom = await this.createPublicRoom();
+    }
+    return publicRoom;
+  }
+
+  async addUserToPublicRoom(userId: number): Promise<void> {
+    const publicRoom = await this.ensurePublicRoom();
+    // Check if user is already a member
+    const existing = await this.getChatMember(publicRoom.id, userId);
+    if (!existing) {
+      await this.addChatMember({
+        roomId: publicRoom.id,
+        userId: userId,
+        isAdmin: false,
+      });
+    }
+  }
+
   // Chat Member Methods
   async addChatMember(member: InsertChatMember): Promise<ChatMember> {
     const [newMember] = await db.insert(chatMembers).values(member).returning();
@@ -589,7 +626,7 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
-    async listUsers(): Promise<User[]> {
+  async listUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
 }

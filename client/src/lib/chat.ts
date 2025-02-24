@@ -27,26 +27,31 @@ class ChatClient {
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
-      
+      console.log('Attempting to connect to WebSocket:', wsUrl);
+
       this.socket = new WebSocket(wsUrl);
-      
+
       this.socket.onopen = () => {
+        console.log('WebSocket connection established');
         this.reconnectAttempts = 0;
         this.emit('connected');
       };
 
       this.socket.onclose = () => {
+        console.log('WebSocket connection closed');
         this.emit('disconnected');
         this.handleReconnect();
       };
 
       this.socket.onerror = (error) => {
-        this.emit('error', new Error('WebSocket error'));
+        console.error('WebSocket error:', error);
+        this.emit('error', new Error('WebSocket connection error'));
       };
 
       this.socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log('Received WebSocket message:', message);
           this.handleMessage(message);
         } catch (error) {
           console.error('Error parsing message:', error);
@@ -61,11 +66,17 @@ class ChatClient {
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      setTimeout(() => this.connect(), this.reconnectTimeout * this.reconnectAttempts);
+      const delay = this.reconnectTimeout * this.reconnectAttempts;
+      console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
+      setTimeout(() => this.connect(), delay);
+    } else {
+      console.error('Max reconnection attempts reached');
+      this.emit('error', new Error('Unable to establish WebSocket connection'));
     }
   }
 
   private handleMessage(message: any) {
+    console.log('Handling message type:', message.type);
     switch (message.type) {
       case 'message':
         this.emit('message', message.data);
@@ -80,6 +91,7 @@ class ChatClient {
         this.emit('userStatus', message.data);
         break;
       case 'error':
+        console.error('Server error:', message.data.message);
         this.emit('error', new Error(message.data.message));
         break;
     }
@@ -101,6 +113,7 @@ class ChatClient {
   }
 
   public sendMessage(roomId: number, content: string, type: 'text' | 'image' | 'file' = 'text', replyTo?: number) {
+    console.log('Sending message:', { roomId, content, type, replyTo });
     this.send({
       type: 'send_message',
       data: { roomId, content, type, replyTo }
@@ -123,11 +136,16 @@ class ChatClient {
 
   private send(message: any) {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(message));
+      const messageStr = JSON.stringify(message);
+      console.log('Sending WebSocket message:', messageStr);
+      this.socket.send(messageStr);
+    } else {
+      console.warn('WebSocket not ready, message not sent:', message);
     }
   }
 
   public close() {
+    console.log('Closing WebSocket connection');
     this.socket?.close();
   }
 }
