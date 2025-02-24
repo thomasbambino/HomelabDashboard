@@ -25,17 +25,31 @@ export function ChatRoom() {
   }, [messages]);
 
   useEffect(() => {
-    if (!chatClient) {
-      console.log('Chat client not initialized');
+    if (!chatClient || !chatClient.user) {
+      console.log('Chat client or user not initialized');
       return;
     }
 
     const loadChannel = async () => {
       try {
+        // Include the current user in the query
+        const filter = { 
+          type: 'team',
+          members: { $in: [chatClient.user.id] }
+        };
+        const sort = { last_message_at: -1 };
+
+        console.log('Querying channels with filter:', filter);
+
         const channels = await chatClient.queryChannels(
-          { type: 'team' },
-          { last_message_at: -1 },
-          { limit: 1 }
+          filter,
+          sort,
+          { 
+            limit: 1,
+            state: true,
+            watch: true,
+            presence: true
+          }
         );
 
         if (channels.length > 0) {
@@ -50,6 +64,16 @@ export function ChatRoom() {
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
           });
+        } else {
+          console.log('No channels found, creating default channel');
+          // Create a default channel if none exists
+          const newChannel = chatClient.channel('team', 'general', {
+            name: 'General Chat',
+            members: [chatClient.user.id]
+          });
+
+          await newChannel.create();
+          setChannel(newChannel);
         }
       } catch (error) {
         console.error('Error loading channel:', error);
