@@ -97,19 +97,23 @@ export function ChatPublicRoom() {
                 msg.senderId === currentUser?.id ? "flex-row-reverse" : ""
               }`}
             >
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-8 w-8 shrink-0">
                 <AvatarImage src={`https://avatar.vercel.sh/${msg.senderId}`} />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
-              <div
-                className={`rounded-lg px-3 py-2 max-w-[80%] ${
-                  msg.senderId === currentUser?.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
-              >
-                <div className="text-sm">{msg.content}</div>
-                <div className="text-xs opacity-70 mt-1">
+              <div className="flex flex-col max-w-[70%]">
+                <div
+                  className={`rounded-lg px-4 py-2 ${
+                    msg.senderId === currentUser?.id
+                      ? "bg-primary text-primary-foreground mr-2"
+                      : "bg-muted ml-2"
+                  }`}
+                >
+                  <div className="text-sm break-words">{msg.content}</div>
+                </div>
+                <div className={`text-xs opacity-70 mt-1 ${
+                  msg.senderId === currentUser?.id ? "text-right mr-2" : "ml-2"
+                }`}>
                   {format(new Date(msg.createdAt), "HH:mm")}
                 </div>
               </div>
