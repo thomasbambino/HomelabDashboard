@@ -111,9 +111,7 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
-      {showUptimeLog && (
-        <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
-      )}
+      <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
     </div>
   );
 }
