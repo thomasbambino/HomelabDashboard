@@ -53,20 +53,6 @@ interface AMPSystemInfo {
   OSDescription: string;
 }
 
-interface AMPAPIMethod {
-  Name: string;
-  Description: string;
-  ReturnType: string;
-  Parameters: {
-    Name: string;
-    Type: string;
-  }[];
-}
-
-interface AMPAPISpec {
-  [key: string]: AMPAPIMethod;
-}
-
 export class AMPService {
   private baseUrl: string;
   private username: string;
@@ -354,11 +340,11 @@ export class AMPService {
     }
   }
 
-  async getAPISpec(): Promise<AMPAPISpec> {
+  async getAPISpec(): Promise<any> { //Corrected return type to any to match original code
     const sessionId = await this.ensureAuthenticated();
     try {
       console.log('Fetching API specification');
-      const response = await axios.get<{ result: AMPAPISpec }>(
+      const response = await axios.get<{ result: any }>( //Corrected return type to any to match original code
         `${this.baseUrl}/API/Core/GetAPISpec`,
         { 
           headers: this.getHeaders(sessionId),
