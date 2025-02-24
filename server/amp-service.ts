@@ -1,5 +1,6 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import https from 'https';
+import axiosRetry from 'axios-retry';
 
 interface AMPLoginResponse {
   result: number;
@@ -36,12 +37,17 @@ export class AMPService {
   private username: string;
   private password: string;
   private sessionId: string | null = null;
+  private sessionExpiry: Date | null = null;
+  private retryCount = 3;
+  private retryDelay = 1000;
+  private apiVersions = ['2.6.0.6', '2.6.0.5', '2.6.0.4']; // Supported API versions
+  private currentApiVersion: string;
 
   constructor() {
-    // Remove trailing slash if present
     this.baseUrl = (process.env.AMP_API_URL || '').replace(/\/$/, '');
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
+    this.currentApiVersion = this.apiVersions[0];
 
     if (!this.baseUrl || !this.username || !this.password) {
       console.error('AMP configuration missing:', {
@@ -51,10 +57,27 @@ export class AMPService {
       });
     }
 
+    // Configure axios with retry logic
+    axiosRetry(axios, {
+      retries: this.retryCount,
+      retryDelay: (retryCount) => retryCount * this.retryDelay,
+      retryCondition: (error: AxiosError) => {
+        // Retry on network errors or 5xx server errors
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+               (error.response?.status ? error.response.status >= 500 : false);
+      }
+    });
+
     // Configure axios to ignore SSL certificate issues if needed
     axios.defaults.httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
+  }
+
+  private isSessionValid(): boolean {
+    if (!this.sessionId || !this.sessionExpiry) return false;
+    // Check if session is still valid (with 5 minute buffer)
+    return new Date() < new Date(this.sessionExpiry.getTime() - 5 * 60 * 1000);
   }
 
   private async login(): Promise<string> {
@@ -69,27 +92,33 @@ export class AMPService {
       };
       console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
 
-      const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'AMPDashboard/1.0',
-          'X-AMP-Version': '2.6.0.6'
+      // Try each API version until one works
+      for (const version of this.apiVersions) {
+        try {
+          const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'User-Agent': 'AMPDashboard/1.0',
+              'X-AMP-Version': version
+            }
+          });
+
+          if (response.data?.sessionID) {
+            this.currentApiVersion = version;
+            this.sessionId = response.data.sessionID;
+            // Set session expiry to 1 hour from now
+            this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
+            console.log('Successfully logged in to AMP using API version:', version);
+            return this.sessionId;
+          }
+        } catch (error) {
+          console.log(`Login failed with API version ${version}, trying next version...`);
+          continue;
         }
-      });
-
-      console.log('Login response status:', response.status);
-      console.log('Login response headers:', response.headers);
-      console.log('Login response data:', response.data);
-
-      if (!response.data?.sessionID) {
-        console.error('Login response data:', response.data);
-        throw new Error('No session ID received from AMP login');
       }
 
-      console.log('Successfully logged in to AMP');
-      this.sessionId = response.data.sessionID;
-      return this.sessionId;
+      throw new Error('Failed to authenticate with any supported API version');
     } catch (error) {
       console.error('AMP login failed:', error);
       if (axios.isAxiosError(error)) {
@@ -103,10 +132,10 @@ export class AMPService {
   }
 
   private async ensureAuthenticated(): Promise<string> {
-    if (!this.sessionId) {
+    if (!this.isSessionValid()) {
       return this.login();
     }
-    return this.sessionId;
+    return this.sessionId!;
   }
 
   private getHeaders(sessionId: string) {
@@ -115,7 +144,7 @@ export class AMPService {
       'Accept': 'application/json',
       'Cookie': `AMPSessionID=${sessionId}`,
       'User-Agent': 'AMPDashboard/1.0',
-      'X-AMP-Version': '2.6.0.6'
+      'X-AMP-Version': this.currentApiVersion
     };
   }
 
@@ -135,6 +164,12 @@ export class AMPService {
     } catch (error) {
       console.error('Failed to fetch AMP instances:', error);
       if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          // Session might be invalid, clear it and retry once
+          this.sessionId = null;
+          this.sessionExpiry = null;
+          return this.getInstances();
+        }
         console.error('Response:', error.response?.data);
         console.error('Request URL:', error.config?.url);
         console.error('Request method:', error.config?.method);
@@ -154,6 +189,12 @@ export class AMPService {
       );
     } catch (error) {
       console.error('Failed to start instance:', error);
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        // Session might be invalid, clear it and retry once
+        this.sessionId = null;
+        this.sessionExpiry = null;
+        return this.startInstance(instanceId);
+      }
       throw new Error('Failed to start game server');
     }
   }
@@ -168,6 +209,12 @@ export class AMPService {
       );
     } catch (error) {
       console.error('Failed to stop instance:', error);
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        // Session might be invalid, clear it and retry once
+        this.sessionId = null;
+        this.sessionExpiry = null;
+        return this.stopInstance(instanceId);
+      }
       throw new Error('Failed to stop game server');
     }
   }
@@ -182,6 +229,12 @@ export class AMPService {
       return response.data.result;
     } catch (error) {
       console.error('Failed to get instance status:', error);
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        // Session might be invalid, clear it and retry once
+        this.sessionId = null;
+        this.sessionExpiry = null;
+        return this.getInstanceStatus(instanceId);
+      }
       throw new Error('Failed to fetch game server status');
     }
   }
