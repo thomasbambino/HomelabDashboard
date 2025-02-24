@@ -12,6 +12,8 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
+import { subHours, subDays, subMonths } from 'date-fns';
+
 
 // Configure multer for image upload
 const upload = multer({
@@ -190,9 +192,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const service = await storage.createService(data);
       res.status(201).json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error creating service:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -208,9 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error updating service:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -226,9 +230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(service);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error deleting service:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -247,9 +252,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const server = await storage.createGameServer(data);
       res.status(201).json(server);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error creating game server:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -265,9 +271,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(server);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error updating game server:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -283,9 +290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(server);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: fromZodError(error).message });
       } else {
+        console.error('Error deleting game server:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -347,6 +355,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching status logs:', error);
       res.status(500).json({ message: "Failed to fetch status logs" });
+    }
+  });
+
+  // Add new route for service health history
+  app.get("/api/services/:id/health-history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const serviceId = parseInt(req.params.id);
+      const timeScale = req.query.timeScale as string || '24h';
+
+      let startDate = new Date();
+      const endDate = new Date();
+
+      // Calculate start date based on timeScale
+      switch (timeScale) {
+        case '1h': startDate = subHours(endDate, 1); break;
+        case '6h': startDate = subHours(endDate, 6); break;
+        case '12h': startDate = subHours(endDate, 12); break;
+        case '24h': startDate = subHours(endDate, 24); break;
+        case '1w': startDate = subDays(endDate, 7); break;
+        case '1m': startDate = subMonths(endDate, 1); break;
+        default: startDate = subHours(endDate, 24);
+      }
+
+      const history = await storage.getServiceHealthHistory(serviceId, {
+        start: startDate,
+        end: endDate
+      });
+
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching service health history:', error);
+      res.status(500).json({ message: "Failed to fetch service health history" });
     }
   });
 

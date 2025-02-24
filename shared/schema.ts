@@ -73,11 +73,20 @@ export const serviceStatusLogs = pgTable("serviceStatusLogs", {
   responseTime: integer("responseTime"),
 });
 
+export const serviceHealthHistory = pgTable("serviceHealthHistory", {
+  id: serial("id").primaryKey(),
+  serviceId: integer("serviceId").notNull().references(() => services.id, { onDelete: 'cascade' }),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  status: boolean("status").notNull(),
+  responseTime: integer("responseTime"),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertServiceStatusLogSchema = createInsertSchema(serviceStatusLogs);
+export const insertServiceHealthHistorySchema = createInsertSchema(serviceHealthHistory);
 
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
@@ -95,6 +104,10 @@ export const updateSettingsSchema = insertSettingsSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+export const updateServiceHealthHistorySchema = insertServiceHealthHistorySchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
@@ -108,3 +121,6 @@ export type Service = typeof services.$inferSelect;
 export type GameServer = typeof gameServers.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type ServiceStatusLog = typeof serviceStatusLogs.$inferSelect;
+export type ServiceHealthHistory = typeof serviceHealthHistory.$inferSelect;
+export type InsertServiceHealthHistory = z.infer<typeof insertServiceHealthHistorySchema>;
+export type UpdateServiceHealthHistory = z.infer<typeof updateServiceHealthHistorySchema>;
