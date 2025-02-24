@@ -37,7 +37,11 @@ export function ChatRoom() {
         const error = await res.json();
         throw new Error(error.message || "Failed to create chat room");
       }
-      return res.json();
+      const data = await res.json();
+      if (!data) {
+        throw new Error("No response data received from server");
+      }
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/rooms"] });
@@ -50,6 +54,7 @@ export function ChatRoom() {
       });
     },
     onError: (error: Error) => {
+      console.error("Error creating chat room:", error);
       toast({
         title: "Failed to create chat room",
         description: error.message,

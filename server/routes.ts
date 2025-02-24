@@ -12,6 +12,7 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
+import {User} from '@shared/schema'; // Assuming User type is here
 
 
 // Configure multer for image upload
@@ -298,6 +299,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Add chat room routes
+  app.post("/api/chat/rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ message: "Invalid chat room name" });
+      }
+
+      const user = req.user as User; // User type from @shared/schema
+      const newRoom = await storage.createChatRoom({
+        name: name.trim(),
+        type: "group",
+        createdBy: user.id,
+      });
+
+      // Add the creator as a member and admin of the room
+      await storage.addChatMember({
+        roomId: newRoom.id,
+        userId: user.id,
+        isAdmin: true,
+      });
+
+      res.status(201).json(newRoom);
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      res.status(500).json({ message: "Failed to create chat room" });
+    }
+  });
+
+  app.get("/api/chat/rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as User;
+      const rooms = await storage.listChatRooms(user.id);
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching chat rooms:", error);
+      res.status(500).json({ message: "Failed to fetch chat rooms" });
+    }
+  });
 
   // Add new route for service status logs with filtering
   app.get("/api/services/status-logs", async (req, res) => {

@@ -12,6 +12,7 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
 import { ChatButton } from "@/components/chat/chat-button";
+import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -22,7 +23,7 @@ export default function Dashboard() {
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
     queryKey: ["/api/services"],
-    refetchInterval: 30000, // 30 seconds
+    refetchInterval: 30000,
   });
 
   const { data: gameServers = [], isLoading: serversLoading } = useQuery<GameServer[]>({
@@ -51,6 +52,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <SettingsDialog />
+            <NotificationPreferencesDialog />
             <ChatButton />
             <UptimeLogDialog />
             {isAdmin && (
