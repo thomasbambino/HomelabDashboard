@@ -1,23 +1,16 @@
 import { useEffect, useState } from 'react';
-import {
-  Chat,
-  Channel,
-  ChannelHeader,
-  MessageList,
-  MessageInput,
-  Thread,
-  Window,
-} from 'stream-chat-react';
 import { useChat } from '@/lib/chat-context';
-import { Channel as StreamChannel } from 'stream-chat';
 import { useToast } from '@/hooks/use-toast';
-import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
-import 'stream-chat-react/dist/css/v2/index.css';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
-  const [activeChannel, setActiveChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
+  const [message, setMessage] = useState("");
   const { toast } = useToast();
+  const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
     if (!chatClient) {
@@ -25,36 +18,30 @@ export function ChatRoom() {
       return;
     }
 
-    const loadChannel = async () => {
-      try {
-        console.log('Loading channels...');
-        const filter = { type: 'team' };
-        const sort = [{ last_message_at: -1 }];
+    chatClient.on('message', (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
 
-        const channels = await chatClient.queryChannels(filter, sort, {
-          limit: 1,
-          state: true,
-          watch: true,
-        });
-
-        console.log('Found channels:', channels);
-        if (channels.length > 0) {
-          setActiveChannel(channels[0]);
-        } else {
-          console.log('No channels found');
-        }
-      } catch (error) {
-        console.error('Error loading channels:', error);
-        toast({
-          title: 'Error loading chat',
-          description: 'Failed to load chat channels. Please try again.',
-          variant: 'destructive',
-        });
-      }
+    return () => {
+      chatClient.off('message');
     };
+  }, [chatClient]);
 
-    loadChannel();
-  }, [chatClient, toast]);
+  const handleSend = async () => {
+    if (!message.trim()) return;
+
+    try {
+      await chatClient?.sendMessage(1, message);
+      setMessage("");
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error sending message',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -75,29 +62,48 @@ export function ChatRoom() {
     );
   }
 
-  if (!chatClient || !activeChannel) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <div className="text-center">
-          <p>No active chat</p>
-          <p className="text-sm">Select or create a chat room to start messaging</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full">
-      <Chat client={chatClient} theme="str-chat__theme-light dark:str-chat__theme-dark">
-        <Channel channel={activeChannel}>
-          <Window>
-            <ChannelHeader />
-            <MessageList />
-            <MessageInput focus />
-          </Window>
-          <Thread />
-        </Channel>
-      </Chat>
+    <div className="flex flex-col h-full">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`rounded-lg px-4 py-2 max-w-[70%] ${
+                  msg.isMe
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t bg-background">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="flex items-center gap-2"
+        >
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1"
+          />
+          <Button type="submit" size="icon">
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
