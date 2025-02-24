@@ -134,34 +134,63 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Update login route to use rate limiting
-  app.post("/api/login", checkRateLimit, (req, res, next) => {
-    passport.authenticate("local", async (err, user, info) => {
-      if (err) return next(err);
+  app.post("/api/login", async (req, res, next) => {
+    try {
+      const identifier = req.body.username;
+      const ip = req.ip;
+      const type = 'login';
 
-      // Log failed attempt
-      if (!user) {
-        await storage.addLoginAttempt({
-          identifier: req.body.username,
-          ip: req.ip,
-          type: 'login',
-          timestamp: new Date()
-        });
+      // Get attempts within the time window
+      const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
 
-        return res.status(401).json({ 
-          message: "Invalid credentials",
-          showResetOption: true
-        });
+      // Check rate limit before proceeding
+      if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+        const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
+        if (oldestAttempt) {
+          const timeSinceOldest = Date.now() - oldestAttempt.timestamp.getTime();
+          const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
+
+          if (timeRemaining > 0) {
+            return res.status(429).json({
+              message: "Too many login attempts. Please try again later."
+            });
+          }
+
+          // If window has passed, clear old attempts
+          await storage.clearLoginAttempts(identifier, ip, type);
+        }
       }
 
-      req.logIn(user, (err) => {
+      // Proceed with authentication
+      passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);
-        // Clear attempts on successful login
-        storage.clearLoginAttempts(req.body.username, req.ip, 'login')
-          .catch(console.error);
-        res.json(user);
-      });
-    })(req, res, next);
+
+        if (!user) {
+          // Log failed attempt
+          await storage.addLoginAttempt({
+            identifier,
+            ip,
+            type,
+            timestamp: new Date()
+          });
+
+          return res.status(401).json({ 
+            message: "Invalid credentials"
+          });
+        }
+
+        req.logIn(user, (err) => {
+          if (err) return next(err);
+          // Clear attempts on successful login
+          storage.clearLoginAttempts(identifier, ip, type)
+            .catch(console.error);
+          res.json(user);
+        });
+      })(req, res, next);
+    } catch (error) {
+      console.error('Login error:', error);
+      next(error);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -176,7 +205,6 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  // Update password reset route to use rate limiting
   app.post("/api/request-reset", checkRateLimit, async (req, res) => {
     const { identifier } = req.body;
 
