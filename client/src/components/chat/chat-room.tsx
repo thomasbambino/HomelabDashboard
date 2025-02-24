@@ -4,75 +4,63 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Image, Check } from "lucide-react";
+import { Send, Image } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
-interface ChatRoomProps {
-  channel: StreamChannel<DefaultStreamChatGenerics>;
-}
-
-export function ChatRoom({ channel }: ChatRoomProps) {
-  const { chatClient } = useChat();
+export function ChatRoom() {
+  const { chatClient, loading, error } = useChat();
   const [message, setMessage] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
+  const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (!channel) return;
+    if (!chatClient) {
+      console.log('Chat client not initialized');
+      return;
+    }
 
-    const loadMessages = async () => {
+    const loadChannel = async () => {
       try {
-        // Load existing messages
-        const response = await channel.watch();
-        setMessages(response.messages || []);
+        const channels = await chatClient.queryChannels(
+          { type: 'team' },
+          { last_message_at: -1 },
+          { limit: 1 }
+        );
 
-        // Mark channel as read when opened
-        await channel.markRead();
+        if (channels.length > 0) {
+          const activeChannel = channels[0];
+          setChannel(activeChannel);
+
+          // Load existing messages
+          const messages = await activeChannel.watch();
+          setMessages(messages.messages || []);
+
+          // Listen for new messages
+          activeChannel.on('message.new', (event) => {
+            setMessages((prev) => [...prev, event.message]);
+          });
+        }
       } catch (error) {
-        console.error('Error loading messages:', error);
+        console.error('Error loading channel:', error);
         toast({
-          title: 'Error loading messages',
+          title: 'Error loading chat',
           description: 'Please try again',
           variant: 'destructive',
         });
       }
     };
 
-    loadMessages();
-
-    // Listen for new messages
-    channel.on('message.new', (event) => {
-      setMessages((prev) => [...prev, event.message]);
-      // Mark new messages as read
-      channel.markRead();
-      // Scroll to bottom when new message arrives
-      setTimeout(() => {
-        scrollAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 100);
-    });
-
-    // Listen for typing events
-    channel.on('typing.start', (event) => {
-      if (event.user?.id !== chatClient?.user?.id) {
-        setTypingUsers(prev => [...new Set([...prev, event.user?.name || 'Someone'])]);
-      }
-    });
-
-    channel.on('typing.stop', (event) => {
-      if (event.user?.id !== chatClient?.user?.id) {
-        setTypingUsers(prev => prev.filter(name => name !== event.user?.name));
-      }
-    });
+    loadChannel();
 
     return () => {
-      channel.stopWatching();
+      if (channel) {
+        channel.stopWatching();
+      }
     };
-  }, [channel, chatClient?.user?.id, toast]);
+  }, [chatClient, toast]);
 
   const handleImageUpload = async (file: File) => {
     if (!channel) return;
@@ -101,23 +89,6 @@ export function ChatRoom({ channel }: ChatRoomProps) {
     }
   };
 
-  const handleTyping = () => {
-    if (!channel) return;
-
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Send typing.start event
-    channel.keystroke();
-
-    // Set timeout to stop typing indicator after 2 seconds
-    typingTimeoutRef.current = setTimeout(() => {
-      channel.stopTyping();
-    }, 2000);
-  };
-
   const handleSend = async () => {
     if (!message.trim() || !channel) return;
 
@@ -126,8 +97,6 @@ export function ChatRoom({ channel }: ChatRoomProps) {
         text: message.trim(),
       });
       setMessage("");
-      // Stop typing indicator when message is sent
-      channel.stopTyping();
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -138,10 +107,29 @@ export function ChatRoom({ channel }: ChatRoomProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-destructive">
+        <div className="text-center">
+          <p className="font-semibold">Failed to connect to chat</p>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4" ref={scrollAreaRef}>
+    <div className="flex flex-col h-full">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
           {messages.map((msg, index) => (
             <div
               key={index}
@@ -164,27 +152,13 @@ export function ChatRoom({ channel }: ChatRoomProps) {
                     />
                   ))
                 ) : (
-                  <div>
-                    {msg.text}
-                    {msg.readBy && (
-                      <span className="ml-2 text-xs flex items-center">
-                        <Check className="h-3 w-3" />
-                        {msg.readBy.length}
-                      </span>
-                    )}
-                  </div>
+                  msg.text
                 )}
               </div>
             </div>
           ))}
         </div>
       </ScrollArea>
-
-      {typingUsers.length > 0 && (
-        <div className="px-4 py-2 text-sm text-muted-foreground">
-          {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
-        </div>
-      )}
 
       <div className="p-4 border-t bg-background">
         <form
@@ -216,10 +190,7 @@ export function ChatRoom({ channel }: ChatRoomProps) {
           </Button>
           <Input
             value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              handleTyping();
-            }}
+            onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message..."
             className="flex-1"
           />

@@ -15,46 +15,22 @@ export class ChatServer {
       process.env.STREAM_API_SECRET
     );
     console.log('Stream Chat server initialized');
-    this.initializePublicChannel();
-  }
-
-  private async initializePublicChannel() {
-    try {
-      // Check if public channel exists
-      const channels = await this.streamClient.queryChannels({ id: 'public' });
-      console.log('Existing channels:', channels);
-
-      if (channels.length === 0) {
-        // Create public channel if it doesn't exist
-        const channel = this.streamClient.channel('team', 'public', {
-          name: 'Public Chat',
-          created_by: { id: 'system' },
-        });
-        await channel.create();
-        console.log('Public channel created successfully');
-      } else {
-        console.log('Public channel already exists');
-      }
-    } catch (error) {
-      console.error('Error initializing public channel:', error);
-    }
   }
 
   async connectUser(user: User) {
     try {
-      const userId = user.id.toString(); // Ensure ID is a string
       console.log('Generating token for user:', {
-        userId,
+        userId: user.id,
         username: user.username
       });
 
       // Create a Stream Chat token for the user
-      const token = this.streamClient.createToken(userId);
+      const token = this.streamClient.createToken(user.id.toString());
       console.log('Generated Stream Chat token:', token);
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
-        id: userId,
+        id: user.id.toString(),
         name: user.username,
         role: user.role,
       });
@@ -91,6 +67,7 @@ export class ChatServer {
       throw error;
     }
   }
+
   public close() {
     // No need to explicitly close Stream Chat client
   }
