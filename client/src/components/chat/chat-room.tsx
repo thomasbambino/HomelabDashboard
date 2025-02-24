@@ -8,84 +8,71 @@ import { Send, Image, Check } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
-export function ChatRoom() {
-  const { chatClient, loading, error } = useChat();
+interface ChatRoomProps {
+  channel: StreamChannel<DefaultStreamChatGenerics>;
+}
+
+export function ChatRoom({ channel }: ChatRoomProps) {
+  const { chatClient } = useChat();
   const [message, setMessage] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
-  const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (!chatClient) {
-      console.log('Chat client not initialized');
-      return;
-    }
+    if (!channel) return;
 
-    const loadChannel = async () => {
+    const loadMessages = async () => {
       try {
-        const channels = await chatClient.queryChannels(
-          { type: 'team' },
-          { last_message_at: -1 },
-          { limit: 1 }
-        );
+        // Load existing messages
+        const response = await channel.watch();
+        setMessages(response.messages || []);
 
-        if (channels.length > 0) {
-          const activeChannel = channels[0];
-          setChannel(activeChannel);
-
-          // Load existing messages
-          const messages = await activeChannel.watch();
-          setMessages(messages.messages || []);
-
-          // Mark channel as read when opened
-          await activeChannel.markRead();
-
-          // Listen for new messages
-          activeChannel.on('message.new', (event) => {
-            setMessages((prev) => [...prev, event.message]);
-            // Mark new messages as read
-            activeChannel.markRead();
-            // Scroll to bottom when new message arrives
-            setTimeout(() => {
-              scrollAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }, 100);
-          });
-
-          // Listen for typing events
-          activeChannel.on('typing.start', (event) => {
-            if (event.user?.id !== chatClient.user?.id) {
-              setTypingUsers(prev => [...new Set([...prev, event.user?.name || 'Someone'])]);
-            }
-          });
-
-          activeChannel.on('typing.stop', (event) => {
-            if (event.user?.id !== chatClient.user?.id) {
-              setTypingUsers(prev => prev.filter(name => name !== event.user?.name));
-            }
-          });
-        }
+        // Mark channel as read when opened
+        await channel.markRead();
       } catch (error) {
-        console.error('Error loading channel:', error);
+        console.error('Error loading messages:', error);
         toast({
-          title: 'Error loading chat',
+          title: 'Error loading messages',
           description: 'Please try again',
           variant: 'destructive',
         });
       }
     };
 
-    loadChannel();
+    loadMessages();
+
+    // Listen for new messages
+    channel.on('message.new', (event) => {
+      setMessages((prev) => [...prev, event.message]);
+      // Mark new messages as read
+      channel.markRead();
+      // Scroll to bottom when new message arrives
+      setTimeout(() => {
+        scrollAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    });
+
+    // Listen for typing events
+    channel.on('typing.start', (event) => {
+      if (event.user?.id !== chatClient?.user?.id) {
+        setTypingUsers(prev => [...new Set([...prev, event.user?.name || 'Someone'])]);
+      }
+    });
+
+    channel.on('typing.stop', (event) => {
+      if (event.user?.id !== chatClient?.user?.id) {
+        setTypingUsers(prev => prev.filter(name => name !== event.user?.name));
+      }
+    });
 
     return () => {
-      if (channel) {
-        channel.stopWatching();
-      }
+      channel.stopWatching();
     };
-  }, [chatClient, toast]);
+  }, [channel, chatClient?.user?.id, toast]);
 
   const handleImageUpload = async (file: File) => {
     if (!channel) return;
@@ -150,25 +137,6 @@ export function ChatRoom() {
       });
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-destructive">
-        <div className="text-center">
-          <p className="font-semibold">Failed to connect to chat</p>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

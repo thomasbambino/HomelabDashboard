@@ -15,6 +15,27 @@ export class ChatServer {
       process.env.STREAM_API_SECRET
     );
     console.log('Stream Chat server initialized');
+    this.initializePublicChannel();
+  }
+
+  private async initializePublicChannel() {
+    try {
+      // Check if public channel exists
+      const channels = await this.streamClient.queryChannels({ id: 'public' });
+
+      if (channels.length === 0) {
+        // Create public channel if it doesn't exist
+        await this.streamClient.channel('team', 'public', {
+          name: 'Public Chat',
+          created_by: { id: 'system' },
+        }).create();
+        console.log('Public channel created');
+      } else {
+        console.log('Public channel already exists');
+      }
+    } catch (error) {
+      console.error('Error initializing public channel:', error);
+    }
   }
 
   async connectUser(user: User) {
