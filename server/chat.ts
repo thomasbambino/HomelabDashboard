@@ -22,15 +22,12 @@ export class ChatServer {
       console.log('Generating token for user:', {
         userId: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        userIdType: typeof user.id
       });
 
       // Map application roles to Stream Chat roles
       const streamRole = user.role === 'admin' ? 'admin' : 'user';
-
-      // Create a Stream Chat token for the user
-      const token = this.streamClient.createToken(user.id.toString());
-      console.log('Generated Stream Chat token:', token);
 
       // First, try to disconnect any existing connections
       try {
@@ -41,12 +38,19 @@ export class ChatServer {
         console.log('No existing connection to disconnect');
       }
 
+      // Create a Stream Chat token for the user
+      const token = this.streamClient.createToken(user.id.toString());
+      console.log('Generated Stream Chat token:', token);
+      console.log('Generated Stream Chat token structure:', JSON.stringify(token, null, 2));
+
+
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
         id: user.id.toString(),
         name: user.username,
         role: streamRole,
       });
+      console.log('User object passed to connectUser:', user);
 
       // Ensure user is added to public channel
       await this.ensurePublicChannel(user.id.toString());

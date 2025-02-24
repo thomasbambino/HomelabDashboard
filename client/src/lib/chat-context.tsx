@@ -52,7 +52,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       console.log('Environment variables:', {
         VITE_STREAM_API_KEY: apiKey,
         hasKey: !!apiKey,
-        user: user.id,
+        user: {
+          id: user.id,
+          id_type: typeof user.id,
+          id_string: user.id.toString()
+        },
         token: chatToken.token
       });
 
@@ -70,20 +74,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         // Map application roles to Stream Chat roles
         const streamRole = user.role === 'admin' ? 'admin' : 'user';
 
+        const userData = {
+          id: user.id.toString(), // Ensure ID is always a string
+          name: user.username,
+          role: streamRole // Use the mapped role
+        };
+
         console.log('Connecting user:', { 
-          userId: user.id, 
-          username: user.username,
-          role: streamRole
+          userId: userData.id,
+          username: userData.name,
+          role: userData.role
         });
 
-        await client.connectUser(
-          {
-            id: user.id.toString(),
-            name: user.username,
-            role: streamRole // Use the mapped role
-          },
-          chatToken.token
-        );
+        await client.connectUser(userData, chatToken.token);
 
         console.log('Successfully connected to Stream Chat');
         setChatClient(client);
