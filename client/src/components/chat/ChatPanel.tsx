@@ -27,6 +27,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           { last_message_at: -1 }
         );
 
+        console.log('Found channels:', channels);
+
         if (channels.length > 0) {
           setActiveChannel(channels[0]);
           return channels[0];
