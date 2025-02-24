@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Image } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
-import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
+import type { DefaultGenerics } from 'stream-chat';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
   const [message, setMessage] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
-  const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
+  const [channel, setChannel] = useState<StreamChannel<DefaultGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 

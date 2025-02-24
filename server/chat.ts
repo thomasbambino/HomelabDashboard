@@ -33,7 +33,6 @@ export class ChatServer {
       await this.streamClient.upsertUser({
         id: userId,
         name: user.username,
-        role: 'user',
       });
 
       console.log('User successfully connected to Stream Chat');
