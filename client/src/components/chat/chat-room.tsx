@@ -81,7 +81,13 @@ export function ChatRoom() {
     if (!channel) return;
 
     try {
-      await channel.deleteMessage(messageId);
+      // Delete the message using the correct Stream Chat API method
+      await channel.getMessage(messageId).then(async (message) => {
+        if (message) {
+          await message.delete();
+        }
+      });
+
       toast({
         title: 'Message deleted',
         description: 'Your message has been removed',
