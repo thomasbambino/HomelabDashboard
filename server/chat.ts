@@ -19,8 +19,14 @@ export class ChatServer {
 
   async connectUser(user: User) {
     try {
+      console.log('Generating token for user:', {
+        userId: user.id,
+        username: user.username
+      });
+
       // Create a Stream Chat token for the user
       const token = this.streamClient.createToken(user.id.toString());
+      console.log('Generated Stream Chat token:', token);
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
@@ -29,6 +35,7 @@ export class ChatServer {
         role: user.role,
       });
 
+      console.log('User upserted to Stream Chat');
       return { token };
     } catch (error) {
       console.error('Error connecting user to Stream Chat:', error);

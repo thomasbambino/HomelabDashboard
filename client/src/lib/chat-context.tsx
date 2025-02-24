@@ -19,7 +19,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   // Only fetch token if user is logged in
-  const { data: chatToken } = useQuery({
+  const { data: chatToken, error: tokenError } = useQuery({
     queryKey: ['/api/chat/token'],
     enabled: !!user,
   });
@@ -28,9 +28,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     let client: StreamChat<DefaultStreamChatGenerics> | null = null;
 
     const initChat = async () => {
-      if (!user || !chatToken) {
-        console.log('Missing user or chat token:', { user: !!user, token: !!chatToken });
+      if (!user) {
+        console.log('No user logged in');
         setLoading(false);
+        return;
+      }
+
+      console.log('Chat token response:', chatToken);
+
+      if (tokenError) {
+        console.error('Error fetching chat token:', tokenError);
+        setError(new Error('Failed to get chat token'));
+        setLoading(false);
+        return;
+      }
+
+      if (!chatToken) {
+        console.log('Waiting for chat token...');
         return;
       }
 
@@ -38,7 +52,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       console.log('Environment variables:', {
         VITE_STREAM_API_KEY: apiKey,
         hasKey: !!apiKey,
-        user: user.id
+        user: user.id,
+        token: chatToken.token
       });
 
       if (!apiKey) {
@@ -85,7 +100,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         });
       }
     };
-  }, [user, chatToken]);
+  }, [user, chatToken, tokenError]);
 
   return (
     <ChatContext.Provider value={{ chatClient, loading, error }}>
