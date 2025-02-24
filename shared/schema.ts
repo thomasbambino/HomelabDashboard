@@ -70,6 +70,8 @@ export const gameServers = pgTable("gameServers", {
   icon: text("icon"),
   background: text("background"),
   refreshInterval: integer("refreshInterval").default(30),
+  show_player_count: boolean("show_player_count").default(true),
+  show_status_badge: boolean("show_status_badge").default(true),
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {

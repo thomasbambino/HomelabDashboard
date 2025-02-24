@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
 
@@ -57,6 +58,9 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
       icon: server.icon ?? "",
       background: server.background ?? "",
       refreshInterval: server.refreshInterval,
+      show_player_count: server.show_player_count ?? false,
+      show_status_badge: server.show_status_badge ?? false,
+
     },
   });
 
@@ -281,6 +285,40 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                     <div id="refresh-interval-description" className="sr-only">
                       Set how often the server status should be checked, minimum 5 seconds
                     </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="show_player_count"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Show Player Count</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="show_status_badge"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Show Status Badge</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
