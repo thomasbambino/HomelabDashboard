@@ -152,19 +152,39 @@ export class AMPService {
     const sessionId = await this.ensureAuthenticated();
     try {
       console.log('Fetching instances from AMP');
+      console.log('Using API version:', this.currentApiVersion);
+      console.log('Request URL:', `${this.baseUrl}/API/ADSModule/GetInstances`);
+
       const response = await axios.get<{ result: AMPInstance[] }>(
         `${this.baseUrl}/API/ADSModule/GetInstances`,
-        { headers: this.getHeaders(sessionId) }
+        { 
+          headers: this.getHeaders(sessionId),
+          validateStatus: function (status) {
+            return status < 500; // Accept any status less than 500 to capture error responses
+          }
+        }
       );
+
+      console.log('Raw API Response:', {
+        status: response.status,
+        headers: response.headers,
+        data: response.data
+      });
 
       // Ensure we return an array
       const instances = response.data.result || [];
-      console.log('AMP Instances fetched:', instances);
+      if (instances.length === 0) {
+        console.log('No instances found. This could mean either no instances exist or insufficient permissions.');
+      } else {
+        console.log(`Found ${instances.length} AMP instances`);
+      }
+
       return instances;
     } catch (error) {
       console.error('Failed to fetch AMP instances:', error);
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401 || error.response?.status === 403) {
+          console.log('Authentication failed. Clearing session and retrying...');
           // Session might be invalid, clear it and retry once
           this.sessionId = null;
           this.sessionExpiry = null;
