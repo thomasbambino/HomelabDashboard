@@ -77,7 +77,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
   return (
     <Card className="relative" style={cardStyle}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             {service.icon && (
               <div className="w-6 h-6 flex items-center justify-center">
@@ -91,7 +91,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
             <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
           </div>
           {service.tooltip && (
-            <p className="text-sm text-muted-foreground">{service.tooltip}</p>
+            <p className="text-sm text-muted-foreground pt-1">{service.tooltip}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
