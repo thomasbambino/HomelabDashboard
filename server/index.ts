@@ -39,62 +39,44 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  try {
-    log('Starting server initialization...');
+  const server = await registerRoutes(app);
 
-    const server = await registerRoutes(app);
-    log('Routes registered successfully');
+  // Initialize the chat server
+  const chatServer = new ChatServer(server);
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      log(`Error middleware caught: ${status} - ${message}`);
-      res.status(status).json({ message });
-      throw err;
-    });
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-    // Start the service checker
-    startServiceChecker();
-    log('Service checker started');
+    res.status(status).json({ message });
+    throw err;
+  });
 
-    if (app.get("env") === "development") {
-      log('Setting up Vite for development...');
-      await setupVite(app, server);
-      log('Vite setup completed');
-    } else {
-      log('Setting up static file serving...');
-      serveStatic(app);
-      log('Static file serving setup completed');
-    }
+  // Start the service checker
+  startServiceChecker();
 
-    const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`Server started successfully, serving on port ${port}`);
-    });
-
-    // Handle graceful shutdown
-    const cleanup = () => {
-      log('Starting graceful shutdown...');
-      const chatServer = app.get('chatServer') as ChatServer;
-      if (chatServer) {
-        chatServer.close();
-        log('Chat server closed');
-      }
-      server.close();
-      log('HTTP server closed');
-      process.exit(0);
-    };
-
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
-
-    log('Server initialization completed successfully');
-  } catch (error) {
-    log(`Fatal error during server initialization: ${error}`);
-    process.exit(1);
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
+
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+
+  // Handle graceful shutdown
+  const cleanup = () => {
+    chatServer.close();
+    server.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 })();

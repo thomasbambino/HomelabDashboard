@@ -12,8 +12,6 @@ import { Loader2, ServerCog } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
 import * as z from 'zod';
-import { useToast } from "@/components/ui/use-toast";
-
 
 const requestResetSchema = z.object({
   identifier: z.string().min(1, "Username or email is required"),
@@ -21,7 +19,6 @@ const requestResetSchema = z.object({
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  const { toast } = useToast();
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -51,41 +48,6 @@ export default function AuthPage() {
     }
   });
 
-  const handleLoginSubmit = async (data: any) => {
-    try {
-      await loginMutation.mutateAsync(data);
-    } catch (error: any) {
-      const response = error.response?.data;
-
-      // Show appropriate error message based on rate limiting status
-      if (error.response?.status === 429) {
-        toast({
-          variant: "destructive",
-          title: "Login Attempt Limit Exceeded",
-          description: response.message
-        });
-        return;
-      }
-
-      // Show remaining attempts if available
-      if (response?.remainingAttempts !== undefined) {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: response.message
-        });
-        return;
-      }
-
-      // Generic error message
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "Invalid username or password"
-      });
-    }
-  };
-
   if (user) {
     return <Redirect to="/" />;
   }
@@ -107,7 +69,7 @@ export default function AuthPage() {
 
               <TabsContent value="login">
                 <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)}>
+                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}>
                     <div className="space-y-4">
                       <FormField
                         control={loginForm.control}
@@ -226,7 +188,7 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/5 dark:bg-primary/10">
+      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/5">
         {settings?.logo_url_large ? (
           <img
             src={settings.logo_url_large}

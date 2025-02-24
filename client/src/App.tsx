@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -25,21 +25,6 @@ function Router() {
   );
 }
 
-function SocialButtons() {
-  const [location] = useLocation();
-
-  // Hide social buttons on auth and pending pages
-  if (location === "/auth" || location === "/pending") {
-    return null;
-  }
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <ChatButton />
-    </div>
-  );
-}
-
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -47,7 +32,9 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ChatProvider>
-              <SocialButtons />
+              <div className="fixed bottom-4 right-4 z-50">
+                <ChatButton />
+              </div>
               <Router />
               <Toaster />
             </ChatProvider>
