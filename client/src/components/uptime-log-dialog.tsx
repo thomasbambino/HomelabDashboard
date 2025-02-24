@@ -69,7 +69,7 @@ export function UptimeLogDialog() {
   const showUptimeLog = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
 
   if (!showUptimeLog) {
-    return null;
+    return <NotificationPreferencesDialog />;
   }
 
   return (
