@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Image } from "lucide-react";
+import { Send, Image, Check } from "lucide-react";
 import { Channel as StreamChannel } from 'stream-chat';
 import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
@@ -16,6 +16,8 @@ export function ChatRoom() {
   const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (!chatClient) {
@@ -39,13 +41,31 @@ export function ChatRoom() {
           const messages = await activeChannel.watch();
           setMessages(messages.messages || []);
 
+          // Mark channel as read when opened
+          await activeChannel.markRead();
+
           // Listen for new messages
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
+            // Mark new messages as read
+            activeChannel.markRead();
             // Scroll to bottom when new message arrives
             setTimeout(() => {
               scrollAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }, 100);
+          });
+
+          // Listen for typing events
+          activeChannel.on('typing.start', (event) => {
+            if (event.user?.id !== chatClient.user?.id) {
+              setTypingUsers(prev => [...new Set([...prev, event.user?.name || 'Someone'])]);
+            }
+          });
+
+          activeChannel.on('typing.stop', (event) => {
+            if (event.user?.id !== chatClient.user?.id) {
+              setTypingUsers(prev => prev.filter(name => name !== event.user?.name));
+            }
           });
         }
       } catch (error) {
@@ -94,6 +114,23 @@ export function ChatRoom() {
     }
   };
 
+  const handleTyping = () => {
+    if (!channel) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Send typing.start event
+    channel.keystroke();
+
+    // Set timeout to stop typing indicator after 2 seconds
+    typingTimeoutRef.current = setTimeout(() => {
+      channel.stopTyping();
+    }, 2000);
+  };
+
   const handleSend = async () => {
     if (!message.trim() || !channel) return;
 
@@ -102,6 +139,8 @@ export function ChatRoom() {
         text: message.trim(),
       });
       setMessage("");
+      // Stop typing indicator when message is sent
+      channel.stopTyping();
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -157,13 +196,27 @@ export function ChatRoom() {
                     />
                   ))
                 ) : (
-                  msg.text
+                  <div>
+                    {msg.text}
+                    {msg.readBy && (
+                      <span className="ml-2 text-xs flex items-center">
+                        <Check className="h-3 w-3" />
+                        {msg.readBy.length}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           ))}
         </div>
       </ScrollArea>
+
+      {typingUsers.length > 0 && (
+        <div className="px-4 py-2 text-sm text-muted-foreground">
+          {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+        </div>
+      )}
 
       <div className="p-4 border-t bg-background">
         <form
@@ -195,7 +248,10 @@ export function ChatRoom() {
           </Button>
           <Input
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              handleTyping();
+            }}
             placeholder="Type your message..."
             className="flex-1"
           />
