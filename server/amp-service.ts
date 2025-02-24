@@ -60,14 +60,18 @@ export class AMPService {
   async getInstances(): Promise<AMPInstance[]> {
     const sessionId = await this.ensureAuthenticated();
     try {
-      const response = await axios.get(
+      const response = await axios.get<{ result: AMPInstance[] }>(
         `${this.baseUrl}/API/ADSModule/GetInstances`,
         { headers: this.getHeaders(sessionId) }
       );
-      return response.data;
+
+      // Ensure we return an array
+      const instances = response.data.result || [];
+      console.log('AMP Instances fetched:', instances);
+      return instances;
     } catch (error) {
       console.error('Failed to fetch AMP instances:', error);
-      throw new Error('Failed to fetch game server instances');
+      return []; // Return empty array on error instead of throwing
     }
   }
 
@@ -102,11 +106,11 @@ export class AMPService {
   async getInstanceStatus(instanceId: string): Promise<AMPInstance> {
     const sessionId = await this.ensureAuthenticated();
     try {
-      const response = await axios.get(
+      const response = await axios.get<{ result: AMPInstance }>(
         `${this.baseUrl}/API/ADSModule/GetInstance?InstanceID=${instanceId}`,
         { headers: this.getHeaders(sessionId) }
       );
-      return response.data;
+      return response.data.result;
     } catch (error) {
       console.error('Failed to get instance status:', error);
       throw new Error('Failed to fetch game server status');
