@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Login failed");
+        throw new Error(JSON.stringify(error));
       }
       return await res.json();
     },
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
-      if (!error.message.includes("Password change required")) {
+      if (!error.message.includes("PASSWORD_CHANGE_REQUIRED")) {
         toast({
           title: "Login failed",
           description: error.message,

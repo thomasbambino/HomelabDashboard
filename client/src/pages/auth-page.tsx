@@ -11,7 +11,7 @@ import { Redirect } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
