@@ -17,7 +17,6 @@ export function ChatRoom() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -45,17 +44,14 @@ export function ChatRoom() {
           const activeChannel = channels[0];
           setChannel(activeChannel);
 
-          // Load existing messages
           const messages = await activeChannel.watch();
           console.log('Loaded messages:', messages);
           setMessages(messages.messages || []);
 
-          // Listen for new messages
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
           });
 
-          // Listen for deleted messages
           activeChannel.on('message.deleted', (event) => {
             setMessages((prev) => prev.filter((msg) => msg.id !== event.message.id));
           });
@@ -177,9 +173,9 @@ export function ChatRoom() {
                 msg.user?.id === chatClient?.user?.id ? 'items-end' : 'items-start'
               }`}>
                 <div
-                  className={`relative rounded-lg px-4 py-2 break-words group ${
+                  className={`relative group rounded-lg px-4 py-2 ${
                     msg.user?.id === chatClient?.user?.id
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground mr-8'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -187,7 +183,7 @@ export function ChatRoom() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => handleDeleteMessage(msg.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -203,7 +199,7 @@ export function ChatRoom() {
                       />
                     ))
                   ) : (
-                    <span className="whitespace-pre-wrap">{msg.text}</span>
+                    <span className="whitespace-pre-wrap break-words">{msg.text}</span>
                   )}
                 </div>
                 <span className="text-xs text-foreground opacity-70 mt-1 px-1">
