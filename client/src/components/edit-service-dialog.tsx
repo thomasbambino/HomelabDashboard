@@ -33,6 +33,7 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
       background: service.background ?? "",
       refreshInterval: service.refreshInterval,
       isNSFW: service.isNSFW ?? false,
+      tooltip: service.tooltip ?? "",
     },
   });
 
@@ -144,6 +145,21 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
                       />
                     </FormControl>
                   </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="tooltip"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tooltip Text</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter a helpful description"
+                      {...field}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
