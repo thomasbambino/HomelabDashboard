@@ -36,13 +36,48 @@ export class ChatServer {
       await this.streamClient.upsertUser({
         id: user.id.toString(),
         name: user.username,
-        role: streamRole, // Use the mapped role
+        role: streamRole,
       });
+
+      // Ensure user is added to public channel
+      await this.ensurePublicChannel(user.id.toString());
 
       console.log('User upserted to Stream Chat');
       return { token };
     } catch (error) {
       console.error('Error connecting user to Stream Chat:', error);
+      throw error;
+    }
+  }
+
+  private async ensurePublicChannel(userId: string) {
+    try {
+      // Try to find existing public channel
+      const channels = await this.streamClient.queryChannels(
+        { type: 'messaging', id: 'public' },
+        {},
+        { limit: 1 }
+      );
+
+      let publicChannel;
+
+      if (channels.length === 0) {
+        // Create public channel if it doesn't exist
+        publicChannel = this.streamClient.channel('messaging', 'public', {
+          name: 'Public Chat',
+          members: [userId],
+          created_by: { id: userId },
+        });
+        await publicChannel.create();
+        console.log('Created new public channel');
+      } else {
+        publicChannel = channels[0];
+        // Add user to existing public channel
+        await publicChannel.addMembers([userId]);
+        console.log('Added user to existing public channel');
+      }
+    } catch (error) {
+      console.error('Error ensuring public channel:', error);
       throw error;
     }
   }

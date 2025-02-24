@@ -32,8 +32,9 @@ export function ChatRoom() {
 
     const loadChannel = async () => {
       try {
+        // Connect to the public channel
         const channels = await chatClient.queryChannels(
-          { type: 'team' },
+          { type: 'messaging', id: 'public' },
           { last_message_at: -1 },
           { limit: 1 }
         );
