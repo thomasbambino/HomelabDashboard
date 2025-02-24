@@ -10,8 +10,8 @@ export function ChatButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
 
-  // Don't render on the login page
-  if (location === "/login") {
+  // Don't render on the auth page
+  if (location === "/auth") {
     return null;
   }
 
