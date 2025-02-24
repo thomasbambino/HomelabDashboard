@@ -15,6 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/use-auth";
 
 export function UptimeLogDialog() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  // Always call hooks at the top level
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>(() => {
@@ -23,41 +27,28 @@ export function UptimeLogDialog() {
     return { from: start, to: end };
   });
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
-  // Fetch services for the filter dropdown
-  const { data: services = [] } = useQuery<Service[]>({
-    queryKey: ["/api/services"],
-  });
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const showUptimeLog = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
+  const { data: services = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+  });
 
-  if (!showUptimeLog) {
-    return null;
-  }
-
-  // Fetch status logs with filters
   const { data: logs = [] } = useQuery<(ServiceStatusLog & { service: Service })[]>({
     queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      // Add service filter
       if (selectedService !== "all") {
         params.append("serviceId", selectedService);
       }
 
-      // Add status filter
       if (selectedStatus !== "all") {
         params.append("status", selectedStatus === "true" ? "true" : "false");
       }
 
-      // Add date range filters
       if (date?.from) params.append("startDate", date.from.toISOString());
       if (date?.to) params.append("endDate", date.to.toISOString());
 
@@ -71,9 +62,14 @@ export function UptimeLogDialog() {
       }
       return response.json();
     },
-    // Refetch every 30 seconds to get real-time updates
     refetchInterval: 30000,
   });
+
+  const showUptimeLog = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
+
+  if (!showUptimeLog) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
