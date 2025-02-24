@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Link } from "wouter";
-import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound } from "lucide-react";
+import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -17,6 +17,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [tempPasswords, setTempPasswords] = useState<Record<number, string>>({});
+  const [editingEmails, setEditingEmails] = useState<Record<number, string>>({});
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -93,6 +94,22 @@ export default function UsersPage() {
     },
   });
 
+  const handleEmailChange = (userId: number, email: string) => {
+    setEditingEmails(prev => ({ ...prev, [userId]: email }));
+  };
+
+  const saveEmail = async (userId: number) => {
+    const email = editingEmails[userId];
+    if (email !== undefined) {
+      await updateUserMutation.mutateAsync({ id: userId, email });
+      setEditingEmails(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
+      });
+    }
+  };
+
   if (user?.role !== 'admin') {
     return <Redirect to="/" />;
   }
@@ -124,7 +141,7 @@ export default function UsersPage() {
             <div className="flex items-center gap-4">
               <Label>Default role for new users:</Label>
               <Select
-                value={settings?.defaultRole}
+                value={settings?.default_role}
                 onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
               >
                 <SelectTrigger className="w-40">
@@ -148,16 +165,29 @@ export default function UsersPage() {
                     <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="email"
-                        placeholder="Email address"
-                        value={u.email || ''}
-                        onChange={(e) => updateUserMutation.mutate({ 
-                          id: u.id, 
-                          email: e.target.value 
-                        })}
-                        className="w-64"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          placeholder="Email address"
+                          value={editingEmails[u.id] ?? u.email ?? ''}
+                          onChange={(e) => handleEmailChange(u.id, e.target.value)}
+                          className="w-64"
+                        />
+                        {editingEmails[u.id] !== undefined && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => saveEmail(u.id)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            {updateUserMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -187,7 +217,7 @@ export default function UsersPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={u.canViewNSFW}
+                            checked={u.can_view_nsfw}
                             onCheckedChange={(checked) =>
                               updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
                             }
