@@ -90,8 +90,8 @@ export function setupAuth(app: Express) {
           return done(null, false);
         } 
 
-        // Check if the user account is enabled
-        if (!user.enabled) {
+        // Check if the user account is approved (enabled)
+        if (!user.approved) {
           return done(null, false);
         }
 
@@ -142,7 +142,6 @@ export function setupAuth(app: Express) {
       const identifier = req.body.username;
       const ip = req.ip;
       const type = 'login';
-
 
       passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);

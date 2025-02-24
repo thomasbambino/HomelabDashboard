@@ -208,21 +208,12 @@ export default function UsersPage() {
                       <>
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={u.enabled}
-                            onCheckedChange={(checked) =>
-                              updateUserMutation.mutate({ id: u.id, enabled: checked })
-                            }
-                          />
-                          <Label>Account Enabled</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
                             checked={u.approved}
                             onCheckedChange={(checked) =>
                               updateUserMutation.mutate({ id: u.id, approved: checked })
                             }
                           />
-                          <Label>Approved</Label>
+                          <Label>Account Enabled</Label>
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
