@@ -35,6 +35,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       const apiKey = import.meta.env.VITE_STREAM_API_KEY;
+      console.log('Environment variables:', {
+        VITE_STREAM_API_KEY: apiKey,
+        hasKey: !!apiKey,
+        user: user.id
+      });
+
       if (!apiKey) {
         console.error('Stream API key not found');
         setError(new Error('Stream API key not configured'));
@@ -43,8 +49,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('Initializing Stream Chat client');
-        client = StreamChat.getInstance(apiKey);
+        console.log('Initializing Stream Chat client with API key:', apiKey);
+        client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
 
         console.log('Connecting user:', { userId: user.id, username: user.username });
         await client.connectUser(
