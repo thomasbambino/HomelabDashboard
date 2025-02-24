@@ -4,9 +4,16 @@ import { MessageSquare } from "lucide-react";
 import { ChatRoom } from "./chat-room";
 import { useState } from "react";
 import { DiscordButton } from "@/components/discord-button";
+import { useLocation } from "wouter";
 
 export function ChatButton() {
   const [open, setOpen] = useState(false);
+  const [location] = useLocation();
+
+  // Don't render on the auth page
+  if (location === "/auth") {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-2">
