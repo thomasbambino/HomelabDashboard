@@ -2,7 +2,23 @@ import axios from 'axios';
 import https from 'https';
 
 interface AMPLoginResponse {
-  sessionId: string;
+  result: number;
+  resultReason: string;
+  success: boolean;
+  permissions: string[];
+  sessionID: string;
+  rememberMeToken: string;
+  userInfo: {
+    ID: string;
+    Username: string;
+    EmailAddress: string | null;
+    IsTwoFactorEnabled: boolean;
+    Disabled: boolean;
+    LastLogin: string;
+    GravatarHash: string;
+    IsLDAPUser: boolean;
+    AvatarBase64: string | null;
+  };
 }
 
 interface AMPInstance {
@@ -66,13 +82,13 @@ export class AMPService {
       console.log('Login response headers:', response.headers);
       console.log('Login response data:', response.data);
 
-      if (!response.data?.sessionId) {
+      if (!response.data?.sessionID) {
         console.error('Login response data:', response.data);
         throw new Error('No session ID received from AMP login');
       }
 
       console.log('Successfully logged in to AMP');
-      this.sessionId = response.data.sessionId;
+      this.sessionId = response.data.sessionID;
       return this.sessionId;
     } catch (error) {
       console.error('AMP login failed:', error);
