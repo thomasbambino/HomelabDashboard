@@ -168,12 +168,21 @@ export function RequestServerDialog() {
     },
   });
 
-  const onSubmit = (data: RequestServerForm) => {
-    toast({
-      title: "Server request submitted",
-      description: `Your request for a ${data.game} server has been sent to the administrators.`,
-    });
-    form.reset();
+  const onSubmit = async (data: RequestServerForm) => {
+    try {
+      await apiRequest("POST", "/api/game-servers/request", data);
+      toast({
+        title: "Server request submitted",
+        description: `Your request for a ${data.game} server has been sent to the administrators.`,
+      });
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "Failed to submit request",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

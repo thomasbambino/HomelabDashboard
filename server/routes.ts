@@ -15,6 +15,8 @@ import sharp from 'sharp';
 import {User} from '@shared/schema';
 import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
+import { sendEmail } from './email'; // Import sendEmail function
+
 
 // Configure multer for image upload
 const upload = multer({
@@ -319,6 +321,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Add this new endpoint after existing routes, before the httpServer creation
+  app.post("/api/game-servers/request", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { game } = req.body;
+      const user = req.user as User;
+
+      // Get all admin users
+      const admins = await storage.getAllUsers();
+      const adminEmails = admins
+        .filter(admin => admin.role === 'admin' && admin.email)
+        .map(admin => admin.email);
+
+      if (adminEmails.length > 0) {
+        // Send email to all admins
+        for (const adminEmail of adminEmails) {
+          if (adminEmail) {
+            await sendEmail({
+              to: adminEmail,
+              subject: "New Game Server Request",
+              html: `
+                <p>A new game server has been requested:</p>
+                <ul>
+                  <li><strong>Game:</strong> ${game}</li>
+                  <li><strong>Requested by:</strong> ${user.username}</li>
+                  <li><strong>User Email:</strong> ${user.email || 'No email provided'}</li>
+                  <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+                </ul>
+                <p>Please review this request in the admin dashboard.</p>
+              `
+            });
+          }
+        }
+      }
+
+      res.json({ message: "Request submitted successfully" });
+    } catch (error) {
+      console.error('Error processing game server request:', error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
 
   // Add private chat room routes
   app.post("/api/chat/private-rooms", async (req, res) => {
