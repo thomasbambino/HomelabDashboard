@@ -4,9 +4,10 @@ import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { addHours } from "date-fns";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { sendEmail, compileTemplate } from "./email";
+import { sendEmail } from "./email";
 
 declare global {
   namespace Express {
@@ -74,14 +75,21 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
+    const { username, password, email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
       return res.status(400).send("Username already exists");
     }
 
     const user = await storage.createUser({
       ...req.body,
-      password: await hashPassword(req.body.password),
+      email,
+      password: await hashPassword(password),
     });
 
     req.login(user, (err) => {
@@ -242,5 +250,130 @@ export function setupAuth(app: Express) {
     } else {
       res.status(500).json({ message: "Failed to send test email" });
     }
+  });
+
+
+  // Add password reset endpoints
+  app.post("/api/request-reset", async (req, res) => {
+    const { email } = req.body;
+    const user = await storage.getUserByEmail(email);
+
+    if (!user) {
+      // Don't reveal if email exists
+      return res.json({ message: "If an account exists with this email, a reset link will be sent." });
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const expires = addHours(new Date(), 24);
+
+    await storage.updateUser({
+      id: user.id,
+      reset_token: token,
+      reset_token_expires: expires
+    });
+
+    const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+
+    await sendEmail({
+      to: email,
+      subject: "Password Reset Request",
+      html: `
+        <p>A password reset was requested for your account.</p>
+        <p>Click the link below to reset your password:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `
+    });
+
+    res.json({ message: "If an account exists with this email, a reset link will be sent." });
+  });
+
+  app.post("/api/reset-password", async (req, res) => {
+    const { token, password } = req.body;
+
+    const user = await storage.getUserByResetToken(token);
+    if (!user || !user.reset_token_expires || new Date() > new Date(user.reset_token_expires)) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    await storage.updateUser({
+      id: user.id,
+      password: await hashPassword(password),
+      reset_token: null,
+      reset_token_expires: null,
+      temp_password: false
+    });
+
+    res.json({ message: "Password updated successfully" });
+  });
+
+  // Add admin password reset endpoint
+  app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
+    const { userId } = req.body;
+    const user = await storage.getUser(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const tempPassword = randomBytes(8).toString('hex');
+
+    await storage.updateUser({
+      id: user.id,
+      password: await hashPassword(tempPassword),
+      temp_password: true
+    });
+
+    if (user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Temporary Password Assigned",
+        html: `
+          <p>A temporary password has been assigned to your account by an administrator.</p>
+          <p>Temporary password: ${tempPassword}</p>
+          <p>Please log in and change your password immediately.</p>
+        `
+      });
+    }
+
+    res.json({ 
+      message: "Password reset successful",
+      tempPassword: user.email ? undefined : tempPassword // Only send temp password in response if user has no email
+    });
+  });
+
+  // Add force password change middleware
+  function requirePasswordChange(req: Request, res: Response, next: NextFunction) {
+    if (req.isAuthenticated() && req.user.temp_password) {
+      // Allow access to password change endpoint
+      if (req.path === '/api/change-password') {
+        return next();
+      }
+      return res.status(403).json({ 
+        message: "Password change required",
+        code: "PASSWORD_CHANGE_REQUIRED"
+      });
+    }
+    next();
+  }
+
+  // Apply middleware after auth setup
+  app.use(requirePasswordChange);
+
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    const { password } = req.body;
+
+    await storage.updateUser({
+      id: req.user!.id,
+      password: await hashPassword(password),
+      temp_password: false
+    });
+
+    res.json({ message: "Password updated successfully" });
   });
 }

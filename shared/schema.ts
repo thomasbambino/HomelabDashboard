@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
   role: roleEnum("role").notNull().default('pending'),
   approved: boolean("approved").notNull().default(false),
   can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
@@ -16,6 +17,9 @@ export const users = pgTable("users", {
   show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
   show_last_checked: boolean("show_last_checked").notNull().default(true),
   service_order: integer("service_order").array().default([]),
+  temp_password: boolean("temp_password").default(false),
+  reset_token: text("reset_token"),
+  reset_token_expires: timestamp("reset_token_expires"),
 });
 
 export const settings = pgTable("settings", {
