@@ -63,7 +63,7 @@ export class AMPService {
       retryDelay: (retryCount) => retryCount * this.retryDelay,
       retryCondition: (error: AxiosError) => {
         // Retry on network errors or 5xx server errors
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) || 
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
                (error.response?.status ? error.response.status >= 500 : false);
       }
     });
@@ -91,18 +91,31 @@ export class AMPService {
         rememberMe: false,
       };
       console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
+      console.log('Login endpoint:', `${this.baseUrl}/API/Core/Login`);
 
       // Try each API version until one works
       for (const version of this.apiVersions) {
         try {
+          console.log(`Attempting login with API version: ${version}`);
           const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData, {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
               'User-Agent': 'AMPDashboard/1.0',
               'X-AMP-Version': version
+            },
+            validateStatus: function (status) {
+              return status < 500; // Accept any status code to handle authentication errors
             }
           });
+
+          console.log('Login response status:', response.status);
+          console.log('Login response headers:', response.headers);
+
+          if (response.status === 401 || response.status === 403) {
+            console.log(`Authentication failed with API version ${version}:`, response.data);
+            continue;
+          }
 
           if (response.data?.sessionID) {
             this.currentApiVersion = version;
@@ -111,9 +124,21 @@ export class AMPService {
             this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
             console.log('Successfully logged in to AMP using API version:', version);
             return this.sessionId;
+          } else {
+            console.log(`No session ID in response for version ${version}:`, response.data);
           }
         } catch (error) {
-          console.log(`Login failed with API version ${version}, trying next version...`);
+          console.log(`Login attempt failed with API version ${version}`);
+          if (axios.isAxiosError(error)) {
+            console.error('Error details:', {
+              status: error.response?.status,
+              statusText: error.response?.statusText,
+              data: error.response?.data,
+              headers: error.response?.headers
+            });
+          } else {
+            console.error('Non-axios error:', error);
+          }
           continue;
         }
       }
@@ -126,6 +151,15 @@ export class AMPService {
         console.error('Request URL:', error.config?.url);
         console.error('Request method:', error.config?.method);
         console.error('Request headers:', error.config?.headers);
+
+        // Provide more specific error messages based on the response
+        if (error.response?.status === 401) {
+          throw new Error('Invalid username or password');
+        } else if (error.response?.status === 403) {
+          throw new Error('Account lacks necessary permissions');
+        } else if (!error.response) {
+          throw new Error(`Could not connect to AMP server at ${this.baseUrl}`);
+        }
       }
       throw new Error('Failed to authenticate with AMP');
     }
