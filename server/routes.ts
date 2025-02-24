@@ -15,9 +15,8 @@ import sharp from 'sharp';
 import {User} from '@shared/schema';
 import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
-import { sendEmail } from './email'; // Import sendEmail function
+import { sendEmail } from './email';
 import { pgTable, text } from "drizzle-orm/pg-core";
-
 
 // Configure multer for image upload
 const upload = multer({
@@ -178,16 +177,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Initialize chat server without passing server instance
-  const chatServer = new ChatServer();
-  app.set('chatServer', chatServer);
+  // Initialize chat server with error handling
+  let chatServer: ChatServer | null = null;
+  try {
+    chatServer = new ChatServer();
+    app.set('chatServer', chatServer);
+    console.log('Chat server created successfully');
+  } catch (error) {
+    console.error('Failed to initialize chat server:', error);
+    // Continue without chat functionality
+  }
 
   // Add Stream Chat token endpoint
   app.get("/api/chat/token", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { token } = await chatServer.connectUser(req.user);
-      res.json({ token });
+      const token = await chatServer?.connectUser(req.user);
+      res.json(token);
     } catch (error) {
       console.error('Error generating chat token:', error);
       res.status(500).json({ message: "Failed to generate chat token" });
@@ -440,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const channelId = `room-${Date.now()}`;
 
       // Create channel in Stream Chat
-      await chatServer.createChannel('team', channelId, name.trim(), [user.id.toString()]);
+      await chatServer?.createChannel('team', channelId, name.trim(), [user.id.toString()]);
 
       // Store channel info in local database
       const newRoom = await storage.createChatRoom({
@@ -516,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(),
         updatedAt: new Date(),
         isEdited: false
-      } as const);
+      });
 
       // Get the complete message with sender info
       const messageWithSender = {
@@ -658,16 +664,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Initialize chat server with http server instance
-  chatServer.initialize(httpServer);
-
-  console.log('Chat server initialized successfully');
+  // Initialize WebSocket server if chat server was created successfully
+  if (chatServer) {
+    try {
+      chatServer.initialize(httpServer);
+      console.log('WebSocket server initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize WebSocket server:', error);
+      // Continue without WebSocket functionality
+    }
+  }
 
   return httpServer;
 }
 
 // Export chat room schema
 export const chatRooms = pgTable("chatRooms", {
-  // ... other fields remain unchanged ...
+  id: text("id").primaryKey(),
+  name: text("name"),
+  type: text("type"),
+  createdBy: text("createdBy"),
+  createdAt: text("createdAt"),
+  updatedAt: text("updatedAt"),
   streamChannelId: text("streamChannelId"),
 });
