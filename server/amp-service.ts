@@ -97,7 +97,6 @@ export class AMPService {
       retries: this.retryCount,
       retryDelay: (retryCount) => retryCount * this.retryDelay,
       retryCondition: (error: AxiosError) => {
-        // Retry on network errors or 5xx server errors
         return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
                (error.response?.status ? error.response.status >= 500 : false);
       }
@@ -109,23 +108,17 @@ export class AMPService {
     });
   }
 
-  private isSessionValid(): boolean {
-    if (!this.sessionId || !this.sessionExpiry) return false;
-    // Check if session is still valid (with 5 minute buffer)
-    return new Date() < new Date(this.sessionExpiry.getTime() - 5 * 60 * 1000);
-  }
-
   private async login(): Promise<string> {
     try {
       console.log('Attempting to login to AMP at:', this.baseUrl);
 
       const loginData = {
-        username: this.username, // Preserve the case exactly as provided
+        username: this.username, // Do not modify the username case
         password: this.password,
         token: '',
         rememberMe: false,
       };
-      console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
+      console.log('Login attempt with username:', this.username);
       console.log('Login endpoint:', `${this.baseUrl}/API/Core/Login`);
 
       // Try each API version until one works
@@ -140,12 +133,17 @@ export class AMPService {
               'X-AMP-Version': version
             },
             validateStatus: function (status) {
-              return status < 500; // Accept any status to handle authentication errors
+              return true; // Accept any status to handle authentication errors
             }
           });
 
           console.log('Login response status:', response.status);
-          console.log('Login response headers:', response.headers);
+          console.log('Login response data:', {
+            success: response.data?.success,
+            resultReason: response.data?.resultReason,
+            hasSessionID: !!response.data?.sessionID,
+            permissions: response.data?.permissions
+          });
 
           if (response.status === 401 || response.status === 403) {
             console.log(`Authentication failed with API version ${version}:`, response.data);
@@ -155,7 +153,6 @@ export class AMPService {
           if (response.data?.sessionID) {
             this.currentApiVersion = version;
             this.sessionId = response.data.sessionID;
-            // Set session expiry to 1 hour from now
             this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
             console.log('Successfully logged in to AMP using API version:', version);
             console.log('User permissions:', response.data.permissions);
@@ -197,8 +194,14 @@ export class AMPService {
           throw new Error(`Could not connect to AMP server at ${this.baseUrl}`);
         }
       }
-      throw new Error('Failed to authenticate with AMP');
+      throw error; // Re-throw the original error with more context
     }
+  }
+
+  private isSessionValid(): boolean {
+    if (!this.sessionId || !this.sessionExpiry) return false;
+    // Check if session is still valid (with 5 minute buffer)
+    return new Date() < new Date(this.sessionExpiry.getTime() - 5 * 60 * 1000);
   }
 
   private async ensureAuthenticated(): Promise<string> {

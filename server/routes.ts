@@ -805,14 +805,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Test the new credentials
       try {
+        console.log('Testing new AMP credentials...');
+        console.log('Using username:', amp_username);
         const systemInfo = await ampService.getSystemInfo();
         console.log('Updated credentials test - System info:', systemInfo);
         res.json({ message: "AMP credentials updated successfully" });
       } catch (error) {
         console.error('Error testing new credentials:', error);
+
+        // Extract the specific error message if available
+        let errorMessage = "Failed to connect with new credentials";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+
         res.status(400).json({ 
           message: "Failed to connect with new credentials",
-          error: error instanceof Error ? error.message : "Unknown error"
+          error: errorMessage
         });
       }
     } catch (error) {
