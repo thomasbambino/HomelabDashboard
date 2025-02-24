@@ -32,6 +32,14 @@ interface AMPInstance {
   MaxUsers: number;
 }
 
+interface AMPSystemInfo {
+  Version: string;
+  Branch: string;
+  BuildDate: string;
+  TargetFramework: string;
+  OSDescription: string;
+}
+
 export class AMPService {
   private baseUrl: string;
   private username: string;
@@ -290,6 +298,50 @@ export class AMPService {
         return this.getInstanceStatus(instanceId);
       }
       throw new Error('Failed to fetch game server status');
+    }
+  }
+
+  async getSystemInfo(): Promise<AMPSystemInfo> {
+    const sessionId = await this.ensureAuthenticated();
+    try {
+      console.log('Fetching AMP system info');
+      const response = await axios.get<{ result: AMPSystemInfo }>(
+        `${this.baseUrl}/API/Core/GetSystemInfo`,
+        { 
+          headers: this.getHeaders(sessionId),
+          validateStatus: function (status) {
+            return status < 500;
+          }
+        }
+      );
+
+      console.log('System info response:', response.data);
+      return response.data.result;
+    } catch (error) {
+      console.error('Failed to fetch system info:', error);
+      throw error;
+    }
+  }
+
+  async getAPISpec(): Promise<any> {
+    const sessionId = await this.ensureAuthenticated();
+    try {
+      console.log('Fetching API specification');
+      const response = await axios.get(
+        `${this.baseUrl}/API/Core/GetAPISpec`,
+        { 
+          headers: this.getHeaders(sessionId),
+          validateStatus: function (status) {
+            return status < 500;
+          }
+        }
+      );
+
+      console.log('API spec response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch API spec:', error);
+      throw error;
     }
   }
 }

@@ -420,6 +420,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('AMP URL:', process.env.AMP_API_URL);
       console.log('Username configured:', !!process.env.AMP_API_USERNAME);
 
+      // Get system info
+      const systemInfo = await ampService.getSystemInfo();
+      console.log('System info:', systemInfo);
+
+      // Get API spec
+      const apiSpec = await ampService.getAPISpec();
+      console.log('API spec available:', !!apiSpec);
+
       // Test AMP connection
       const instances = await ampService.getInstances();
 
@@ -427,7 +435,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: "AMP connection test completed",
         instanceCount: instances.length,
-        instances: instances
+        instances: instances,
+        systemInfo: systemInfo,
+        apiMethods: Object.keys(apiSpec || {})
       });
     } catch (error) {
       console.error('AMP test endpoint error:', error);
