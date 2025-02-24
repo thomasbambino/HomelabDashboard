@@ -87,8 +87,8 @@ export function ChatRoom() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] bg-background">
-      <Chat client={chatClient} theme="str-chat__theme-light">
+    <div className="h-full">
+      <Chat client={chatClient} theme="str-chat__theme-light dark:str-chat__theme-dark">
         <Channel channel={activeChannel}>
           <Window>
             <ChannelHeader />

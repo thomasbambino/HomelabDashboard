@@ -27,6 +27,24 @@
   --str-chat__message-background-color: theme('colors.card.DEFAULT');
   --str-chat__message-text-color: theme('colors.card.foreground');
   --str-chat__message-bubble-background: theme('colors.primary.DEFAULT');
+  --str-chat__message-bubble-text-color: theme('colors.primary.foreground');
+
+  /* Input styling */
+  --str-chat__input-background: theme('colors.card.DEFAULT');
+  --str-chat__input-border-color: theme('colors.border');
+}
+
+.dark .str-chat__theme-light,
+.str-chat__theme-dark {
+  --str-chat__primary-color: theme('colors.primary.DEFAULT');
+  --str-chat__secondary-color: theme('colors.primary.foreground');
+  --str-chat__disabled-color: theme('colors.muted.foreground');
+
+  /* Message styling */
+  --str-chat__message-background-color: theme('colors.card.DEFAULT');
+  --str-chat__message-text-color: theme('colors.card.foreground');
+  --str-chat__message-bubble-background: theme('colors.primary.DEFAULT');
+  --str-chat__message-bubble-text-color: theme('colors.primary.foreground');
 
   /* Input styling */
   --str-chat__input-background: theme('colors.card.DEFAULT');
@@ -34,7 +52,7 @@
 }
 
 .str-chat__container {
-  @apply h-full border rounded-lg border-border shadow-sm;
+  @apply h-full border rounded-lg border-border shadow-sm overflow-hidden;
 }
 
 .str-chat__message-list {
@@ -55,4 +73,28 @@
 
 .str-chat__message-status {
   @apply text-sm text-muted-foreground;
+}
+
+.str-chat__thread {
+  @apply border-l border-border bg-background;
+}
+
+.str-chat__thread-header {
+  @apply border-b border-border bg-card;
+}
+
+.str-chat__message-attachment {
+  @apply bg-card border border-border rounded-lg overflow-hidden;
+}
+
+.str-chat__message-attachment-card {
+  @apply bg-card;
+}
+
+.str-chat__avatar {
+  @apply rounded-full border border-border;
+}
+
+.str-chat__message--system {
+  @apply text-muted-foreground text-sm;
 }
