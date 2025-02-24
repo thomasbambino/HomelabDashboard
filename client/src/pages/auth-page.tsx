@@ -11,6 +11,11 @@ import { Redirect } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
+import * as z from 'zod';
+
+const requestResetSchema = z.object({
+  identifier: z.string().min(1, "Username or email is required"),
+});
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -28,10 +33,18 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
+    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true, email: true })),
     defaultValues: {
       username: "",
-      password: ""
+      password: "",
+      email: ""
+    }
+  });
+
+  const resetForm = useForm({
+    resolver: zodResolver(requestResetSchema),
+    defaultValues: {
+      identifier: ""
     }
   });
 
@@ -48,9 +61,10 @@ export default function AuthPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsTrigger value="reset">Reset</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
@@ -62,7 +76,7 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Username or Email</FormLabel>
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
@@ -108,6 +122,18 @@ export default function AuthPage() {
                       />
                       <FormField
                         control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
                         name="password"
                         render={({ field }) => (
                           <FormItem>
@@ -121,6 +147,37 @@ export default function AuthPage() {
                       <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                         {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Register
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+
+              <TabsContent value="reset">
+                <Form {...resetForm}>
+                  <form onSubmit={resetForm.handleSubmit((data) => {
+                    // Send request to server to notify admins
+                    fetch('/api/request-reset', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    });
+                  })}>
+                    <div className="space-y-4">
+                      <FormField
+                        control={resetForm.control}
+                        name="identifier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username or Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter your username or email" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Request Password Reset
                       </Button>
                     </div>
                   </form>

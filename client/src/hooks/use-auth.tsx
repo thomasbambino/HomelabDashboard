@@ -37,7 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+      return data;
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -47,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login failed",
         description: error.message,
         variant: "destructive",
+        action: (
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90"
+              onClick={() => setLocation("/auth?tab=reset")}
+            >
+              Reset Password
+            </button>
+          </div>
+        ),
       });
     },
   });
@@ -54,7 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+      return data;
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);

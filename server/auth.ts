@@ -16,7 +16,7 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-export async function hashPassword(password: string) {
+async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
@@ -58,7 +58,12 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
+      // Try to find user by username first, then by email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
+
       if (!user || !(await comparePasswords(password, user.password))) {
         return done(null, false);
       } else {
@@ -85,6 +90,11 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Username already exists");
     }
 
+    const existingEmail = await storage.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(400).send("Email already exists");
+    }
+
     const user = await storage.createUser({
       ...req.body,
       email,
@@ -97,8 +107,20 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ 
+          message: "Invalid credentials",
+          showResetOption: true
+        });
+      }
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -111,6 +133,43 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+
+  // Add password reset request endpoint
+  app.post("/api/request-reset", async (req, res) => {
+    const { identifier } = req.body;
+
+    // Find user by username or email
+    let user = await storage.getUserByUsername(identifier);
+    if (!user) {
+      user = await storage.getUserByEmail(identifier);
+    }
+
+    // Get all admin users
+    const admins = await storage.getAllUsers();
+    const adminEmails = admins
+      .filter(admin => admin.role === 'admin' && admin.email)
+      .map(admin => admin.email);
+
+    if (user && adminEmails.length > 0) {
+      // Send email to all admins
+      for (const adminEmail of adminEmails) {
+        if (adminEmail) {
+          await sendEmail({
+            to: adminEmail,
+            subject: "Password Reset Request",
+            html: `
+              <p>A password reset has been requested for user: ${user.username}</p>
+              <p>User Email: ${user.email || 'No email provided'}</p>
+              <p>Please log in to the admin panel to reset their password.</p>
+            `
+          });
+        }
+      }
+    }
+
+    // Always return success to prevent user enumeration
+    res.json({ message: "If the account exists, admins have been notified of your password reset request." });
   });
 
   // Admin routes for user management
