@@ -21,7 +21,22 @@ export class ChatServer {
   private pingInterval: NodeJS.Timeout;
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ server, path: '/ws/chat' });
+    this.wss = new WebSocketServer({ 
+      server,
+      path: '/ws/chat',
+      clientTracking: true,
+      // Add verifyClient to reject unauthorized connections early
+      verifyClient: async (info, cb) => {
+        try {
+          const userId = await this.getUserIdFromSession(info.req);
+          cb(userId !== null, 401, 'Unauthorized');
+        } catch (error) {
+          console.error('Error verifying client:', error);
+          cb(false, 500, 'Internal Server Error');
+        }
+      }
+    });
+
     this.setupWebSocketServer();
 
     // Set up ping interval to keep connections alive and detect stale ones
@@ -142,6 +157,9 @@ export class ChatServer {
       content: data.content,
       type: data.type || 'text',
       replyTo: data.replyTo,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isEdited: false,
     });
 
     // Update room's last message timestamp
@@ -150,11 +168,15 @@ export class ChatServer {
       lastMessageAt: new Date(),
     });
 
+    // Get sender info
+    const sender = await storage.getUser(userId);
+    const messageWithSender = { ...message, sender };
+
     // Broadcast to all room members
     this.broadcastToRoom(data.roomId, {
       type: 'message',
       roomId: data.roomId,
-      data: message,
+      data: messageWithSender,
     });
   }
 
@@ -167,16 +189,12 @@ export class ChatServer {
   }
 
   private async handleReadReceipt(userId: number, data: { roomId: number }) {
-    await storage.updateChatMember({
-      roomId: data.roomId,
-      userId: userId,
-      lastRead: new Date(),
-    });
+    const timestamp = new Date();
 
     this.broadcastToRoom(data.roomId, {
       type: 'read',
       roomId: data.roomId,
-      data: { userId, timestamp: new Date() },
+      data: { userId, timestamp },
     });
   }
 

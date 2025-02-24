@@ -581,9 +581,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Initialize chat server
-  const chatServer = new ChatServer(httpServer);
-  app.set('chatServer', chatServer);
+  // Initialize chat server -  Ensuring it's initialized only once.
+  let chatServer: ChatServer | null = null; //added to handle multiple calls
+  if(!chatServer){
+    chatServer = new ChatServer(httpServer);
+    app.set('chatServer', chatServer);
+  }
 
   return httpServer;
 }
