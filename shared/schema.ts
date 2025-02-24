@@ -40,10 +40,12 @@ export const settings = pgTable("settings", {
   show_last_checked: boolean("show_last_checked").default(true),
   show_service_url: boolean("show_service_url").default(true),
   show_uptime_log: boolean("show_uptime_log").default(false),
+  show_status_badge: boolean("show_status_badge").default(true),
   admin_show_refresh_interval: boolean("admin_show_refresh_interval").default(true),
   admin_show_last_checked: boolean("admin_show_last_checked").default(true),
   admin_show_service_url: boolean("admin_show_service_url").default(true),
   admin_show_uptime_log: boolean("admin_show_uptime_log").default(false),
+  admin_show_status_badge: boolean("admin_show_status_badge").default(true),
 });
 
 export const services = pgTable("services", {

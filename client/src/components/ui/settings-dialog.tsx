@@ -45,6 +45,9 @@ export function SettingsDialog() {
       admin_show_uptime_log: settings?.admin_show_uptime_log ?? false,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
+      admin_show_status_badge: settings?.admin_show_status_badge ?? true,
+      show_status_badge: settings?.show_status_badge ?? true,
+
     },
   });
 
@@ -237,6 +240,22 @@ export function SettingsDialog() {
                     <div className="space-y-3">
                       <FormField
                         control={form.control}
+                        name="admin_show_status_badge"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="admin_show_status_badge" className="text-sm cursor-pointer">Show Status Badge</FormLabel>
+                              <Switch
+                                id="admin_show_status_badge"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="admin_show_uptime_log"
                         render={({ field }) => (
                           <FormItem>
@@ -304,6 +323,22 @@ export function SettingsDialog() {
                   <div>
                     <h3 className="text-sm font-medium mb-3">Regular User View</h3>
                     <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="show_status_badge"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between">
+                              <FormLabel htmlFor="show_status_badge" className="text-sm cursor-pointer">Show Status Badge</FormLabel>
+                              <Switch
+                                id="show_status_badge"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="show_uptime_log"

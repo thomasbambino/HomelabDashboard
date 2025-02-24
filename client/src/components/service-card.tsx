@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, GripVertical } from "lucide-react";
+import { ExternalLink, Settings, Trash2 } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -67,6 +67,7 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
   const showRefreshInterval = isAdmin ? settings?.admin_show_refresh_interval : settings?.show_refresh_interval;
   const showLastChecked = isAdmin ? settings?.admin_show_last_checked : settings?.show_last_checked;
   const showServiceUrl = isAdmin ? settings?.admin_show_service_url : settings?.show_service_url;
+  const showStatusBadge = isAdmin ? settings?.admin_show_status_badge : settings?.show_status_badge;
 
   // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
@@ -80,9 +81,6 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
       className={`relative transition-all duration-200 ${isDragging ? "shadow-lg" : ""}`} 
       style={cardStyle}
     >
-      <div className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 opacity-50 hover:opacity-100 cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-6 w-6" />
-      </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -102,17 +100,19 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge
-            variant="default"
-            style={{
-              backgroundColor: service.status ?
-                settings?.online_color || "#22c55e" :
-                settings?.offline_color || "#ef4444",
-              color: "white"
-            }}
-          >
-            {service.status ? "Online" : "Offline"}
-          </Badge>
+          {showStatusBadge && (
+            <Badge
+              variant="default"
+              style={{
+                backgroundColor: service.status ?
+                  settings?.online_color || "#22c55e" :
+                  settings?.offline_color || "#ef4444",
+                color: "white"
+              }}
+            >
+              {service.status ? "Online" : "Offline"}
+            </Badge>
+          )}
           {service.isNSFW && (
             <Badge
               variant="outline"
