@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(JSON.stringify(error));
+        throw new Error(error.message);
       }
       return await res.json();
     },

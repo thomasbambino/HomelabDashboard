@@ -19,7 +19,6 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [showPasswordReset, setShowPasswordReset] = useState(false);
-  const [, params] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const showNewPasswordForm = searchParams.get('action') === 'change_password' || loginMutation.error?.message?.includes("PASSWORD_CHANGE_REQUIRED");
 
