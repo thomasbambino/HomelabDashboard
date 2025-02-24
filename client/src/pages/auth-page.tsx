@@ -9,11 +9,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { Redirect } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -28,12 +34,82 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
+    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true, email: true })),
     defaultValues: {
       username: "",
+      password: "",
+      email: ""
+    }
+  });
+
+  const resetPasswordForm = useForm({
+    resolver: zodResolver(insertUserSchema.pick({ email: true })),
+    defaultValues: {
+      email: ""
+    }
+  });
+
+  const newPasswordForm = useForm({
+    resolver: zodResolver(insertUserSchema.pick({ password: true })),
+    defaultValues: {
       password: ""
     }
   });
+
+  const requestResetMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/request-reset", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reset link sent",
+        description: "If an account exists with this email, a reset link will be sent.",
+      });
+      setShowPasswordReset(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to request reset",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { password: string }) => {
+      const res = await apiRequest("POST", "/api/change-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setShowNewPasswordForm(false);
+      // Redirect to login
+      loginForm.reset();
+      loginMutation.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to change password",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogin = async (data: any) => {
+    try {
+      await loginMutation.mutateAsync(data);
+    } catch (error: any) {
+      if (error.message?.includes("Password change required")) {
+        setShowNewPasswordForm(true);
+      }
+    }
+  };
 
   if (user) {
     return <Redirect to="/" />;
@@ -47,86 +123,154 @@ export default function AuthPage() {
             <CardTitle>Welcome to {settings?.site_title || "Homelab Dashboard"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}>
-                    <div className="space-y-4">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                        {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Login
+            {showNewPasswordForm ? (
+              <Form {...newPasswordForm}>
+                <form onSubmit={newPasswordForm.handleSubmit((data) => changePasswordMutation.mutate(data))}>
+                  <div className="space-y-4">
+                    <FormField
+                      control={newPasswordForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
+                      {changePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Change Password
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            ) : showPasswordReset ? (
+              <Form {...resetPasswordForm}>
+                <form onSubmit={resetPasswordForm.handleSubmit((data) => requestResetMutation.mutate(data))}>
+                  <div className="space-y-4">
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1" disabled={requestResetMutation.isPending}>
+                        {requestResetMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send Reset Link
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowPasswordReset(false)}>
+                        Back to Login
                       </Button>
                     </div>
-                  </form>
-                </Form>
-              </TabsContent>
+                  </div>
+                </form>
+              </Form>
+            ) : (
+              <Tabs defaultValue="login">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="register">Register</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="register">
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))}>
-                    <div className="space-y-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-                        {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Register
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="login">
+                  <Form {...loginForm}>
+                    <form onSubmit={loginForm.handleSubmit(handleLogin)}>
+                      <div className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                          {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Login
+                        </Button>
+                        <Button variant="ghost" className="w-full" onClick={() => setShowPasswordReset(true)}>
+                          Forgot Password?
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </TabsContent>
+
+                <TabsContent value="register">
+                  <Form {...registerForm}>
+                    <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))}>
+                      <div className="space-y-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                          {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Register
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
