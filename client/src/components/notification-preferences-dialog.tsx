@@ -109,9 +109,8 @@ export function NotificationPreferencesDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mr-2">
-          <Bell className="h-4 w-4 mr-2" />
-          Notifications
+        <Button variant="outline" size="icon">
+          <Bell className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
@@ -155,8 +154,9 @@ export function NotificationPreferencesDialog() {
         <EmailTemplateDialog
           open={showTemplates}
           onOpenChange={setShowTemplates}
-          onTestEmail={(templateId: number, email: string) => 
-            testNotificationMutation.mutate({ templateId, email })}
+          onTestEmail={(templateId: number, email: string) =>
+            testNotificationMutation.mutate({ templateId, email })
+          }
         />
       )}
     </Dialog>
