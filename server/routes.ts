@@ -175,6 +175,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
+  // Initialize chat server
+  const chatServer = new ChatServer();
+  app.set('chatServer', chatServer);
+
+  // Add Stream Chat token endpoint
+  app.get("/api/chat/token", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { token } = await chatServer.connectUser(req.user);
+      res.json({ token });
+    } catch (error) {
+      console.error('Error generating chat token:', error);
+      res.status(500).json({ message: "Failed to generate chat token" });
+    }
+  });
+
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
@@ -366,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add chat room routes
+  // Modify chat room creation to use Stream Chat
   app.post("/api/chat/rooms", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -375,18 +391,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid chat room name" });
       }
 
-      const user = req.user as User; // User type from @shared/schema
+      const user = req.user as User;
+      const channelId = `room-${Date.now()}`;
+
+      // Create channel in Stream Chat
+      await chatServer.createChannel('team', channelId, name.trim(), [user.id.toString()]);
+
+      // Store channel info in local database
       const newRoom = await storage.createChatRoom({
         name: name.trim(),
         type: "group",
         createdBy: user.id,
-      });
-
-      // Add the creator as a member and admin of the room
-      await storage.addChatMember({
-        roomId: newRoom.id,
-        userId: user.id,
-        isAdmin: true,
+        streamChannelId: channelId,
       });
 
       res.status(201).json(newRoom);
@@ -464,7 +480,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Broadcast the message through WebSocket
-      const chatServer = app.get('chatServer');
       if (chatServer) {
         console.log(`Broadcasting message to room ${roomId}`);
         chatServer.broadcastToRoom(roomId, {
@@ -597,15 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
-  // Initialize chat server with proper error handling
-  try {
-    const chatServer = new ChatServer(httpServer);
-    app.set('chatServer', chatServer);
-    console.log('Chat server initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize chat server:', error);
-  }
+  console.log('Chat server initialized successfully');
 
   return httpServer;
 }

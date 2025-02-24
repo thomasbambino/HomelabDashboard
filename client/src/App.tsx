@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "./hooks/use-auth";
+import { ChatProvider } from "./lib/chat-context";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
@@ -29,8 +30,10 @@ function App() {
       <div className="min-h-screen bg-background text-foreground">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <Router />
-            <Toaster />
+            <ChatProvider>
+              <Router />
+              <Toaster />
+            </ChatProvider>
           </AuthProvider>
         </QueryClientProvider>
       </div>

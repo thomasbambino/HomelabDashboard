@@ -5,7 +5,7 @@ import { ChatRoom, User } from "@shared/schema";
 import { format } from "date-fns";
 import { Plus, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { chatClient } from "@/lib/chat";
+import { useChat } from "@/lib/chat-context";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -15,11 +15,26 @@ export function ChatGroupList() {
     queryKey: ["/api/chat/group-rooms"],
   });
 
+  const { chatClient } = useChat();
+
   useEffect(() => {
-    if (user?.id) {
-      chatClient.setUserId(user.id);
-    }
-  }, [user?.id]);
+    if (!chatClient || !user) return;
+
+    const loadChannels = async () => {
+      try {
+        const channels = await chatClient.queryChannels(
+          { type: 'team' },
+          { last_message_at: -1 },
+          { limit: 10 }
+        );
+        console.log('Loaded channels:', channels);
+      } catch (error) {
+        console.error('Error loading channels:', error);
+      }
+    };
+
+    loadChannels();
+  }, [chatClient, user]);
 
   return (
     <div className="flex flex-col h-full">
@@ -54,7 +69,6 @@ export function ChatGroupList() {
                     </span>
                   )}
                 </div>
-                {/* TODO: Add last message preview and member count */}
               </div>
             </div>
           ))}
