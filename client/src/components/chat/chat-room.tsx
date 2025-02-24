@@ -5,12 +5,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
+import { Channel as StreamChannel } from 'stream-chat';
+import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
   const [message, setMessage] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
+  const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
 
   useEffect(() => {
     if (!chatClient) {
@@ -18,20 +21,53 @@ export function ChatRoom() {
       return;
     }
 
-    chatClient.on('message', (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
+    const loadChannel = async () => {
+      try {
+        const channels = await chatClient.queryChannels(
+          { type: 'team' },
+          { last_message_at: -1 },
+          { limit: 1 }
+        );
+
+        if (channels.length > 0) {
+          const activeChannel = channels[0];
+          setChannel(activeChannel);
+
+          // Load existing messages
+          const messages = await activeChannel.watch();
+          setMessages(messages.messages || []);
+
+          // Listen for new messages
+          activeChannel.on('message.new', (event) => {
+            setMessages((prev) => [...prev, event.message]);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading channel:', error);
+        toast({
+          title: 'Error loading chat',
+          description: 'Please try again',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    loadChannel();
 
     return () => {
-      chatClient.off('message');
+      if (channel) {
+        channel.stopWatching();
+      }
     };
-  }, [chatClient]);
+  }, [chatClient, toast]);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || !channel) return;
 
     try {
-      await chatClient?.sendMessage(1, message);
+      await channel.sendMessage({
+        text: message.trim(),
+      });
       setMessage("");
     } catch (error) {
       console.error('Error sending message:', error);
@@ -69,16 +105,16 @@ export function ChatRoom() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.user?.id === chatClient?.user?.id ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`rounded-lg px-4 py-2 max-w-[70%] ${
-                  msg.isMe
+                  msg.user?.id === chatClient?.user?.id
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {msg.content}
+                {msg.text}
               </div>
             </div>
           ))}
