@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2 } from "lucide-react";
+import { ExternalLink, Settings, Trash2, GripVertical } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,9 +24,10 @@ import { Settings as SettingsType } from "@shared/schema";
 
 interface ServiceCardProps {
   service: Service;
+  isDragging?: boolean;
 }
 
-export function ServiceCard({ service }: ServiceCardProps) {
+export function ServiceCard({ service, isDragging }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -75,7 +76,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
   } : {};
 
   return (
-    <Card className="relative" style={cardStyle}>
+    <Card 
+      className={`relative transition-all duration-200 ${isDragging ? "shadow-lg" : ""}`} 
+      style={cardStyle}
+    >
+      <div className="absolute -left-2 top-1/2 -translate-y-1/2 p-2 opacity-50 hover:opacity-100 cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-6 w-6" />
+      </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">

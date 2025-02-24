@@ -73,7 +73,7 @@ export function ServiceList({ services }: ServiceListProps) {
                       snapshot.isDragging ? "scale-105 rotate-2 z-50" : ""
                     }`}
                   >
-                    <ServiceCard service={service} />
+                    <ServiceCard service={service} isDragging={snapshot.isDragging} />
                   </div>
                 )}
               </Draggable>
