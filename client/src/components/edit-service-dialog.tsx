@@ -153,10 +153,10 @@ export function EditServiceDialog({ service, open, onOpenChange }: EditServiceDi
               name="tooltip"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tooltip Text</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter a helpful description"
+                      placeholder="Enter a brief description of this service"
                       {...field}
                     />
                   </FormControl>

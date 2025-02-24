@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, HelpCircle } from "lucide-react";
+import { ExternalLink, Settings, Trash2 } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,12 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Settings as SettingsType } from "@shared/schema";
 
 interface ServiceCardProps {
@@ -83,33 +77,22 @@ export function ServiceCard({ service }: ServiceCardProps) {
   return (
     <Card className="relative" style={cardStyle}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center gap-2">
-          {service.icon && (
-            <div className="w-6 h-6 flex items-center justify-center">
-              <img
-                src={service.icon}
-                alt={`${service.name} icon`}
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-            <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
-            {service.tooltip && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{service.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            {service.icon && (
+              <div className="w-6 h-6 flex items-center justify-center">
+                <img
+                  src={service.icon}
+                  alt={`${service.name} icon`}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
             )}
+            <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
           </div>
+          {service.tooltip && (
+            <p className="text-sm text-muted-foreground">{service.tooltip}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Badge
