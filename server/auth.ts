@@ -140,10 +140,9 @@ export function setupAuth(app: Express) {
       const ip = req.ip;
       const type = 'login';
 
-      // Get attempts within the time window
+      // Check rate limit before allowing any authentication attempt
       const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
 
-      // Check rate limit before proceeding
       if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
         const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
         if (oldestAttempt) {
@@ -151,9 +150,7 @@ export function setupAuth(app: Express) {
           const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
 
           if (timeRemaining > 0) {
-            return res.status(429).json({
-              message: "Too many login attempts. Please try again later."
-            });
+            return res.sendStatus(429); // Only send status code, no message
           }
 
           // If window has passed, clear old attempts
@@ -161,7 +158,7 @@ export function setupAuth(app: Express) {
         }
       }
 
-      // Proceed with authentication
+      // Only proceed with authentication if rate limit hasn't been exceeded
       passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);
 
@@ -174,9 +171,7 @@ export function setupAuth(app: Express) {
             timestamp: new Date()
           });
 
-          return res.status(401).json({ 
-            message: "Invalid credentials"
-          });
+          return res.sendStatus(401); // Only send status code, no message
         }
 
         req.logIn(user, (err) => {
