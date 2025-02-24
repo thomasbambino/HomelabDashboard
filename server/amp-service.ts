@@ -24,10 +24,19 @@ export class AMPService {
     this.baseUrl = process.env.AMP_API_URL || '';
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
+
+    if (!this.baseUrl || !this.username || !this.password) {
+      console.error('AMP configuration missing:', {
+        hasUrl: !!this.baseUrl,
+        hasUsername: !!this.username,
+        hasPassword: !!this.password
+      });
+    }
   }
 
   private async login(): Promise<string> {
     try {
+      console.log('Attempting to login to AMP at:', this.baseUrl);
       const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, {
         username: this.username,
         password: this.password,
@@ -35,10 +44,18 @@ export class AMPService {
         rememberMe: false,
       });
 
+      if (!response.data?.sessionId) {
+        throw new Error('No session ID received from AMP login');
+      }
+
+      console.log('Successfully logged in to AMP');
       this.sessionId = response.data.sessionId;
       return this.sessionId;
     } catch (error) {
       console.error('AMP login failed:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response:', error.response?.data);
+      }
       throw new Error('Failed to authenticate with AMP');
     }
   }
@@ -60,6 +77,7 @@ export class AMPService {
   async getInstances(): Promise<AMPInstance[]> {
     const sessionId = await this.ensureAuthenticated();
     try {
+      console.log('Fetching instances from AMP');
       const response = await axios.get<{ result: AMPInstance[] }>(
         `${this.baseUrl}/API/ADSModule/GetInstances`,
         { headers: this.getHeaders(sessionId) }
@@ -71,6 +89,9 @@ export class AMPService {
       return instances;
     } catch (error) {
       console.error('Failed to fetch AMP instances:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response:', error.response?.data);
+      }
       return []; // Return empty array on error instead of throwing
     }
   }

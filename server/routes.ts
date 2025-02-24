@@ -412,7 +412,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // The following routes remain unchanged from the original code.
+  // Add new diagnostic endpoint for AMP testing
+  app.get("/api/amp-test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      console.log('Testing AMP connection...');
+      console.log('AMP URL:', process.env.AMP_API_URL);
+      console.log('Username configured:', !!process.env.AMP_API_USERNAME);
+
+      // Test AMP connection
+      const instances = await ampService.getInstances();
+
+      res.json({
+        success: true,
+        message: "AMP connection test completed",
+        instanceCount: instances.length,
+        instances: instances
+      });
+    } catch (error) {
+      console.error('AMP test endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to connect to AMP",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   app.post("/api/game-servers/request", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
