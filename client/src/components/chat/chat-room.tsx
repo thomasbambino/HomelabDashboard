@@ -176,7 +176,7 @@ export function ChatRoom() {
                 <div
                   className={`relative group rounded-lg px-4 py-2 ${
                     msg.user?.id === chatClient?.user?.id
-                      ? 'bg-primary text-primary-foreground mr-8'
+                      ? 'bg-primary text-primary-foreground mr-12'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -184,7 +184,7 @@ export function ChatRoom() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[120%] opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => handleDeleteMessage(msg.id)}
                     >
                       <Trash2 className="h-4 w-4" />
