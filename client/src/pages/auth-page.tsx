@@ -28,15 +28,14 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true, email: true })),
+    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
     defaultValues: {
       username: "",
-      password: "",
-      email: ""
+      password: ""
     }
   });
 
-  if (user && !user.temp_password) {
+  if (user) {
     return <Redirect to="/" />;
   }
 
@@ -103,18 +102,6 @@ export default function AuthPage() {
                             <FormLabel>Username</FormLabel>
                             <FormControl>
                               <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" {...field} />
                             </FormControl>
                           </FormItem>
                         )}

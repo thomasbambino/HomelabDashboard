@@ -29,14 +29,6 @@ export function ProtectedRoute({
     );
   }
 
-  if (user.temp_password) {
-    return (
-      <Route path={path}>
-        <Redirect to="/auth?action=change_password" />
-      </Route>
-    );
-  }
-
   if (!user.approved) {
     return (
       <Route path={path}>
