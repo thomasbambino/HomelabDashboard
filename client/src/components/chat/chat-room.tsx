@@ -150,11 +150,11 @@ export function ChatRoom() {
               key={index}
               className={`flex ${msg.user?.id === chatClient?.user?.id ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="flex flex-col">
+              <div className="flex flex-col w-full max-w-[70%]">
                 <div
-                  className={`rounded-lg px-4 py-2 max-w-[70%] ${
+                  className={`rounded-lg px-4 py-2 break-words ${
                     msg.user?.id === chatClient?.user?.id
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground ml-auto'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -168,10 +168,12 @@ export function ChatRoom() {
                       />
                     ))
                   ) : (
-                    msg.text
+                    <span className="whitespace-pre-wrap">{msg.text}</span>
                   )}
                 </div>
-                <span className="text-xs text-foreground opacity-70 mt-1 px-4">
+                <span className={`text-xs text-foreground opacity-70 mt-1 ${
+                  msg.user?.id === chatClient?.user?.id ? 'text-right' : 'text-left'
+                }`}>
                   {msg.user?.name || 'Unknown User'}
                 </span>
               </div>
