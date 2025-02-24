@@ -1,0 +1,164 @@
+Applications running under the ‘Generic’ module
+Application	Windows	Linux	Notes
+Abiotic Factor	:white_check_mark:	:white_check_mark:	Linux Support via Wine.
+Alien Swarm: Reactive Drop	:white_check_mark:	:white_check_mark:	Linux Support via Wine.
+American Truck Simulator	:white_check_mark:	:white_check_mark:	
+ARK: Survival Ascended	:white_check_mark:	:white_check_mark:	Linux support via Proton.
+ARK: Survival Evolved	:white_check_mark:	:white_check_mark:	
+Arma 3	:white_check_mark:	:white_check_mark:	Support for both 32 bit and 64 bit versions.
+Arma Reforger	:white_check_mark:	:white_check_mark:	
+ASKA	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Assetto Corsa	:white_check_mark:	:white_check_mark:	Linux support via Wine. Includes support for AssettoServer.
+Assetto Corsa Competizione	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Astro Colony	:white_check_mark:	:white_check_mark:	
+Astroneer	:white_check_mark:	:white_check_mark:	
+Avorion	:white_check_mark:	:white_check_mark:	
+Barotrauma	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+BeamMP (BeamNG.drive)	:white_check_mark:	:white_check_mark:	
+Beasts of Bermuda	:white_check_mark:	:white_check_mark:	
+Black Mesa	:white_check_mark:	:white_check_mark:	
+Blackwake	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Broke Protocol	:white_check_mark:	:white_check_mark:	
+Call Of Duty: Modern Warfare 2 (2009)	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Call Of Duty: Modern Warfare 3 (2011)	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Call Of Duty 4: Modern Warfare	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Carrier Command 2	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Chivalry: Medieval Warfare	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Conan Exiles	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Core Keeper	:white_check_mark:	:white_check_mark:	
+Craftopia	:white_check_mark:	:white_check_mark:	
+Creativerse	:white_check_mark:	:white_check_mark:	
+Colony Survival	:white_check_mark:	:white_check_mark:	
+Counter-Strike 1.6	:white_check_mark:	:white_check_mark:	Includes Metamod and ReHLDS support.
+Counter-Strike 2	:white_check_mark:	:white_check_mark:	
+Counter-Strike: Condition Zero	:white_check_mark:	:white_check_mark:	Includes Metamod and ReHLDS support.
+Counter-Strike: Global Offensive	:white_check_mark:	:white_check_mark:	Includes Metamod and SourceMod to allow client connections.
+Counter-Strike: Source	:white_check_mark:	:white_check_mark:	
+CryoFall	:x:	:white_check_mark:	
+Day of Defeat: Source	:white_check_mark:	:white_check_mark:	Includes Metamod and SourceMod support.
+Day Of Dragons	:white_check_mark:	:white_check_mark:	
+DayZ (Experimental)	:white_check_mark:	:white_check_mark:	
+DayZ (Stable)	:white_check_mark:	:white_check_mark:	
+Dead Matter	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Don’t Starve Together	:white_check_mark:	:white_check_mark:	
+Dota 2	:white_check_mark:	:white_check_mark:	
+Dotnet App Runner	:white_check_mark:	:white_check_mark:	
+Eco	:white_check_mark:	:white_check_mark:	
+Empyrion Galactic Survival	:white_check_mark:	:white_check_mark:	
+Enshrouded	:white_check_mark:	:white_check_mark:	Linux support via Proton. Not supported on Windows Server 2016.
+European Truck Simulator 2	:white_check_mark:	:white_check_mark:	
+EXFIL	:white_check_mark:	:white_check_mark:	
+E.Y.E: Divine Cybermancy	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Factorio	:white_check_mark:	:white_check_mark:	
+FOUNDRY	:white_check_mark:	:white_check_mark:	Linux support via Wine. May not run on Windows Server 2016/2019.
+Foundry Virtual Tabletop	:white_check_mark:	:white_check_mark:	
+Frozen Flame	:white_check_mark:	:white_check_mark:	
+Garry’s Mod	:white_check_mark:	:white_check_mark:	32 bit and 64 bit versions.
+GatekeeperV2 Bot	:white_check_mark:	:white_check_mark:	
+Geyser (Minecraft Proxy)	:white_check_mark:	:white_check_mark:	
+Ground Branch	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Half-Life	:white_check_mark:	:white_check_mark:	Includes Metamod and ReHLDS support.
+Half-Life: Opposing Force	:white_check_mark:	:white_check_mark:	Includes Metamod and ReHLDS support.
+HumanitZ	:white_check_mark:	:white_check_mark:	
+Hurtworld	:white_check_mark:	:white_check_mark:	
+Icarus	:white_check_mark:	:white_check_mark:	Linux support via Proton.
+Impostor (Among Us)	:white_check_mark:	:white_check_mark:	
+Insurgency Sandstorm	:white_check_mark:	:white_check_mark:	
+Java App Runner	:white_check_mark:	:white_check_mark:	
+Just Cause 3	:white_check_mark:	:white_check_mark:	
+Kaboom!	:white_check_mark:	:white_check_mark:	AMP Exclusive. Windows support via Docker.
+Killing Floor 2	:white_check_mark:	:white_check_mark:	
+Last Oasis	:white_check_mark:	:white_check_mark:	Additional account required via https://myrealm.lastoasis.gg/.
+Left 4 Dead	:white_check_mark:	:white_check_mark:	Includes Metamod and SourceMod support.
+Left 4 Dead 2	:white_check_mark:	:white_check_mark:	Includes Metamod and SourceMod support.
+Longvinter	:white_check_mark:	:white_check_mark:	
+Mindustry	:white_check_mark:	:white_check_mark:	
+Minecraft Bedrock	:white_check_mark:	:white_check_mark:	
+Minetest	:white_check_mark:	:white_check_mark:	
+Mordhau	:white_check_mark:	:white_check_mark:	
+Mount & Blade II: Bannerlord	:white_check_mark:	:white_check_mark:	
+Multi Theft Auto: San Andreas	:white_check_mark:	:white_check_mark:	
+MX Bikes	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Myth of Empires	:white_check_mark:	:white_check_mark:	Linux support via Proton.
+NEBULOUS: Fleet Command	:x:	:white_check_mark:	
+Necesse	:white_check_mark:	:white_check_mark:	
+Night Of The Dead	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+No More Room in Hell	:white_check_mark:	:white_check_mark:	
+No One Survived	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Node.js App Runner	:white_check_mark:	:white_check_mark:	
+OpenRA - Dune 2000	:white_check_mark:	:white_check_mark:	
+OpenRA - Red Alert	:white_check_mark:	:white_check_mark:	
+OpenRA - Tiberian Dawn	:white_check_mark:	:white_check_mark:	
+OpenRCT2	:white_check_mark:	:white_check_mark:	
+OpenTTD	:x:	:white_check_mark:	
+Open World - RimWorld Server	:white_check_mark:	:white_check_mark:	
+Operation: Harsh Doorstop	:white_check_mark:	:white_check_mark:	
+Palworld	:white_check_mark:	:white_check_mark:	
+Path Of Titans	:white_check_mark:	:white_check_mark:	
+Pavlov VR	:x:	:white_check_mark:	
+PixARK	:white_check_mark:	:white_check_mark:	Linux support via Proton.
+Portal Knights	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Post Scriptum	:white_check_mark:	:white_check_mark:	
+Pre-Fortress 2	:white_check_mark:	:white_check_mark:	
+Project 5: Sightseer	:white_check_mark:	:white_check_mark:	
+Project Zomboid	:white_check_mark:	:white_check_mark:	
+Puck	:white_check_mark:	:white_check_mark:	Windows support only via Docker.
+Python App Runner	:white_check_mark:	:white_check_mark:	
+Quake III Arena	:white_check_mark:	:white_check_mark:	
+RAGE:MP - Grand Theft Auto V Server	:white_check_mark:	:white_check_mark:	
+Reign Of Kings	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Rimworld Together - RimWorld Server	:white_check_mark:	:white_check_mark:	
+Rising Storm 2: Vietnam	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Rising World (Unity Version)	:white_check_mark:	:white_check_mark:	
+Risk Of Rain 2	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+San Andreas Multiplayer	:white_check_mark:	:white_check_mark:	
+Sapiens	:white_check_mark:	:white_check_mark:	
+Satisfactory	:white_check_mark:	:white_check_mark:	
+SCP: Secret Laboratory	:white_check_mark:	:white_check_mark:	
+Seven Days To Die	:white_check_mark:	:white_check_mark:	Includes Darkness Falls and Undead Legacy options.
+SinusBot	:x:	:white_check_mark:	
+Skyrim Together Reborn	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Smalland: Survive the Wilds	:white_check_mark:	:white_check_mark:	
+Sons Of The Forest	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Soulmask	:white_check_mark:	:white_check_mark:	
+Space Engineers	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Squad	:white_check_mark:	:white_check_mark:	
+STAR WARS Jedi Knight - Jedi Academy	:white_check_mark:	:white_check_mark:	
+Starbound	:white_check_mark:	:white_check_mark:	
+Starmade	:white_check_mark:	:white_check_mark:	
+Stationeers	:white_check_mark:	:white_check_mark:	
+Staxel	:white_check_mark:	:white_check_mark:	
+Stormworks	:white_check_mark:	:x:	
+Subnautica (Legacy)	:white_check_mark:	:white_check_mark:	
+Subsistence	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Sunkenland	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Sven Co-op	:white_check_mark:	:white_check_mark:	
+Swords 'n Magic and Stuff	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Tarkov (Fika Mod)	:white_check_mark:	:white_check_mark:	
+Team Fortress 2	:white_check_mark:	:white_check_mark:	32 bit and 64 bit versions. Includes Metamod and SourceMod support.
+Team Fortress Classic	:white_check_mark:	:white_check_mark:	Includes Metamod and ReHLDS support.
+TeamSpeak 3	:white_check_mark:	:white_check_mark:	
+TeaSpeak	:x:	:white_check_mark:	
+Teeworlds	:white_check_mark:	:white_check_mark:	
+Terraria	:white_check_mark:	:white_check_mark:	
+TerraTech Worlds	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+The Lord of the Rings: Return to Moria	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+TShock - Terraria Server	:white_check_mark:	:white_check_mark:	
+The Forest	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+The Front	:white_check_mark:	:white_check_mark:	
+The Isle (Legacy)	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+The Isle (EVRIMA)	:white_check_mark:	:white_check_mark:	
+tModLoader (Legacy and 1.4+)	:white_check_mark:	:white_check_mark:	
+Turbo Sliders Unlimited	:white_check_mark:	:white_check_mark:	
+Unreal Tournament 2004	:white_check_mark:	:white_check_mark:	
+Unreal Tournament 99	:white_check_mark:	:white_check_mark:	
+Unturned	:white_check_mark:	:white_check_mark:	
+V Rising	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Valheim	:white_check_mark:	:white_check_mark:	Linux support via Wine. Includes Valheim Plus and BepInEx options.
+Veloren	:white_check_mark:	:white_check_mark:	
+Vintage Story (Legacy and 1.18.8+)	:white_check_mark:	:white_check_mark:	
+Windward	:white_check_mark:	:white_check_mark:	
+Wolfenstein: Enemy Territory	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Wreckfest	:white_check_mark:	:white_check_mark:	Linux support via Wine.
+Wurm Unlimited	:white_check_mark:	:white_check_mark:	
+Xonotic	:white_check_mark:	:white_check_mark:	
