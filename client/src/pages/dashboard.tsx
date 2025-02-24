@@ -7,15 +7,12 @@ import { AddGameServerDialog } from "@/components/add-game-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ServerCog, Users, Activity } from "lucide-react";
+import { LogOut, ServerCog, Users } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { UptimeLogDialog } from "@/components/uptime-log-dialog";
-import { useState } from "react";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
-  const [uptimeDialogOpen, setUptimeDialogOpen] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -32,7 +29,6 @@ export default function Dashboard() {
   });
 
   const isAdmin = user?.role === 'admin';
-  const showUptimeLogButton = isAdmin ? settings?.admin_show_uptime_log : settings?.show_uptime_log;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -53,15 +49,6 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <SettingsDialog />
-            {showUptimeLogButton && (
-              <>
-                <Button variant="outline" onClick={() => setUptimeDialogOpen(true)}>
-                  <Activity className="h-4 w-4 mr-2" />
-                  Uptime Log
-                </Button>
-                <UptimeLogDialog open={uptimeDialogOpen} onOpenChange={setUptimeDialogOpen} />
-              </>
-            )}
             {isAdmin && (
               <Link href="/users">
                 <Button variant="outline">
