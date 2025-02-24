@@ -9,13 +9,13 @@ import {
   Window,
 } from 'stream-chat-react';
 import { useChat } from '@/lib/chat-context';
-import 'stream-chat-react/dist/css/index.css';
-import { StreamChat } from 'stream-chat';
+import { Channel as StreamChannel } from 'stream-chat';
 import { useToast } from '@/hooks/use-toast';
+import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/types';
 
 export function ChatRoom() {
   const { chatClient, loading, error } = useChat();
-  const [activeChannel, setActiveChannel] = useState<typeof Channel | null>(null);
+  const [activeChannel, setActiveChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,15 +24,17 @@ export function ChatRoom() {
       return;
     }
 
-    // Get the first channel or create a default one
     const loadChannel = async () => {
       try {
         console.log('Loading channels...');
-        const channels = await chatClient.queryChannels(
-          { type: 'team' },
-          { last_message_at: -1 },
-          { limit: 1 }
-        );
+        const filter = { type: 'team' };
+        const sort = [{ last_message_at: -1 }];
+
+        const channels = await chatClient.queryChannels(filter, sort, {
+          limit: 1,
+          state: true,
+          watch: true,
+        });
 
         console.log('Found channels:', channels);
         if (channels.length > 0) {
