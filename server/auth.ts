@@ -8,25 +8,52 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
 
-declare global {
-  namespace Express {
-    interface User extends SelectUser {}
-  }
-}
-
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
+// Add rate limiting configuration
+const RATE_LIMIT = {
+  MAX_ATTEMPTS: 5,
+  WINDOW_MS: 10 * 60 * 1000, // 10 minutes
+};
 
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+// Add rate limiting middleware
+async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
+  const identifier = req.body.username || req.body.identifier || req.body.email;
+  const ip = req.ip;
+  const type = req.path.includes('reset') ? 'reset' : 'login';
+
+  try {
+    // Get attempts within the time window
+    const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
+
+    if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+      const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
+      if (!oldestAttempt) {
+        return res.status(429).json({
+          message: "Too many attempts. Please try again later.",
+          retryAfter: RATE_LIMIT.WINDOW_MS / 1000
+        });
+      }
+
+      const timeSinceOldest = Date.now() - oldestAttempt.timestamp.getTime();
+      const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
+
+      if (timeRemaining > 0) {
+        return res.status(429).json({
+          message: "Too many attempts. Please try again later.",
+          retryAfter: Math.ceil(timeRemaining / 1000)
+        });
+      }
+
+      // If window has passed, clear old attempts
+      await storage.clearLoginAttempts(identifier, ip, type);
+    }
+
+    next();
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    next(error);
+  }
 }
 
 // Middleware to check if user is admin
@@ -107,17 +134,31 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+  // Update login route to use rate limiting
+  app.post("/api/login", checkRateLimit, (req, res, next) => {
+    passport.authenticate("local", async (err, user, info) => {
       if (err) return next(err);
+
+      // Log failed attempt
       if (!user) {
+        await storage.addLoginAttempt({
+          identifier: req.body.username,
+          ip: req.ip,
+          type: 'login',
+          timestamp: new Date()
+        });
+
         return res.status(401).json({ 
           message: "Invalid credentials",
           showResetOption: true
         });
       }
+
       req.logIn(user, (err) => {
         if (err) return next(err);
+        // Clear attempts on successful login
+        storage.clearLoginAttempts(req.body.username, req.ip, 'login')
+          .catch(console.error);
         res.json(user);
       });
     })(req, res, next);
@@ -135,44 +176,56 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  // Add password reset request endpoint
-  app.post("/api/request-reset", async (req, res) => {
+  // Update password reset route to use rate limiting
+  app.post("/api/request-reset", checkRateLimit, async (req, res) => {
     const { identifier } = req.body;
 
-    // Find user by username or email
-    let user = await storage.getUserByUsername(identifier);
-    if (!user) {
-      user = await storage.getUserByEmail(identifier);
-    }
+    try {
+      // Log reset attempt
+      await storage.addLoginAttempt({
+        identifier,
+        ip: req.ip,
+        type: 'reset',
+        timestamp: new Date()
+      });
 
-    // Get all admin users
-    const admins = await storage.getAllUsers();
-    const adminEmails = admins
-      .filter(admin => admin.role === 'admin' && admin.email)
-      .map(admin => admin.email);
+      // Find user by username or email
+      let user = await storage.getUserByUsername(identifier);
+      if (!user) {
+        user = await storage.getUserByEmail(identifier);
+      }
 
-    if (user && adminEmails.length > 0) {
-      // Send email to all admins
-      for (const adminEmail of adminEmails) {
-        if (adminEmail) {
-          await sendEmail({
-            to: adminEmail,
-            subject: "Password Reset Request",
-            html: `
-              <p>A password reset has been requested for user: ${user.username}</p>
-              <p>User Email: ${user.email || 'No email provided'}</p>
-              <p>Please log in to the admin panel to reset their password.</p>
-            `
-          });
+      // Get all admin users
+      const admins = await storage.getAllUsers();
+      const adminEmails = admins
+        .filter(admin => admin.role === 'admin' && admin.email)
+        .map(admin => admin.email);
+
+      if (user && adminEmails.length > 0) {
+        // Send email to all admins
+        for (const adminEmail of adminEmails) {
+          if (adminEmail) {
+            await sendEmail({
+              to: adminEmail,
+              subject: "Password Reset Request",
+              html: `
+                <p>A password reset has been requested for user: ${user.username}</p>
+                <p>User Email: ${user.email || 'No email provided'}</p>
+                <p>Please log in to the admin panel to reset their password.</p>
+              `
+            });
+          }
         }
       }
-    }
 
-    // Always return success to prevent user enumeration
-    res.json({ message: "If the account exists, admins have been notified of your password reset request." });
+      // Always return success to prevent user enumeration
+      res.json({ message: "If the account exists, admins have been notified of your password reset request." });
+    } catch (error) {
+      console.error('Reset request error:', error);
+      res.status(500).json({ message: "An error occurred processing your request" });
+    }
   });
 
-  // Admin routes for user management
   app.get("/api/users", isAdmin, async (req, res) => {
     const users = await storage.getAllUsers();
     res.json(users);
@@ -187,7 +240,6 @@ export function setupAuth(app: Express) {
     res.json(user);
   });
 
-  // Add admin password reset endpoint
   app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
     const { userId } = req.body;
     const user = await storage.getUser(userId);
@@ -221,7 +273,6 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Settings routes
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
@@ -246,9 +297,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Add new route for updating user preferences
   app.patch("/api/users/:id/preferences", isApproved, async (req, res) => {
-    // Only allow users to update their own preferences
     if (req.user?.id !== parseInt(req.params.id)) {
       return res.status(403).json({ message: "You can only update your own preferences" });
     }
@@ -264,7 +313,7 @@ export function setupAuth(app: Express) {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   });
-  // Add notification preference routes
+
   app.get("/api/notification-preferences", isApproved, async (req, res) => {
     const preferences = await storage.getUserNotificationPreferences(req.user!.id);
     res.json(preferences);
@@ -273,7 +322,6 @@ export function setupAuth(app: Express) {
   app.post("/api/notification-preferences", isApproved, async (req, res) => {
     const { serviceId, email, enabled } = req.body;
 
-    // Check if preference already exists
     const existingPref = await storage.getNotificationPreference(req.user!.id, serviceId);
 
     if (existingPref) {
@@ -294,7 +342,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Email template management (admin only)
   app.get("/api/email-templates", isAdmin, async (req, res) => {
     const templates = await storage.getAllEmailTemplates();
     res.json(templates);
@@ -314,7 +361,6 @@ export function setupAuth(app: Express) {
     res.json(template);
   });
 
-  // Test email notification (admin only)
   app.post("/api/test-notification", isAdmin, async (req, res) => {
     const { templateId, email } = req.body;
 
@@ -342,4 +388,23 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+}
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Placeholder for compileTemplate function.  Replace with your actual implementation.
+function compileTemplate(template: string, data: any): string {
+  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
+  return template; // Replace with actual compiled template
 }

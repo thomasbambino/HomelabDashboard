@@ -1,19 +1,56 @@
-import { 
-  Service, GameServer, User, InsertUser, InsertService, InsertGameServer, 
-  UpdateService, UpdateGameServer, UpdateUser, users, services, gameServers, 
-  settings as settingsTable, Settings, InsertSettings, UpdateSettings, 
-  serviceStatusLogs, ServiceStatusLog, notificationPreferences, emailTemplates,
-  sentNotifications, NotificationPreference, EmailTemplate, SentNotification,
-  InsertNotificationPreference, InsertEmailTemplate, InsertSentNotification,
-  UpdateNotificationPreference, UpdateEmailTemplate,
+import {
+  Service,
+  GameServer,
+  User,
+  InsertUser,
+  InsertService,
+  InsertGameServer,
+  UpdateService,
+  UpdateGameServer,
+  UpdateUser,
+  users,
+  services,
+  gameServers,
+  settings as settingsTable,
+  Settings,
+  InsertSettings,
+  UpdateSettings,
+  serviceStatusLogs,
+  ServiceStatusLog,
+  notificationPreferences,
+  emailTemplates,
+  sentNotifications,
+  NotificationPreference,
+  EmailTemplate,
+  SentNotification,
+  InsertNotificationPreference,
+  InsertEmailTemplate,
+  InsertSentNotification,
+  UpdateNotificationPreference,
+  UpdateEmailTemplate,
   // Add new chat-related imports
-  ChatRoom, ChatMember, ChatMessage, ChatAttachment,
-  InsertChatRoom, InsertChatMember, InsertChatMessage, InsertChatAttachment,
-  UpdateChatRoom, UpdateChatMember, UpdateChatMessage, UpdateChatAttachment,
-  chatRooms, chatMembers, chatMessages, chatAttachments
+  ChatRoom,
+  ChatMember,
+  ChatMessage,
+  ChatAttachment,
+  InsertChatRoom,
+  InsertChatMember,
+  InsertChatMessage,
+  InsertChatAttachment,
+  UpdateChatRoom,
+  UpdateChatMember,
+  UpdateChatMessage,
+  UpdateChatAttachment,
+  chatRooms,
+  chatMembers,
+  chatMessages,
+  chatAttachments,
+  LoginAttempt,
+  InsertLoginAttempt,
+  loginAttempts,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, or } from "drizzle-orm";
+import { eq, desc, and, gte, lte, or, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -98,6 +135,12 @@ export interface IStorage {
   listPrivateRooms(userId: number): Promise<ChatRoom[]>;
   getChatMember(roomId: number, userId: number): Promise<ChatMember | undefined>;
   listUsers(): Promise<User[]>;
+
+  // Add new methods for login attempts
+  getLoginAttempts(identifier: string, ip: string, type: string, windowMs: number): Promise<number>;
+  addLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
+  clearLoginAttempts(identifier: string, ip: string, type: string): Promise<void>;
+  getOldestLoginAttempt(identifier: string, ip: string, type: string): Promise<LoginAttempt | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -628,6 +671,58 @@ export class DatabaseStorage implements IStorage {
 
   async listUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async getLoginAttempts(identifier: string, ip: string, type: string, windowMs: number): Promise<number> {
+    const windowStart = new Date(Date.now() - windowMs);
+    const attempts = await db
+      .select()
+      .from(loginAttempts)
+      .where(
+        and(
+          eq(loginAttempts.identifier, identifier),
+          eq(loginAttempts.ip, ip),
+          eq(loginAttempts.type, type),
+          gte(loginAttempts.timestamp, windowStart)
+        )
+      );
+    return attempts.length;
+  }
+
+  async addLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
+    const [newAttempt] = await db
+      .insert(loginAttempts)
+      .values(attempt)
+      .returning();
+    return newAttempt;
+  }
+
+  async clearLoginAttempts(identifier: string, ip: string, type: string): Promise<void> {
+    await db
+      .delete(loginAttempts)
+      .where(
+        and(
+          eq(loginAttempts.identifier, identifier),
+          eq(loginAttempts.ip, ip),
+          eq(loginAttempts.type, type)
+        )
+      );
+  }
+
+  async getOldestLoginAttempt(identifier: string, ip: string, type: string): Promise<LoginAttempt | undefined> {
+    const [attempt] = await db
+      .select()
+      .from(loginAttempts)
+      .where(
+        and(
+          eq(loginAttempts.identifier, identifier),
+          eq(loginAttempts.ip, ip),
+          eq(loginAttempts.type, type)
+        )
+      )
+      .orderBy(asc(loginAttempts.timestamp))
+      .limit(1);
+    return attempt;
   }
 }
 
