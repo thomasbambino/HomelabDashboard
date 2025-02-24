@@ -43,6 +43,10 @@ export class ChatServer {
       console.log('Generated Stream Chat token:', token);
       console.log('Generated Stream Chat token structure:', JSON.stringify(token, null, 2));
 
+      // Decode and log the token payload
+      const [_, payloadBase64] = token.split('.');
+      const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+      console.log('Decoded token payload:', payload);
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
