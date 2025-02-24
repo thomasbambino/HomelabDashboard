@@ -788,6 +788,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/update-amp-credentials", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { amp_url, amp_username, amp_password } = req.body;
+
+      // Basic validation
+      if (!amp_url || !amp_username || !amp_password) {
+        return res.status(400).json({ message: "Missing required credentials" });
+      }
+
+      // Update environment variables
+      process.env.AMP_API_URL = amp_url;
+      process.env.AMP_API_USERNAME = amp_username;
+      process.env.AMP_API_PASSWORD = amp_password;
+
+      // Test the new credentials
+      try {
+        const systemInfo = await ampService.getSystemInfo();
+        console.log('Updated credentials test - System info:', systemInfo);
+        res.json({ message: "AMP credentials updated successfully" });
+      } catch (error) {
+        console.error('Error testing new credentials:', error);
+        res.status(400).json({ 
+          message: "Failed to connect with new credentials",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    } catch (error) {
+      console.error('Error updating AMP credentials:', error);
+      res.status(500).json({ message: "Failed to update AMP credentials" });
+    }
+  });
+
   const httpServer = createServer(app);
   console.log('Chat server initialized successfully');
 

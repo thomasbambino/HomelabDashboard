@@ -8,7 +8,7 @@ import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Loader2, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ export function SettingsDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -47,7 +48,6 @@ export function SettingsDialog() {
       logo_url_large: settings?.logo_url_large ?? "",
       admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       show_status_badge: settings?.show_status_badge ?? true,
-
     },
   });
 
@@ -73,6 +73,63 @@ export function SettingsDialog() {
     },
   });
 
+  const ampForm = useForm({
+    defaultValues: {
+      amp_url: "",
+      amp_username: "",
+      amp_password: "",
+    },
+  });
+
+  const updateAMPCredentialsMutation = useMutation({
+    mutationFn: async (data: { amp_url: string; amp_username: string; amp_password: string }) => {
+      const res = await apiRequest("POST", "/api/update-amp-credentials", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "AMP Credentials Updated",
+        description: "Your AMP credentials have been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update AMP credentials",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testAMPConnection = async () => {
+    try {
+      setIsTestingConnection(true);
+      const res = await apiRequest("GET", "/api/amp-test");
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Connection Successful",
+          description: `Connected to AMP. Found ${data.instanceCount} instances.`,
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: data.message || "Could not connect to AMP server.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Test Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -85,10 +142,11 @@ export function SettingsDialog() {
           <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
+            <TabsTrigger value="amp">AMP</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -416,6 +474,83 @@ export function SettingsDialog() {
                   )}
                   Save Changes
                 </Button>
+              </form>
+            </Form>
+          </TabsContent>
+          <TabsContent value="amp">
+            <Form {...ampForm}>
+              <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={ampForm.control}
+                  name="amp_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>AMP Server URL</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="https://your-amp-server.com" 
+                          {...field} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={ampForm.control}
+                  name="amp_username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>AMP Username</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="AMP admin username" 
+                          {...field} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={ampForm.control}
+                  name="amp_password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>AMP Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="AMP admin password" 
+                          {...field} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={updateAMPCredentialsMutation.isPending}
+                  >
+                    {updateAMPCredentialsMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save Credentials
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={testAMPConnection}
+                    disabled={isTestingConnection}
+                  >
+                    {isTestingConnection ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Test Connection
+                  </Button>
+                </div>
               </form>
             </Form>
           </TabsContent>
