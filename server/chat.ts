@@ -1,141 +1,91 @@
-import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import { storage } from './storage';
 import { ChatMessage, ChatRoom, User } from '@shared/schema';
 
-interface ChatClient extends WebSocket {
-  userId?: number;
-  isAlive: boolean;
-}
-
 export class ChatServer {
-  private wss: WebSocketServer;
-  private clients: Map<number, Set<ChatClient>> = new Map();
+  private io: SocketIOServer;
 
   constructor(server: Server) {
-    this.wss = new WebSocketServer({ 
-      server,
-      path: '/ws/chat',
-      clientTracking: true
+    this.io = new SocketIOServer(server, {
+      path: '/socket.io',
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
     });
 
-    this.setupWebSocketServer();
-
-    // Set up ping interval
-    setInterval(() => {
-      this.wss.clients.forEach((client: ChatClient) => {
-        if (!client.isAlive) {
-          client.terminate();
-          return;
-        }
-        client.isAlive = false;
-        client.ping();
-      });
-    }, 30000);
+    this.setupSocketServer();
+    console.log('Chat server initialized with Socket.IO');
   }
 
-  private setupWebSocketServer() {
-    this.wss.on('connection', async (ws: ChatClient, req) => {
-      console.log('New WebSocket connection');
+  private setupSocketServer() {
+    this.io.on('connection', async (socket) => {
+      console.log('New Socket.IO connection');
 
-      // Get userId from query parameter
-      const url = new URL(req.url!, `http://${req.headers.host}`);
-      const userId = parseInt(url.searchParams.get('userId') || '0');
-
-      if (!userId) {
-        console.log('No userId provided, closing connection');
-        ws.close(1008, 'No userId provided');
-        return;
-      }
-
-      // Verify user exists
-      const user = await storage.getUser(userId);
+      // Get the user from the session
+      const user = socket.request.user as User;
       if (!user) {
-        console.log('Invalid userId, closing connection');
-        ws.close(1008, 'Invalid userId');
+        console.log('No authenticated user found, disconnecting');
+        socket.disconnect();
         return;
       }
 
-      console.log(`WebSocket connection established for user ${userId}`);
-      ws.userId = userId;
-      ws.isAlive = true;
+      console.log(`User ${user.id} connected`);
 
-      // Add to clients map
-      if (!this.clients.has(userId)) {
-        this.clients.set(userId, new Set());
-      }
-      this.clients.get(userId)?.add(ws);
+      // Join user to their rooms
+      const rooms = await storage.listChatRooms(user.id);
+      rooms.forEach(room => {
+        socket.join(`room:${room.id}`);
+      });
 
       // Update user status
-      await storage.updateUser({ id: userId, isOnline: true });
+      await storage.updateUser({ id: user.id, isOnline: true });
+      this.io.emit('user:status', { userId: user.id, isOnline: true });
 
-      ws.on('pong', () => {
-        ws.isAlive = true;
-      });
-
-      ws.on('message', async (data: string) => {
+      // Handle chat messages
+      socket.on('message:send', async (data: { roomId: number; content: string }) => {
         try {
-          const message = JSON.parse(data);
-          console.log('Received message:', message);
-
-          const roomId = message.roomId;
-          if (!roomId) {
-            console.log('No roomId provided in message');
-            return;
-          }
-
-          // Broadcast message to room
-          this.broadcastToRoom(roomId, {
-            type: message.type,
-            roomId: roomId,
-            data: message.data
+          const message = await storage.createChatMessage({
+            roomId: data.roomId,
+            senderId: user.id,
+            content: data.content,
+            type: 'text',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isEdited: false,
           });
 
+          const messageWithSender = {
+            ...message,
+            sender: await storage.getUser(user.id),
+          };
+
+          this.io.to(`room:${data.roomId}`).emit('message:new', messageWithSender);
         } catch (error) {
           console.error('Error handling message:', error);
+          socket.emit('error', { message: 'Failed to send message' });
         }
       });
 
-      ws.on('close', async () => {
-        console.log(`WebSocket connection closed for user ${userId}`);
-        this.clients.get(userId)?.delete(ws);
-        if (this.clients.get(userId)?.size === 0) {
-          this.clients.delete(userId);
-          await storage.updateUser({ 
-            id: userId, 
-            isOnline: false,
-            lastSeen: new Date()
-          });
-        }
+      // Handle disconnection
+      socket.on('disconnect', async () => {
+        console.log(`User ${user.id} disconnected`);
+        await storage.updateUser({ 
+          id: user.id, 
+          isOnline: false,
+          lastSeen: new Date()
+        });
+        this.io.emit('user:status', { 
+          userId: user.id, 
+          isOnline: false,
+          timestamp: new Date()
+        });
       });
-
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-      });
-    });
-  }
-
-  public broadcastToRoom(roomId: number, message: any) {
-    storage.getChatMembers(roomId).then(members => {
-      members.forEach(member => {
-        this.sendToUser(member.userId, message);
-      });
-    });
-  }
-
-  private sendToUser(userId: number, message: any) {
-    const userClients = this.clients.get(userId);
-    if (!userClients) return;
-
-    const messageStr = JSON.stringify(message);
-    userClients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(messageStr);
-      }
     });
   }
 
   public close() {
-    this.wss.close();
+    this.io.close();
   }
 }
