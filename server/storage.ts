@@ -141,6 +141,10 @@ export interface IStorage {
   addLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
   clearLoginAttempts(identifier: string, ip: string, type: string): Promise<void>;
   getOldestLoginAttempt(identifier: string, ip: string, type: string): Promise<LoginAttempt | undefined>;
+
+  // Add new method for getting game server by instanceId
+  getGameServerByInstanceId(instanceId: string): Promise<GameServer | undefined>;
+  getGameServer(id: number): Promise<GameServer | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -210,7 +214,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGameServer(server: InsertGameServer): Promise<GameServer> {
-    const [newServer] = await db.insert(gameServers).values(server).returning();
+    const [newServer] = await db
+      .insert(gameServers)
+      .values({
+        ...server,
+        lastStatusCheck: new Date()
+      })
+      .returning();
     return newServer;
   }
 
@@ -226,7 +236,10 @@ export class DatabaseStorage implements IStorage {
   async updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined> {
     const [updatedServer] = await db
       .update(gameServers)
-      .set(server)
+      .set({
+        ...server,
+        lastStatusCheck: new Date()
+      })
       .where(eq(gameServers.id, server.id))
       .returning();
     return updatedServer;
@@ -723,6 +736,22 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(loginAttempts.timestamp))
       .limit(1);
     return attempt;
+  }
+
+  async getGameServerByInstanceId(instanceId: string): Promise<GameServer | undefined> {
+    const [server] = await db
+      .select()
+      .from(gameServers)
+      .where(eq(gameServers.instanceId, instanceId));
+    return server;
+  }
+
+  async getGameServer(id: number): Promise<GameServer | undefined> {
+    const [server] = await db
+      .select()
+      .from(gameServers)
+      .where(eq(gameServers.id, id));
+    return server;
   }
 }
 

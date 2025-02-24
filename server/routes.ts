@@ -264,34 +264,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const servers = await storage.getAllGameServers();
+      // Get all AMP instances
+      const ampInstances = await ampService.getInstances();
 
-      // Get AMP instance statuses for servers with ampInstanceId
-      const ampServers = servers.filter(server => server.ampInstanceId);
-      if (ampServers.length > 0) {
-        const ampInstances = await ampService.getInstances();
+      // Get all stored game servers (for hidden status and customizations)
+      const storedServers = await storage.getAllGameServers();
 
-        // Update server statuses with AMP data
-        servers.forEach(server => {
-          if (server.ampInstanceId) {
-            const ampInstance = ampInstances.find(instance =>
-              instance.InstanceID === server.ampInstanceId
-            );
-            if (ampInstance) {
-              server.status = ampInstance.Running;
-              server.playerCount = ampInstance.ActiveUsers;
-              server.maxPlayers = ampInstance.MaxUsers;
-            }
-          }
-        });
-      }
+      // Map AMP instances to our game server format
+      const servers = await Promise.all(ampInstances.map(async (instance) => {
+        // Find existing stored server or create new one
+        const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
+          instanceId: instance.InstanceID,
+          hidden: false,
+          show_player_count: true,
+          show_status_badge: true,
+          autoStart: false,
+          refreshInterval: 30
+        };
 
-      res.json(servers);
+        return {
+          ...storedServer,
+          name: instance.FriendlyName,
+          type: instance.FriendlyName.toLowerCase().split(' ')[0], // Extract game type from name
+          status: instance.Running,
+          playerCount: instance.ActiveUsers,
+          maxPlayers: instance.MaxUsers,
+          lastStatusCheck: new Date()
+        };
+      }));
+
+      // Only return non-hidden servers unless specifically requested
+      const showHidden = req.query.showHidden === 'true';
+      const filteredServers = showHidden ? servers : servers.filter(s => !s.hidden);
+
+      res.json(filteredServers);
     } catch (error) {
       console.error('Error fetching game servers:', error);
       res.status(500).json({ message: "Failed to fetch game servers" });
     }
   });
+
+  app.post("/api/game-servers/:instanceId/hide", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      const { hidden } = req.body;
+
+      // Find or create server record
+      let server = await storage.getGameServerByInstanceId(instanceId);
+      if (!server) {
+        server = await storage.createGameServer({
+          instanceId,
+          name: "Unknown",  // Will be updated on next fetch
+          type: "unknown",  // Will be updated on next fetch
+          hidden: hidden
+        });
+      } else {
+        server = await storage.updateGameServer({
+          ...server,
+          hidden: hidden
+        });
+      }
+
+      res.json(server);
+    } catch (error) {
+      console.error('Error updating server visibility:', error);
+      res.status(500).json({ message: "Failed to update server visibility" });
+    }
+  });
+
+  app.post("/api/game-servers/:instanceId/start", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      await ampService.startInstance(instanceId);
+      res.json({ message: "Server starting" });
+    } catch (error) {
+      console.error('Error starting game server:', error);
+      res.status(500).json({ message: "Failed to start game server" });
+    }
+  });
+
+  app.post("/api/game-servers/:instanceId/stop", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      await ampService.stopInstance(instanceId);
+      res.json({ message: "Server stopping" });
+    } catch (error) {
+      console.error('Error stopping game server:', error);
+      res.status(500).json({ message: "Failed to stop game server" });
+    }
+  });
+
 
   app.post("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -347,48 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-  // Add new route for starting a game server
-  app.post("/api/game-servers/:id/start", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const id = parseInt(req.params.id);
-      const server = await storage.getGameServer(id);
-      if (!server) {
-        return res.status(404).json({ message: "Game server not found" });
-      }
-      if (!server.ampInstanceId) {
-        return res.status(400).json({ message: "This server is not managed by AMP" });
-      }
-
-      await ampService.startInstance(server.ampInstanceId);
-      res.json({ message: "Server starting" });
-    } catch (error) {
-      console.error('Error starting game server:', error);
-      res.status(500).json({ message: "Failed to start game server" });
-    }
-  });
-
-  // Add new route for stopping a game server
-  app.post("/api/game-servers/:id/stop", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const id = parseInt(req.params.id);
-      const server = await storage.getGameServer(id);
-      if (!server) {
-        return res.status(404).json({ message: "Game server not found" });
-      }
-      if (!server.ampInstanceId) {
-        return res.status(400).json({ message: "This server is not managed by AMP" });
-      }
-
-      await ampService.stopInstance(server.ampInstanceId);
-      res.json({ message: "Server stopping" });
-    } catch (error) {
-      console.error('Error stopping game server:', error);
-      res.status(500).json({ message: "Failed to stop game server" });
-    }
-  });
+  // The following routes remain unchanged from the original code.
 
   app.post("/api/game-servers/request", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

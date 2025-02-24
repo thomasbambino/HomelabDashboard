@@ -1,21 +1,26 @@
-import { pgTable, text, serial, integer, boolean, jsonb, pgEnum, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const roleEnum = pgEnum('role', ['admin', 'user', 'pending']);
+// Create enums using sql template literal
+export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('admin', 'user', 'pending')`;
+export const chatRoomTypeEnum = sql`CREATE TYPE "chat_room_type" AS ENUM ('public', 'private', 'group')`;
+export const messageTypeEnum = sql`CREATE TYPE "message_type" AS ENUM ('text', 'image', 'file')`;
 
-export const chatRoomTypeEnum = pgEnum('chat_room_type', ['public', 'private', 'group']);
-
-export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'file']);
+// Create enum columns
+const role = sql`"role"`;
+const chatRoomType = sql`"chat_room_type"`;
+const messageType = sql`"message_type"`;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  role: roleEnum("role").notNull().default('pending'),
+  role: text("role", { enum: ['admin', 'user', 'pending'] }).notNull().default('pending'),
+  enabled: boolean("enabled").notNull().default(true),
   approved: boolean("approved").notNull().default(false),
-  enabled: boolean("enabled").notNull().default(true), // New column for account status
   can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
   show_uptime_log: boolean("show_uptime_log").notNull().default(false),
   show_service_url: boolean("show_service_url").notNull().default(true),
@@ -28,7 +33,7 @@ export const users = pgTable("users", {
 
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
-  default_role: roleEnum("default_role").notNull().default('pending'),
+  default_role: text("default_role", { enum: ['admin', 'user', 'pending'] }).notNull().default('pending'),
   site_title: text("site_title").default("Homelab Dashboard"),
   font_family: text("font_family").default("Inter"),
   logo_url: text("logo_url"),
@@ -65,22 +70,21 @@ export const services = pgTable("services", {
 
 export const gameServers = pgTable("gameServers", {
   id: serial("id").primaryKey(),
+  instanceId: text("instanceId").notNull(),  // AMP Instance ID
   name: text("name").notNull(),
-  host: text("host").notNull(),
-  port: integer("port").notNull(),
+  displayName: text("displayName"),  // Optional custom name
   type: text("type").notNull(),
   status: boolean("status").default(false),
   playerCount: integer("playerCount").default(0),
   maxPlayers: integer("maxPlayers").default(0),
-  info: jsonb("info").default({}),
+  hidden: boolean("hidden").default(false),  // Whether to hide this instance
   icon: text("icon"),
   background: text("background"),
   show_player_count: boolean("show_player_count").default(true),
   show_status_badge: boolean("show_status_badge").default(true),
-  ampInstanceId: text("ampInstanceId"), // AMP instance ID for linking
-  refreshInterval: integer("refreshInterval").default(30), // Status check interval in seconds
-  autoStart: boolean("autoStart").default(false), // Whether to automatically start the server
-  lastStatusCheck: timestamp("lastStatusCheck"), // When the status was last checked
+  autoStart: boolean("autoStart").default(false),
+  lastStatusCheck: timestamp("lastStatusCheck"),
+  refreshInterval: integer("refreshInterval").default(30),
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
@@ -123,7 +127,7 @@ export const sentNotifications = pgTable("sentNotifications", {
 export const chatRooms = pgTable("chat_rooms", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  type: chatRoomTypeEnum("type").notNull(),
+  type: text("type", { enum: ['public', 'private', 'group'] }).notNull(),
   createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -144,7 +148,7 @@ export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
   roomId: integer("room_id").notNull().references(() => chatRooms.id, { onDelete: 'cascade' }),
   senderId: integer("sender_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: messageTypeEnum("type").notNull().default('text'),
+  type: text("type", { enum: ['text', 'image', 'file'] }).notNull().default('text'),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
