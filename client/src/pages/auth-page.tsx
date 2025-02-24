@@ -88,7 +88,7 @@ export default function AuthPage() {
         description: "Your password has been changed successfully.",
       });
       setShowNewPasswordForm(false);
-      // Redirect to login
+      // Reset forms and mutations to allow login with new password
       loginForm.reset();
       loginMutation.reset();
     },
@@ -105,8 +105,18 @@ export default function AuthPage() {
     try {
       await loginMutation.mutateAsync(data);
     } catch (error: any) {
-      if (error.message?.includes("Password change required")) {
+      const errorData = error.message && typeof error.message === 'string' && error.message.includes('{') 
+        ? JSON.parse(error.message)
+        : { message: error.message };
+
+      if (errorData.code === "PASSWORD_CHANGE_REQUIRED") {
         setShowNewPasswordForm(true);
+      } else {
+        toast({
+          title: "Login failed",
+          description: errorData.message,
+          variant: "destructive",
+        });
       }
     }
   };
