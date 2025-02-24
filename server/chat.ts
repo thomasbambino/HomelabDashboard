@@ -22,14 +22,16 @@ export class ChatServer {
     try {
       // Check if public channel exists
       const channels = await this.streamClient.queryChannels({ id: 'public' });
+      console.log('Existing channels:', channels);
 
       if (channels.length === 0) {
         // Create public channel if it doesn't exist
-        await this.streamClient.channel('team', 'public', {
+        const channel = this.streamClient.channel('team', 'public', {
           name: 'Public Chat',
           created_by: { id: 'system' },
-        }).create();
-        console.log('Public channel created');
+        });
+        await channel.create();
+        console.log('Public channel created successfully');
       } else {
         console.log('Public channel already exists');
       }
@@ -89,7 +91,6 @@ export class ChatServer {
       throw error;
     }
   }
-
   public close() {
     // No need to explicitly close Stream Chat client
   }

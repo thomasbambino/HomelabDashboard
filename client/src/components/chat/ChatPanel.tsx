@@ -7,6 +7,7 @@ import type { DefaultStreamChatGenerics } from 'stream-chat-react/dist/types/typ
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatPanelProps {
   onClose: () => void;
@@ -19,47 +20,57 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
   const [activeChannel, setActiveChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!chatClient) return;
 
-    const loadChannels = async () => {
+    const loadPublicChannel = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Query channels based on active tab
-        const filter = activeTab === "public" 
-          ? { type: 'team', id: 'public' }
-          : activeTab === "groups" 
-            ? { type: 'team', id: { $ne: 'public' } }
-            : { type: 'messaging' };
-
+        // Query the public channel
+        const filter = { type: 'team', id: 'public' };
         const sort = { last_message_at: -1 };
 
-        const response = await chatClient.queryChannels(filter, sort, {
-          limit: 10,
+        const channels = await chatClient.queryChannels(filter, sort, {
           state: true,
           watch: true,
+          presence: true,
         });
 
-        console.log('Loaded channels:', response);
-        setChannels(response);
+        console.log('Found channels:', channels);
 
-        // Set first channel as active if none selected
-        if (!activeChannel && response.length > 0) {
-          setActiveChannel(response[0]);
+        if (channels.length > 0) {
+          const publicChannel = channels[0];
+          // Watch the channel to receive real-time updates
+          await publicChannel.watch();
+          setChannels(channels);
+          setActiveChannel(publicChannel);
+        } else {
+          throw new Error('Public channel not found');
         }
       } catch (error) {
-        console.error('Error loading channels:', error);
+        console.error('Error loading public channel:', error);
         setError(error instanceof Error ? error : new Error('Failed to load channels'));
+        toast({
+          title: 'Error loading chat',
+          description: 'Failed to load chat channels. Please try again.',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    loadChannels();
-  }, [chatClient, activeTab]);
+    loadPublicChannel();
+
+    return () => {
+      // Cleanup channel watchers when component unmounts
+      channels.forEach(channel => channel.stopWatching());
+    };
+  }, [chatClient, toast]);
 
   return (
     <div className="flex h-full">
