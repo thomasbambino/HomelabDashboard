@@ -2,10 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { StreamChat } from 'stream-chat';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
-import type { DefaultStreamChatGenerics } from 'stream-chat';
+import type { DefaultGenerics } from 'stream-chat';
 
 type ChatContextType = {
-  chatClient: StreamChat<DefaultStreamChatGenerics> | null;
+  chatClient: StreamChat<DefaultGenerics> | null;
   loading: boolean;
   error: Error | null;
 };
@@ -13,7 +13,7 @@ type ChatContextType = {
 const ChatContext = createContext<ChatContextType | null>(null);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [chatClient, setChatClient] = useState<StreamChat<DefaultStreamChatGenerics> | null>(null);
+  const [chatClient, setChatClient] = useState<StreamChat<DefaultGenerics> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
@@ -24,7 +24,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    let client: StreamChat<DefaultStreamChatGenerics> | null = null;
+    let client: StreamChat<DefaultGenerics> | null = null;
 
     const initChat = async () => {
       if (!user) {
@@ -48,15 +48,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       try {
         console.log('Initializing Stream Chat client');
-        client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
+        client = StreamChat.getInstance<DefaultGenerics>(apiKey);
 
         const userId = user.id.toString();
-        console.log('Connecting user to Stream Chat:', {
-          userId,
-          username: user.username,
-          token: chatToken.token
-        });
-
         await client.connectUser(
           {
             id: userId,

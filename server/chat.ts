@@ -30,12 +30,10 @@ export class ChatServer {
       const token = this.streamClient.createToken(userId);
 
       // Upsert the user to Stream Chat
-      await this.streamClient.upsertUsers({
-        [userId]: {
-          id: userId,
-          name: user.username,
-          role: 'user',
-        }
+      await this.streamClient.upsertUser({
+        id: userId,
+        name: user.username,
+        role: 'user',
       });
 
       console.log('User successfully connected to Stream Chat');
