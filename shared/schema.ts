@@ -17,9 +17,6 @@ export const users = pgTable("users", {
   show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
   show_last_checked: boolean("show_last_checked").notNull().default(true),
   service_order: integer("service_order").array().default([]),
-  temp_password: boolean("temp_password").default(false),
-  reset_token: text("reset_token"),
-  reset_token_expires: timestamp("reset_token_expires"),
 });
 
 export const settings = pgTable("settings", {
