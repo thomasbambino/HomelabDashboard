@@ -15,6 +15,7 @@ export function ChatRoom() {
   const [messages, setMessages] = useState<any[]>([]);
   const [channel, setChannel] = useState<StreamChannel<DefaultStreamChatGenerics> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chatClient) {
@@ -41,6 +42,10 @@ export function ChatRoom() {
           // Listen for new messages
           activeChannel.on('message.new', (event) => {
             setMessages((prev) => [...prev, event.message]);
+            // Scroll to bottom when new message arrives
+            setTimeout(() => {
+              scrollAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
           });
         }
       } catch (error) {
@@ -127,9 +132,9 @@ export function ChatRoom() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+    <div className="flex flex-col h-full overflow-hidden">
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-4" ref={scrollAreaRef}>
           {messages.map((msg, index) => (
             <div
               key={index}
