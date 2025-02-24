@@ -54,9 +54,13 @@ export default function Dashboard() {
             <ThemeToggle />
             <SettingsDialog />
             {showUptimeLogButton && (
-              <Button variant="ghost" size="icon" onClick={() => setShowUptimeLog(true)}>
-                <Activity className="h-4 w-4" />
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setShowUptimeLog(true)}>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Uptime Log
+                </Button>
+                <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
+              </>
             )}
             {isAdmin && (
               <Link href="/users">
@@ -111,7 +115,6 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
-      <UptimeLogDialog open={showUptimeLog} onOpenChange={setShowUptimeLog} />
     </div>
   );
 }
