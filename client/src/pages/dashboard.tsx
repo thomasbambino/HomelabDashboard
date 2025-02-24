@@ -33,6 +33,10 @@ export default function Dashboard() {
 
   const isAdmin = user?.role === 'admin';
 
+  const sortedServices = [...(services || [])].sort((a, b) => 
+    a.name.localeCompare(b.name)
+  );
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -102,7 +106,7 @@ export default function Dashboard() {
                   <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
                 ))
               ) : (
-                services.map((service) => (
+                sortedServices.map((service) => (
                   <ServiceCard key={service.id} service={service} />
                 ))
               )}
