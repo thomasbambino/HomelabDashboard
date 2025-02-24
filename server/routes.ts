@@ -803,6 +803,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       process.env.AMP_API_USERNAME = amp_username;
       process.env.AMP_API_PASSWORD = amp_password;
 
+      // Reinitialize the AMP service with new credentials
+      ampService.reinitialize(amp_url, amp_username, amp_password);
+
       // Test the new credentials
       try {
         console.log('Testing new AMP credentials...');

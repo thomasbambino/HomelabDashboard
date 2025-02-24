@@ -94,9 +94,25 @@ export class AMPService {
     });
   }
 
+  // Add method to reinitialize with new credentials
+  public reinitialize(url: string, username: string, password: string) {
+    console.log('Reinitializing AMP service with new credentials');
+    console.log('New URL:', url);
+    console.log('New Username:', username);
+
+    this.baseUrl = url.replace(/\/$/, '');
+    this.username = username;
+    this.password = password;
+    this.sessionId = null;
+    this.sessionExpiry = null;
+
+    console.log('AMP service reinitialized with new credentials');
+  }
+
   private async login(): Promise<string> {
     try {
       console.log('Attempting to login to AMP at:', this.baseUrl);
+      console.log('Using username:', this.username); // Log the exact username being used
 
       const loginData = {
         username: this.username, // Do not modify the username case
@@ -340,11 +356,11 @@ export class AMPService {
     }
   }
 
-  async getAPISpec(): Promise<any> { //Corrected return type to any to match original code
+  async getAPISpec(): Promise<any> {
     const sessionId = await this.ensureAuthenticated();
     try {
       console.log('Fetching API specification');
-      const response = await axios.get<{ result: any }>( //Corrected return type to any to match original code
+      const response = await axios.get<{ result: any }>(
         `${this.baseUrl}/API/Core/GetAPISpec`,
         { 
           headers: this.getHeaders(sessionId),
