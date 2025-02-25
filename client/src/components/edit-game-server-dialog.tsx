@@ -19,12 +19,12 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GameServer, updateGameServerSchema } from "@shared/schema";
+import { GameServer, updateGameServerDisplaySchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 interface EditGameServerDialogProps {
@@ -38,24 +38,18 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(updateGameServerSchema),
+    resolver: zodResolver(updateGameServerDisplaySchema),
     defaultValues: {
       id: server.id,
       instanceId: server.instanceId,
-      name: server.name,
       displayName: server.displayName || "",
-      type: server.type,
       icon: server.icon || "",
       background: server.background || "",
-      status: server.status,
-      playerCount: server.playerCount,
-      maxPlayers: server.maxPlayers,
-      hidden: server.hidden,
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Parameters<typeof updateGameServerSchema.parse>[0]) => {
+    mutationFn: async (data: Parameters<typeof updateGameServerDisplaySchema.parse>[0]) => {
       console.log("Submitting data:", data);
       const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, data);
       if (!res.ok) {
@@ -111,10 +105,10 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     },
   });
 
-  const onSubmit = async (data: Parameters<typeof updateGameServerSchema.parse>[0]) => {
+  const onSubmit = async (data: Parameters<typeof updateGameServerDisplaySchema.parse>[0]) => {
     try {
       console.log("Form data before submission:", data);
-      const validatedData = updateGameServerSchema.parse(data);
+      const validatedData = updateGameServerDisplaySchema.parse(data);
       console.log("Validated data:", validatedData);
       await updateMutation.mutateAsync(validatedData);
     } catch (error) {
@@ -232,9 +226,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                deleteMutation.mutate();
-              }}
+              onClick={() => deleteMutation.mutate()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? (

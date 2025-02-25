@@ -199,6 +199,15 @@ export const updateGameServerSchema = insertGameServerSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
+// Add new schema for display settings updates
+export const updateGameServerDisplaySchema = z.object({
+  id: z.number(),
+  instanceId: z.string(),
+  displayName: z.string().nullable(),
+  icon: z.string().nullable(),
+  background: z.string().nullable(),
+}).partial().required({ id: true, instanceId: true });
+
 export const updateUserSchema = insertUserSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
