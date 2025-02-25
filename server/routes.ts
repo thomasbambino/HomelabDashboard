@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema } from "@shared/schema";
+import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, updateGameServerDisplaySchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { ZodError } from "zod";
 import multer from "multer";
@@ -509,17 +509,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/game-servers/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const data = updateGameServerSchema.parse({ ...req.body, id: parseInt(req.params.id) });
+      console.log("Received update data:", req.body);
+      // Try display schema first, then fall back to full update schema
+      let data;
+      try {
+        data = updateGameServerDisplaySchema.parse({ ...req.body, id: parseInt(req.params.id) });
+        console.log("Validated with display schema:", data);
+      } catch (e) {
+        data = updateGameServerSchema.parse({ ...req.body, id: parseInt(req.params.id) });
+        console.log("Validated with full schema:", data);
+      }
+
       const server = await storage.updateGameServer(data);
       if (!server) {
         return res.status(404).json({ message: "Game server not found" });
       }
       res.json(server);
     } catch (error) {
+      console.error('Error updating game server:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ message: fromZodError(error).message });
       } else {
-        console.error('Error updating game server:', error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
