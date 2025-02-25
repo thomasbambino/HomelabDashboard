@@ -18,7 +18,7 @@ export class AMPService {
   private sessionExpiry: Date | null = null;
 
   constructor() {
-    this.baseUrl = (process.env.AMP_API_URL || '').replace(/\/$/, '');
+    this.baseUrl = process.env.AMP_API_URL || '';
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
 
@@ -30,6 +30,7 @@ export class AMPService {
       });
     }
 
+    // Configure axios for HTTPS
     axios.defaults.httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
@@ -37,7 +38,7 @@ export class AMPService {
 
   public reinitialize(url: string, username: string, password: string) {
     console.log('Reinitializing AMP service with new credentials');
-    this.baseUrl = url.replace(/\/$/, '');
+    this.baseUrl = url;
     this.username = username;
     this.password = password;
     this.sessionId = null;
@@ -46,16 +47,21 @@ export class AMPService {
 
   private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
+      const url = `${this.baseUrl}/API/${endpoint}`;
+      console.log(`Making API call to ${url}`, { 
+        ...parameters, 
+        password: parameters.password ? '[REDACTED]' : undefined 
+      });
 
       const response = await axios.post(
-        `${this.baseUrl}/API/${endpoint}`,
+        url,
         parameters,
         {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-          }
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
@@ -63,9 +69,17 @@ export class AMPService {
       return response.data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
-      if (axios.isAxiosError(error) && error.response) {
-        console.error('Error response:', error.response.data);
-        throw new Error(`API call failed: ${error.response.data.message || error.message}`);
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', {
+          url: error.config?.url,
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        if (error.code === 'ECONNREFUSED') {
+          throw new Error(`Failed to connect to AMP server at ${this.baseUrl}. Please check if the server is running and accessible.`);
+        }
+        throw new Error(`API call failed: ${error.response?.data?.message || error.message}`);
       }
       throw error;
     }
@@ -244,18 +258,33 @@ export class AMPService {
   }
 
   async getSystemInfo(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetSystemInfo');
+    try {
+      await this.ensureAuthenticated();
+      return await this.callAPI('Core/GetSystemInfo');
+    } catch (error) {
+      console.error('Failed to get system info:', error);
+      throw error;
+    }
   }
 
   async getAPISpec(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetAPISpec');
+    try {
+      await this.ensureAuthenticated();
+      return await this.callAPI('Core/GetAPISpec');
+    } catch (error) {
+      console.error('Failed to get API spec:', error);
+      throw error;
+    }
   }
 
   async getModuleInfo(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetModuleInfo');
+    try {
+      await this.ensureAuthenticated();
+      return await this.callAPI('Core/GetModuleInfo');
+    } catch (error) {
+      console.error('Failed to get module info:', error);
+      throw error;
+    }
   }
 }
 
