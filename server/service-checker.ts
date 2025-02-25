@@ -91,11 +91,28 @@ async function updateServiceStatus(service: Service) {
   });
 }
 
+async function updateGameServerMetrics(gameServers: GameServer[]) {
+  for (const server of gameServers) {
+    if (!server.hidden) {
+      try {
+        // Update metrics every time this is called (every 10 seconds)
+        await storage.updateGameServer({
+          id: server.id,
+          lastStatusCheck: new Date()
+        });
+        console.log(`Updated metrics for game server ${server.name}`);
+      } catch (error) {
+        console.error(`Error updating game server ${server.name} metrics:`, error);
+      }
+    }
+  }
+}
+
 async function checkServicesWithRateLimit(services: Service[], gameServers: GameServer[], batchSize: number = 3) {
   // First check game servers as they need more frequent updates
   for (const server of gameServers) {
     if (!server.hidden && (!server.lastStatusCheck || 
-        Date.now() - server.lastStatusCheck.getTime() >= (server.refreshInterval || 10) * 1000)) {  // Changed default from 30 to 10
+        Date.now() - server.lastStatusCheck.getTime() >= (server.refreshInterval || 30) * 1000)) {  // Status check interval
       try {
         await storage.updateGameServer({
           id: server.id,
@@ -130,7 +147,17 @@ export async function startServiceChecker() {
     console.error('Error in initial service check:', error);
   }
 
-  // Check services and game servers more frequently
+  // Check game server metrics every 10 seconds
+  setInterval(async () => {
+    try {
+      const allGameServers = await db.select().from(gameServers);
+      await updateGameServerMetrics(allGameServers);
+    } catch (error) {
+      console.error('Error updating game server metrics:', error);
+    }
+  }, 10000); // Exactly 10 seconds for metrics updates
+
+  // Check services and server status
   setInterval(async () => {
     try {
       const allServices = await db.select().from(services);
@@ -139,5 +166,5 @@ export async function startServiceChecker() {
     } catch (error) {
       console.error('Error checking services:', error);
     }
-  }, 3000); // Changed from 5000 to 3000 ms for more frequent updates
+  }, 3000); // General status check interval
 }
