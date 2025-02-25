@@ -44,12 +44,12 @@ export class AMPService {
     this.sessionExpiry = null;
   }
 
-  private async makeAPICall(method: string, parameters: any = {}, requiresAuth: boolean = true) {
+  private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      console.log(`Making API call to ${method}`, { ...parameters, password: '[REDACTED]' });
+      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
 
       const response = await axios.post(
-        `${this.baseUrl}/API/${method}`,
+        `${this.baseUrl}/API/${endpoint}`,
         parameters,
         {
           headers: {
@@ -59,10 +59,10 @@ export class AMPService {
         }
       );
 
-      console.log(`API Response from ${method}:`, response.data);
+      console.log(`API Response from ${endpoint}:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(`API call failed for ${method}:`, error);
+      console.error(`API call failed for ${endpoint}:`, error);
       if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', error.response.data);
         throw new Error(`API call failed: ${error.response.data.message || error.message}`);
@@ -101,52 +101,24 @@ export class AMPService {
     }
   }
 
-  private async callInstanceAPI(instanceId: string, method: string, parameters: any = {}): Promise<any> {
+  private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall(`Core/${method}`, { 
-      ...parameters, 
-      SESSIONID: this.sessionId,
-      InstanceID: instanceId
-    });
+    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId }, true);
   }
 
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      await this.ensureAuthenticated();
-
-      // First get the Instance IDs
-      const result = await this.makeAPICall('ADSModule/GetInstances', { SESSIONID: this.sessionId });
+      const result = await this.callAPI('ADSModule/GetInstances', {});
       console.log('Raw instance response:', result);
 
-      if (!result || !Array.isArray(result)) {
-        console.log('No instances found in response');
-        return [];
+      if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
+        const instances = result[0].AvailableInstances;
+        console.log('Found instances:', instances);
+        return instances;
       }
-
-      // Get details for each instance
-      const instances = [];
-      for (const instanceData of result) {
-        if (instanceData.AvailableInstances && Array.isArray(instanceData.AvailableInstances)) {
-          for (const instance of instanceData.AvailableInstances) {
-            try {
-              const status = await this.getInstanceStatus(instance.InstanceID);
-              instances.push({
-                InstanceID: instance.InstanceID,
-                FriendlyName: instance.FriendlyName || 'Unknown',
-                Running: status?.State === 'Running',
-                Status: status?.State || 'Unknown',
-                ActiveUsers: status?.Metrics?.['Active Users']?.RawValue || 0,
-                MaxUsers: status?.Metrics?.['Active Users']?.MaxValue || 0
-              });
-            } catch (error) {
-              console.error(`Error getting status for instance ${instance.InstanceID}:`, error);
-            }
-          }
-        }
-      }
-
-      return instances;
+      console.log('No instances found in response');
+      return [];
     } catch (error) {
       console.error('Failed to fetch instances:', error);
       throw error;
@@ -156,7 +128,7 @@ export class AMPService {
   async startInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Starting instance ${instanceId}`);
-      await this.callInstanceAPI(instanceId, 'Start');
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
       console.log(`Successfully sent start command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -174,7 +146,7 @@ export class AMPService {
   async stopInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Stopping instance ${instanceId}`);
-      await this.callInstanceAPI(instanceId, 'Stop');
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
       console.log(`Successfully sent stop command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -192,7 +164,7 @@ export class AMPService {
   async restartInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Restarting instance ${instanceId}`);
-      await this.callInstanceAPI(instanceId, 'Restart');
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
       console.log(`Successfully sent restart command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -210,7 +182,7 @@ export class AMPService {
   async killInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Killing instance ${instanceId}`);
-      await this.callInstanceAPI(instanceId, 'Kill');
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
       console.log(`Successfully sent kill command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -228,7 +200,7 @@ export class AMPService {
   async getInstanceStatus(instanceId: string): Promise<any> {
     try {
       console.log(`Getting status for instance ${instanceId}`);
-      const status = await this.callInstanceAPI(instanceId, 'GetStatus');
+      const status = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
       console.log(`Status for instance ${instanceId}:`, status);
       return status;
     } catch (error) {
@@ -273,17 +245,17 @@ export class AMPService {
 
   async getSystemInfo(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall('Core/GetSystemInfo', { SESSIONID: this.sessionId });
+    return this.callAPI('Core/GetSystemInfo');
   }
 
   async getAPISpec(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall('Core/GetAPISpec', { SESSIONID: this.sessionId });
+    return this.callAPI('Core/GetAPISpec');
   }
 
   async getModuleInfo(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall('Core/GetModuleInfo', { SESSIONID: this.sessionId });
+    return this.callAPI('Core/GetModuleInfo');
   }
 }
 
