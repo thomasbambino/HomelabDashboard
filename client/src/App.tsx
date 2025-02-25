@@ -29,19 +29,24 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <div className="min-h-screen bg-background text-foreground">
-          <AuthProvider>
+      <ThemeProvider 
+        defaultTheme="system"
+        storageKey="vite-ui-theme"
+        attribute="class"
+        enableSystem
+      >
+        <AuthProvider>
+          <div className="min-h-screen bg-background text-foreground">
             <ChatProvider>
-              <FaviconUpdater />
+              <Router />
               <div className="fixed bottom-4 right-4 z-50">
                 <ChatButton />
               </div>
-              <Router />
+              <FaviconUpdater />
               <Toaster />
             </ChatProvider>
-          </AuthProvider>
-        </div>
+          </div>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
