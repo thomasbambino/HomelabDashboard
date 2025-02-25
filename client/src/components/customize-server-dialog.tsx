@@ -17,8 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import * as z from 'zod';
 
 const customizeServerSchema = z.object({
-  icon: z.string().optional(),
-  background: z.string().optional(),
+  icon: z.string().nullable(),
+  background: z.string().nullable(),
   show_player_count: z.boolean(),
   show_status_badge: z.boolean(),
 });
@@ -37,8 +37,8 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
   const form = useForm<CustomizeServerForm>({
     resolver: zodResolver(customizeServerSchema),
     defaultValues: {
-      icon: server.icon ?? "",
-      background: server.background ?? "",
+      icon: server.icon,
+      background: server.background,
       show_player_count: server.show_player_count ?? true,
       show_status_badge: server.show_status_badge ?? true,
     },
@@ -46,7 +46,7 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomizeServerForm) => {
-      const res = await apiRequest("PATCH", `/api/game-servers/${server.id}/appearance`, data);
+      const res = await apiRequest("PATCH", `/api/game-servers/${server.id}/customize`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -82,9 +82,9 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
                   <FormLabel>Server Icon</FormLabel>
                   <FormControl>
                     <ImageUpload
-                      value={field.value}
+                      value={field.value ?? ""}
                       onChange={field.onChange}
-                      onClear={() => field.onChange("")}
+                      onClear={() => field.onChange(null)}
                       uploadType="service"
                     />
                   </FormControl>
@@ -99,9 +99,9 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
                   <FormLabel>Background Image</FormLabel>
                   <FormControl>
                     <ImageUpload
-                      value={field.value}
+                      value={field.value ?? ""}
                       onChange={field.onChange}
-                      onClear={() => field.onChange("")}
+                      onClear={() => field.onChange(null)}
                       uploadType="service"
                     />
                   </FormControl>

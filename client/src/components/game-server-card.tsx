@@ -34,6 +34,9 @@ export function GameServerCard({ server }: GameServerCardProps) {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
 
+  // Format memory to GB with 2 decimal places
+  const formatMemoryGB = (memoryMB: number = 0) => (memoryMB / 1024).toFixed(2);
+
   const copyServerAddress = async (port: string) => {
     const serverAddress = `https://game.stylus.services:${port}`;
     await navigator.clipboard.writeText(serverAddress);
@@ -89,7 +92,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {/* Metrics in a grid layout */}
             <div className="grid grid-cols-3 gap-2 text-sm">
               {(server.show_player_count ?? true) && (
                 <div>
@@ -107,8 +109,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
                 <span className="text-muted-foreground">RAM:</span>
                 <br />
                 <span>
-                  {(server.memoryUsage ?? 0) / 1024} /
-                  {(server.maxMemory ?? 0) / 1024} GB
+                  {formatMemoryGB(server.memoryUsage)} /
+                  {formatMemoryGB(server.maxMemory)} GB
                 </span>
               </div>
             </div>
