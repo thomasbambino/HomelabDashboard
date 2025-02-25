@@ -1,45 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import https from 'https';
 
-interface AMPResponse<T> {
-  result: T;
-  success?: boolean;
-  resultReason?: string;
-}
-
-interface AMPModuleInfo {
-  Modules: {
-    [key: string]: {
-      ModuleID: string;
-      FriendlyName: string;
-      Description: string;
-      Version: string;
-      Author: string;
-    };
-  };
-  AvailableModules: string[];
-}
-
-interface AMPLoginResponse {
-  result: number;
-  resultReason: string;
-  success: boolean;
-  permissions: string[];
-  sessionID: string;
-  rememberMeToken: string;
-  userInfo: {
-    ID: string;
-    Username: string;
-    EmailAddress: string | null;
-    IsTwoFactorEnabled: boolean;
-    Disabled: boolean;
-    LastLogin: string;
-    GravatarHash: string;
-    IsLDAPUser: boolean;
-    AvatarBase64: string | null;
-  };
-}
-
 interface AMPInstance {
   InstanceID: string;
   FriendlyName: string;
@@ -47,14 +8,6 @@ interface AMPInstance {
   Status: string;
   ActiveUsers: number;
   MaxUsers: number;
-}
-
-interface AMPSystemInfo {
-  Version: string;
-  Branch: string;
-  BuildDate: string;
-  TargetFramework: string;
-  OSDescription: string;
 }
 
 export class AMPService {
@@ -91,22 +44,16 @@ export class AMPService {
     this.sessionExpiry = null;
   }
 
-  private async callAPI(endpoint: string, parameters: any = {}, instanceId?: string) {
-    console.log(`Calling API endpoint: ${endpoint} with instanceId: ${instanceId || 'none'}`);
+  private async callAPI(endpoint: string, parameters: any = {}) {
+    console.log(`Calling API endpoint: ${endpoint} with parameters:`, {...parameters, password: '[REDACTED]'});
 
     if (this.sessionId) {
       parameters.SESSIONID = this.sessionId;
     }
 
-    const apiUrl = instanceId 
-      ? `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/${endpoint}`
-      : `${this.baseUrl}/API/${endpoint}`;
-
-    console.log('Full API URL:', apiUrl);
-
     try {
       const response = await axios.post(
-        apiUrl,
+        `${this.baseUrl}/API/${endpoint}`,
         parameters,
         {
           headers: {
@@ -117,14 +64,6 @@ export class AMPService {
       );
 
       console.log(`API Response for ${endpoint}:`, response.data);
-
-      if (response.data && typeof response.data === 'object') {
-        if (response.data.Status === false) {
-          throw new Error(response.data.Error || 'API call failed');
-        }
-        return response.data;
-      }
-
       return response.data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
@@ -166,13 +105,15 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log('Fetching AMP instances');
-      const response = await this.callAPI('ADSModule/GetInstances');
+      const result = await this.callAPI('ADSModule/GetInstances');
+      console.log('Raw instance response:', result);
 
-      if (response && Array.isArray(response) && response.length > 0) {
-        const instances = response[0].AvailableInstances || [];
+      if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
+        const instances = result[0].AvailableInstances;
         console.log('Found instances:', instances);
         return instances;
       }
+      console.log('No instances found in response');
       return [];
     } catch (error) {
       console.error('Failed to fetch instances:', error);
@@ -180,29 +121,54 @@ export class AMPService {
     }
   }
 
-  async startInstance(instanceId: string): Promise<void> {
+  private async callInstanceAPI(instanceId: string, endpoint: string, parameters: any = {}) {
     await this.ensureAuthenticated();
-    await this.callAPI('Core/Start', {}, instanceId);
+    const instanceUrl = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/${endpoint}`;
+    console.log(`Calling instance API: ${instanceUrl}`);
+
+    try {
+      const response = await axios.post(
+        instanceUrl,
+        {
+          ...parameters,
+          SESSIONID: this.sessionId
+        },
+        {
+          headers: {
+            'Accept': 'text/javascript',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Instance API call failed for ${endpoint}:`, error);
+      throw error;
+    }
+  }
+
+  async startInstance(instanceId: string): Promise<void> {
+    console.log(`Starting instance ${instanceId}`);
+    await this.callInstanceAPI(instanceId, 'Core/Start');
   }
 
   async stopInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.callAPI('Core/Stop', {}, instanceId);
+    console.log(`Stopping instance ${instanceId}`);
+    await this.callInstanceAPI(instanceId, 'Core/Stop');
   }
 
   async restartInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.callAPI('Core/Restart', {}, instanceId);
+    console.log(`Restarting instance ${instanceId}`);
+    await this.callInstanceAPI(instanceId, 'Core/Restart');
   }
 
   async killInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.callAPI('Core/Kill', {}, instanceId);
+    console.log(`Killing instance ${instanceId}`);
+    await this.callInstanceAPI(instanceId, 'Core/Kill');
   }
 
   async getInstanceStatus(instanceId: string): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetStatus', {}, instanceId);
+    return this.callInstanceAPI(instanceId, 'Core/GetStatus');
   }
 
   async getMetrics(instanceId: string): Promise<{
@@ -213,7 +179,7 @@ export class AMPService {
     Uptime: string;
   }> {
     await this.ensureAuthenticated();
-    const result = await this.callAPI('Core/GetStatus', {}, instanceId);
+    const result = await this.callInstanceAPI(instanceId, 'Core/GetStatus');
 
     if (!result) {
       return {
@@ -250,7 +216,7 @@ export class AMPService {
     return this.callAPI('Core/GetAPISpec');
   }
 
-  async getModuleInfo(): Promise<AMPModuleInfo> {
+  async getModuleInfo(): Promise<any> {
     await this.ensureAuthenticated();
     return this.callAPI('Core/GetModuleInfo');
   }
