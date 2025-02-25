@@ -14,8 +14,7 @@ import { GameServer, updateGameServerSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Settings } from "lucide-react";
-import { ImageUpload } from "@/components/ui/image-upload";
+import { Settings2 } from "lucide-react";
 import * as z from 'zod';
 
 interface EditGameServerDisplayProps {
@@ -23,38 +22,31 @@ interface EditGameServerDisplayProps {
   isAdmin: boolean;
 }
 
+const displaySchema = updateGameServerSchema.extend({
+  customName: z.string().optional(),
+  customType: z.string().optional(),
+  customIcon: z.string().optional(),
+});
+
 export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplayProps) {
   const { toast } = useToast();
-
+  
   // Only render for admins
   if (!isAdmin) return null;
 
-  const form = useForm<z.infer<typeof updateGameServerSchema>>({
-    resolver: zodResolver(updateGameServerSchema),
+  const form = useForm({
+    resolver: zodResolver(displaySchema),
     defaultValues: {
       id: server.id,
-      displayName: server.displayName || "",
-      type: server.type || "",
-      icon: server.icon || "",
-      instanceId: server.instanceId,
-      name: server.name,
-      status: server.status,
-      playerCount: server.playerCount,
-      maxPlayers: server.maxPlayers,
-      hidden: server.hidden,
-      show_player_count: server.show_player_count,
-      show_status_badge: server.show_status_badge,
-      autoStart: server.autoStart,
-      refreshInterval: server.refreshInterval,
+      customName: server.customName || "",
+      customType: server.customType || "",
+      customIcon: server.customIcon || "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: z.infer<typeof updateGameServerSchema>) => {
-      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, values);
-      if (!res.ok) {
-        throw new Error('Failed to update server display settings');
-      }
+    mutationFn: async (data: z.infer<typeof displaySchema>) => {
+      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -79,10 +71,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
         <Button 
           variant="ghost" 
           size="icon"
-          className="absolute top-2 right-2 h-8 w-8 p-0"
+          className="absolute top-2 right-2"
           aria-label="Edit display settings"
         >
-          <Settings className="h-4 w-4" />
+          <Settings2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -93,7 +85,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
             <FormField
               control={form.control}
-              name="displayName"
+              name="customName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Display Name (Optional)</FormLabel>
@@ -108,7 +100,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="type"
+              name="customType"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Game Type (Optional)</FormLabel>
@@ -123,16 +115,14 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="icon"
+              name="customIcon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon Image</FormLabel>
+                  <FormLabel>Custom Icon URL (Optional)</FormLabel>
                   <FormControl>
-                    <ImageUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      onClear={() => field.onChange("")}
-                      uploadType="service"
+                    <Input 
+                      placeholder="https://example.com/icon.png" 
+                      {...field} 
                     />
                   </FormControl>
                 </FormItem>
@@ -143,7 +133,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
               className="w-full"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? "Saving..." : "Save Changes"}
+              Save Changes
             </Button>
           </form>
         </Form>

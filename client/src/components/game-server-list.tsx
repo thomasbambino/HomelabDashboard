@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 
 interface GameServerListProps {
   className?: string;
-  isAdmin?: boolean;
 }
 
-export function GameServerList({ className, isAdmin = false }: GameServerListProps) {
+export function GameServerList({ className }: GameServerListProps) {
   const { data: servers, error, isLoading } = useQuery<GameServer[]>({
     queryKey: ["/api/game-servers"],
   });
@@ -31,7 +30,7 @@ export function GameServerList({ className, isAdmin = false }: GameServerListPro
   return (
     <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
       {servers?.map((server) => (
-        <GameServerCard key={server.instanceId} server={server} isAdmin={isAdmin} />
+        <GameServerCard key={server.instanceId} server={server} />
       ))}
       {servers?.length === 0 && (
         <div className="col-span-full text-center text-muted-foreground">
