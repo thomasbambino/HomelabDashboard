@@ -2,6 +2,12 @@ import axios, { AxiosError } from 'axios';
 import https from 'https';
 import axiosRetry from 'axios-retry';
 
+interface AMPResponse<T> {
+  result: T;
+  success?: boolean;
+  resultReason?: string;
+}
+
 interface AMPModuleInfo {
   Modules: {
     [key: string]: {
@@ -62,13 +68,12 @@ export class AMPService {
   private retryCount = 3;
   private retryDelay = 1000;
   private apiVersions = ['2.6.0.6', '2.6.0.5', '2.6.0.4']; // Supported API versions
-  private currentApiVersion: string;
+
 
   constructor() {
     this.baseUrl = (process.env.AMP_API_URL || '').replace(/\/$/, '');
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
-    this.currentApiVersion = this.apiVersions[0];
 
     if (!this.baseUrl || !this.username || !this.password) {
       console.error('AMP configuration missing:', {
@@ -78,337 +83,120 @@ export class AMPService {
       });
     }
 
-    // Configure axios with retry logic
-    axiosRetry(axios, {
-      retries: this.retryCount,
-      retryDelay: (retryCount) => retryCount * this.retryDelay,
-      retryCondition: (error: AxiosError) => {
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-               (error.response?.status ? error.response.status >= 500 : false);
-      }
-    });
-
-    // Configure axios to ignore SSL certificate issues if needed
     axios.defaults.httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
   }
 
-  // Add method to reinitialize with new credentials
   public reinitialize(url: string, username: string, password: string) {
     console.log('Reinitializing AMP service with new credentials');
-    console.log('New URL:', url);
-    console.log('New Username:', username);
-
     this.baseUrl = url.replace(/\/$/, '');
     this.username = username;
     this.password = password;
     this.sessionId = null;
     this.sessionExpiry = null;
-
-    console.log('AMP service reinitialized with new credentials');
   }
 
-  private async login(): Promise<string> {
-    try {
-      console.log('Attempting to login to AMP at:', this.baseUrl);
-      console.log('Using username:', this.username); // Log the exact username being used
+  private async callAPI<T>(endpoint: string, parameters: any = {}): Promise<T> {
+    console.log(`Calling API endpoint: ${endpoint} with parameters:`, parameters);
 
+    if (this.sessionId) {
+      parameters.SESSIONID = this.sessionId;
+    }
+
+    try {
+      const response = await axios.post<AMPResponse<T>>(
+        `${this.baseUrl}/API/${endpoint}`,
+        parameters,
+        {
+          headers: {
+            'Accept': 'text/javascript',
+            'Content-Type': 'application/json',
+            'User-Agent': 'AMPDashboard/1.0'
+          }
+        }
+      );
+
+      console.log(`API Response for ${endpoint}:`, response.data);
+
+      if (response.data.success === false) {
+        throw new Error(response.data.resultReason || 'API call failed');
+      }
+
+      return response.data.result;
+    } catch (error) {
+      console.error(`API call failed for ${endpoint}:`, error);
+      throw error;
+    }
+  }
+
+  private async login(): Promise<void> {
+    try {
+      console.log('Attempting to login to AMP');
       const loginData = {
         username: this.username,
         password: this.password,
         token: '',
-        rememberMe: false,
+        rememberMe: false
       };
-      console.log('Login attempt with username:', this.username);
-      console.log('Login endpoint:', `${this.baseUrl}/API/Core/Login`);
 
-      // Try each API version until one works
-      for (const version of this.apiVersions) {
-        try {
-          console.log(`Attempting login with API version: ${version}`);
-          const response = await axios.post<AMPLoginResponse>(`${this.baseUrl}/API/Core/Login`, loginData, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'User-Agent': 'AMPDashboard/1.0',
-              'X-AMP-Version': version
-            },
-            validateStatus: function (status) {
-              return true; // Accept any status to handle authentication errors
-            }
-          });
-
-          console.log('Login response status:', response.status);
-          console.log('Login response data:', {
-            success: response.data?.success,
-            resultReason: response.data?.resultReason,
-            hasSessionID: !!response.data?.sessionID,
-            permissions: response.data?.permissions
-          });
-
-          if (response.status === 401 || response.status === 403) {
-            console.log(`Authentication failed with API version ${version}:`, response.data);
-            continue;
-          }
-
-          if (response.data?.sessionID) {
-            this.currentApiVersion = version;
-            this.sessionId = response.data.sessionID;
-            this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
-            console.log('Successfully logged in to AMP using API version:', version);
-            console.log('User permissions:', response.data.permissions);
-            return this.sessionId;
-          } else {
-            console.log(`No session ID in response for version ${version}:`, response.data);
-          }
-        } catch (error) {
-          console.log(`Login attempt failed with API version ${version}`);
-          if (axios.isAxiosError(error)) {
-            console.error('Error details:', {
-              status: error.response?.status,
-              statusText: error.response?.statusText,
-              data: error.response?.data,
-              headers: error.response?.headers
-            });
-          } else {
-            console.error('Non-axios error:', error);
-          }
-          continue;
-        }
-      }
-
-      throw new Error('Failed to authenticate with any supported API version');
+      const response = await this.callAPI<{sessionID: string}>('Core/Login', loginData);
+      this.sessionId = response.sessionID;
+      this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      console.log('Login successful, session established');
     } catch (error) {
-      console.error('AMP login failed:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Response:', error.response?.data);
-        console.error('Request URL:', error.config?.url);
-        console.error('Request method:', error.config?.method);
-        console.error('Request headers:', error.config?.headers);
-
-        // Provide more specific error messages based on the response
-        if (error.response?.status === 401) {
-          throw new Error('Invalid username or password');
-        } else if (error.response?.status === 403) {
-          throw new Error('Account lacks necessary permissions');
-        } else if (!error.response) {
-          throw new Error(`Could not connect to AMP server at ${this.baseUrl}`);
-        }
-      }
-      throw error; // Re-throw the original error with more context
+      console.error('Login failed:', error);
+      throw error;
     }
   }
 
-  private isSessionValid(): boolean {
-    if (!this.sessionId || !this.sessionExpiry) return false;
-    // Check if session is still valid (with 5 minute buffer)
-    return new Date() < new Date(this.sessionExpiry.getTime() - 5 * 60 * 1000);
-  }
-
-  private async ensureAuthenticated(): Promise<string> {
-    if (!this.isSessionValid()) {
-      return this.login();
+  private async ensureAuthenticated(): Promise<void> {
+    if (!this.sessionId || !this.sessionExpiry || new Date() > this.sessionExpiry) {
+      await this.login();
     }
-    return this.sessionId!;
-  }
-
-  private getHeaders(sessionId: string) {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Cookie': `AMPSessionID=${sessionId}`,
-      'User-Agent': 'AMPDashboard/1.0',
-      'X-AMP-Version': this.currentApiVersion
-    };
   }
 
   async getInstances(): Promise<AMPInstance[]> {
-    const sessionId = await this.ensureAuthenticated();
+    await this.ensureAuthenticated();
     try {
-      console.log('Fetching instances from AMP');
-      console.log('Using API version:', this.currentApiVersion);
-      console.log('Request URL:', `${this.baseUrl}/API/ADSModule/GetInstances`);
-
-      const response = await axios.get<{ result: AMPInstance[] }>(
-        `${this.baseUrl}/API/ADSModule/GetInstances`,
-        { 
-          headers: this.getHeaders(sessionId),
-          validateStatus: function (status) {
-            return status < 500; // Accept any status less than 500 to capture error responses
-          }
-        }
-      );
-
-      console.log('Raw API Response:', {
-        status: response.status,
-        headers: response.headers,
-        data: response.data
-      });
-
-      // Ensure we return an array
-      const instances = response.data.result || [];
-      if (instances.length === 0) {
-        console.log('No instances found. This could mean either no instances exist or insufficient permissions.');
-      } else {
-        console.log(`Found ${instances.length} AMP instances`);
-      }
-
-      return instances;
+      console.log('Fetching AMP instances');
+      const response = await this.callAPI<{AvailableInstances: AMPInstance[]}>('ADSModule/GetInstances');
+      console.log('Found instances:', response.AvailableInstances);
+      return response.AvailableInstances || [];
     } catch (error) {
-      console.error('Failed to fetch AMP instances:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.log('Authentication failed. Clearing session and retrying...');
-          // Session might be invalid, clear it and retry once
-          this.sessionId = null;
-          this.sessionExpiry = null;
-          return this.getInstances();
-        }
-        console.error('Response:', error.response?.data);
-        console.error('Request URL:', error.config?.url);
-        console.error('Request method:', error.config?.method);
-        console.error('Request headers:', error.config?.headers);
-      }
-      return []; // Return empty array on error instead of throwing
+      console.error('Failed to fetch instances:', error);
+      throw error;
     }
   }
 
   async startInstance(instanceId: string): Promise<void> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      await axios.post(
-        `${this.baseUrl}/API/ADSModule/StartInstance`,
-        { InstanceID: instanceId },
-        { headers: this.getHeaders(sessionId) }
-      );
-    } catch (error) {
-      console.error('Failed to start instance:', error);
-      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-        // Session might be invalid, clear it and retry once
-        this.sessionId = null;
-        this.sessionExpiry = null;
-        return this.startInstance(instanceId);
-      }
-      throw new Error('Failed to start game server');
-    }
+    await this.ensureAuthenticated();
+    await this.callAPI(`ADSModule/StartInstance`, { InstanceID: instanceId });
   }
 
   async stopInstance(instanceId: string): Promise<void> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      await axios.post(
-        `${this.baseUrl}/API/ADSModule/StopInstance`,
-        { InstanceID: instanceId },
-        { headers: this.getHeaders(sessionId) }
-      );
-    } catch (error) {
-      console.error('Failed to stop instance:', error);
-      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-        // Session might be invalid, clear it and retry once
-        this.sessionId = null;
-        this.sessionExpiry = null;
-        return this.stopInstance(instanceId);
-      }
-      throw new Error('Failed to stop game server');
-    }
+    await this.ensureAuthenticated();
+    await this.callAPI(`ADSModule/StopInstance`, { InstanceID: instanceId });
   }
 
   async getInstanceStatus(instanceId: string): Promise<AMPInstance> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      const response = await axios.get<{ result: AMPInstance }>(
-        `${this.baseUrl}/API/ADSModule/GetInstance?InstanceID=${instanceId}`,
-        { headers: this.getHeaders(sessionId) }
-      );
-      return response.data.result;
-    } catch (error) {
-      console.error('Failed to get instance status:', error);
-      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-        // Session might be invalid, clear it and retry once
-        this.sessionId = null;
-        this.sessionExpiry = null;
-        return this.getInstanceStatus(instanceId);
-      }
-      throw new Error('Failed to fetch game server status');
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI(`ADSModule/GetInstance`, { InstanceID: instanceId });
   }
 
   async getSystemInfo(): Promise<AMPSystemInfo> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      console.log('Fetching system info');
-      const response = await axios.get<{ result: AMPSystemInfo }>(
-        `${this.baseUrl}/API/Core/GetSystemInfo`,
-        { 
-          headers: this.getHeaders(sessionId),
-          validateStatus: function (status) {
-            return status < 500;
-          }
-        }
-      );
-
-      console.log('System info response:', response.data);
-      return response.data.result;
-    } catch (error) {
-      console.error('Failed to fetch system info:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetSystemInfo');
   }
 
   async getAPISpec(): Promise<any> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      console.log('Fetching API specification');
-      const response = await axios.get<{ result: any }>(
-        `${this.baseUrl}/API/Core/GetAPISpec`,
-        { 
-          headers: this.getHeaders(sessionId),
-          validateStatus: function (status) {
-            return status < 500;
-          }
-        }
-      );
-
-      const spec = response.data.result || {};
-      console.log('Available API endpoints:', Object.values(spec).map(method => method.Name));
-      console.log('Total available methods:', Object.keys(spec).length);
-
-      // Check for specific instance-related methods
-      const instanceMethods = Object.values(spec)
-        .filter(method => method.Name.toLowerCase().includes('instance'))
-        .map(method => method.Name);
-      console.log('Instance-related methods:', instanceMethods);
-
-      console.log("Detailed API Specification:", JSON.stringify(spec, null, 2)); //Added detailed logging
-
-      return spec;
-    } catch (error) {
-      console.error('Failed to fetch API spec:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetAPISpec');
   }
 
   async getModuleInfo(): Promise<AMPModuleInfo> {
-    const sessionId = await this.ensureAuthenticated();
-    try {
-      console.log('Fetching module information');
-      const response = await axios.get<{ result: AMPModuleInfo }>(
-        `${this.baseUrl}/API/Core/GetModuleInfo`,
-        { 
-          headers: this.getHeaders(sessionId),
-          validateStatus: function (status) {
-            return status < 500;
-          }
-        }
-      );
-
-      console.log('Module info response:', response.data);
-      return response.data.result;
-    } catch (error) {
-      console.error('Failed to fetch module info:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetModuleInfo');
   }
 }
 
