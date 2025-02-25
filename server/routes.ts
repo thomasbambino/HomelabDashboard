@@ -266,12 +266,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all AMP instances
       const ampInstances = await ampService.getInstances();
+      console.log('Retrieved AMP instances:', ampInstances);
 
       // Get all stored game servers (for hidden status and customizations)
       const storedServers = await storage.getAllGameServers();
 
       // Map AMP instances to our game server format
       const servers = await Promise.all(ampInstances.map(async (instance) => {
+        // Safely extract game type from instance name
+        let gameType = 'unknown';
+        if (instance.FriendlyName) {
+          const nameParts = instance.FriendlyName.toLowerCase().split(' ');
+          if (nameParts.length > 0) {
+            gameType = nameParts[0];
+          }
+        }
+
         // Find existing stored server or create new one
         const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
           instanceId: instance.InstanceID,
@@ -284,11 +294,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           ...storedServer,
-          name: instance.FriendlyName,
-          type: instance.FriendlyName.toLowerCase().split(' ')[0], // Extract game type from name
-          status: instance.Running,
-          playerCount: instance.ActiveUsers,
-          maxPlayers: instance.MaxUsers,
+          name: instance.FriendlyName || 'Unknown Server',
+          type: gameType,
+          status: instance.Running || false,
+          playerCount: instance.ActiveUsers || 0,
+          maxPlayers: instance.MaxUsers || 0,
           lastStatusCheck: new Date()
         };
       }));
@@ -297,10 +307,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const showHidden = req.query.showHidden === 'true';
       const filteredServers = showHidden ? servers : servers.filter(s => !s.hidden);
 
+      console.log('Returning servers:', filteredServers);
       res.json(filteredServers);
     } catch (error) {
       console.error('Error fetching game servers:', error);
-      res.status(500).json({ message: "Failed to fetch game servers" });
+      res.status(500).json({ 
+        message: "Failed to fetch game servers",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
