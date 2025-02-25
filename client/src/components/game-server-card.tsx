@@ -117,15 +117,17 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
             {/* Server Address */}
             {server.port && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-                onClick={() => copyServerAddress(server.port)}
-              >
-                <span className="mr-2">game.stylus.services:{server.port}</span>
-                <Copy className="h-3 w-3" />
-              </Button>
+              <div className="flex justify-end mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => copyServerAddress(server.port)}
+                >
+                  <span className="mr-2">game.stylus.services:{server.port}</span>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>

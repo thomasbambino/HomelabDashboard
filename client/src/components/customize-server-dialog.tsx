@@ -18,7 +18,7 @@ import * as z from 'zod';
 
 const customizeServerSchema = z.object({
   icon: z.string().nullable(),
-  background: z.string().nullable(),
+  background: z.string().nullable().optional(),
   show_player_count: z.boolean(),
   show_status_badge: z.boolean(),
 });
@@ -96,7 +96,7 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
               name="background"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Background Image</FormLabel>
+                  <FormLabel>Background Image (Optional)</FormLabel>
                   <FormControl>
                     <ImageUpload
                       value={field.value ?? ""}
