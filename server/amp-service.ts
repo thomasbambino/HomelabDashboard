@@ -101,15 +101,19 @@ export class AMPService {
     }
   }
 
-  private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
+  private async callInstanceAPI(instanceId: string, method: string, parameters: any = {}): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId }, true);
+    return this.makeAPICall(`Core/${method}`, { 
+      ...parameters, 
+      SESSIONID: this.sessionId,
+      InstanceID: instanceId
+    });
   }
 
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      const result = await this.callAPI('ADSModule/GetInstances', {});
+      const result = await this.makeAPICall('ADSModule/GetInstances', { SESSIONID: this.sessionId });
       console.log('Raw instance response:', result);
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
@@ -128,7 +132,7 @@ export class AMPService {
   async startInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Starting instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+      await this.callInstanceAPI(instanceId, 'Start');
       console.log(`Successfully sent start command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -146,7 +150,7 @@ export class AMPService {
   async stopInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Stopping instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+      await this.callInstanceAPI(instanceId, 'Stop');
       console.log(`Successfully sent stop command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -164,7 +168,7 @@ export class AMPService {
   async restartInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Restarting instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+      await this.callInstanceAPI(instanceId, 'Restart');
       console.log(`Successfully sent restart command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -182,7 +186,7 @@ export class AMPService {
   async killInstance(instanceId: string): Promise<void> {
     try {
       console.log(`Killing instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+      await this.callInstanceAPI(instanceId, 'Kill');
       console.log(`Successfully sent kill command to instance ${instanceId}`);
 
       // Wait briefly to allow the command to take effect
@@ -200,7 +204,7 @@ export class AMPService {
   async getInstanceStatus(instanceId: string): Promise<any> {
     try {
       console.log(`Getting status for instance ${instanceId}`);
-      const status = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
+      const status = await this.callInstanceAPI(instanceId, 'GetStatus');
       console.log(`Status for instance ${instanceId}:`, status);
       return status;
     } catch (error) {
@@ -245,17 +249,17 @@ export class AMPService {
 
   async getSystemInfo(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.callAPI('Core/GetSystemInfo');
+    return this.makeAPICall('Core/GetSystemInfo', { SESSIONID: this.sessionId });
   }
 
   async getAPISpec(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.callAPI('Core/GetAPISpec');
+    return this.makeAPICall('Core/GetAPISpec', { SESSIONID: this.sessionId });
   }
 
   async getModuleInfo(): Promise<any> {
     await this.ensureAuthenticated();
-    return this.callAPI('Core/GetModuleInfo');
+    return this.makeAPICall('Core/GetModuleInfo', { SESSIONID: this.sessionId });
   }
 }
 
