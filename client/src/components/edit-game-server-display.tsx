@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Settings } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
+import * as z from 'zod';
 
 interface EditGameServerDisplayProps {
   server: GameServer;
@@ -28,19 +29,32 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
   // Only render for admins
   if (!isAdmin) return null;
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof updateGameServerSchema>>({
     resolver: zodResolver(updateGameServerSchema),
     defaultValues: {
       id: server.id,
       displayName: server.displayName || "",
       type: server.type || "",
       icon: server.icon || "",
+      instanceId: server.instanceId,
+      name: server.name,
+      status: server.status,
+      playerCount: server.playerCount,
+      maxPlayers: server.maxPlayers,
+      hidden: server.hidden,
+      show_player_count: server.show_player_count,
+      show_status_badge: server.show_status_badge,
+      autoStart: server.autoStart,
+      refreshInterval: server.refreshInterval,
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: typeof form.getValues) => {
+    mutationFn: async (values: z.infer<typeof updateGameServerSchema>) => {
       const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, values);
+      if (!res.ok) {
+        throw new Error('Failed to update server display settings');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -129,7 +143,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
               className="w-full"
               disabled={mutation.isPending}
             >
-              Save Changes
+              {mutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </form>
         </Form>
