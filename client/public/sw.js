@@ -50,15 +50,36 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname === '/api/game-servers') {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        // Try to get from cache first
+        // Always try to get from cache first
         const cachedResponse = await caches.match(event.request);
 
-        // If we have a valid cached response, use it
-        if (cachedResponse && isCacheValid(cachedResponse)) {
+        // If we have any cached response, serve it immediately
+        if (cachedResponse) {
+          // Fetch fresh data in the background
+          fetch(event.request)
+            .then(async (networkResponse) => {
+              const clonedResponse = networkResponse.clone();
+
+              // Add timestamp header for cache validation
+              const headers = new Headers(clonedResponse.headers);
+              headers.append('sw-cache-timestamp', new Date().toISOString());
+
+              // Create a new response with the timestamp header
+              const responseToCache = new Response(await clonedResponse.blob(), {
+                status: clonedResponse.status,
+                statusText: clonedResponse.statusText,
+                headers: headers
+              });
+
+              // Update the cache with fresh data
+              cache.put(event.request, responseToCache);
+            })
+            .catch(console.error); // Silently handle background fetch errors
+
           return cachedResponse;
         }
 
-        // Otherwise, fetch from network
+        // If no cache exists yet, fetch from network
         try {
           const networkResponse = await fetch(event.request);
           const clonedResponse = networkResponse.clone();
@@ -79,11 +100,6 @@ self.addEventListener('fetch', (event) => {
 
           return networkResponse;
         } catch (error) {
-          // If network request fails and we have a cached response (even if expired), use it
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-
           // If all fails, return an offline response
           return new Response(
             JSON.stringify({
