@@ -27,6 +27,10 @@ export function GameServerCard({ server }: GameServerCardProps) {
   // Convert MB to GB with 2 decimal places
   const mbToGb = (mb: number) => (mb / 1024).toFixed(2);
 
+  // Capitalize first letter of game type
+  const capitalizeGameType = (type: string) => 
+    type.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
   const copyServerAddress = async (port: string) => {
     const serverAddress = `https://game.stylus.services:${port}`;
     await navigator.clipboard.writeText(serverAddress);
@@ -115,7 +119,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
           <CardTitle className="text-sm font-medium">
             {server.displayName || server.name}
             <span className="text-xs text-muted-foreground ml-2">
-              {server.type}
+              {capitalizeGameType(server.type)}
             </span>
           </CardTitle>
         </div>
