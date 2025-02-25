@@ -41,9 +41,15 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof updateGameServerSchema>) => {
-      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, values);
+      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, {
+        id: server.id,
+        customDisplayName: values.customDisplayName,
+        customGameType: values.customGameType,
+        customIconUrl: values.customIconUrl,
+      });
       if (!res.ok) {
-        throw new Error('Failed to update server display settings');
+        const errorText = await res.text();
+        throw new Error(`Failed to update server display settings: ${errorText}`);
       }
       return res.json();
     },
