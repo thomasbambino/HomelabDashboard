@@ -298,28 +298,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           memoryUsage = status?.Metrics?.['Memory Usage']?.RawValue || 0;
           maxMemory = status?.Metrics?.['Memory Usage']?.MaxValue || 0;
 
+          // Extract active users
+          const activeUsers = status?.Metrics?.['Active Users']?.RawValue || 0;
+          const maxUsers = status?.Metrics?.['Active Users']?.MaxValue || 0;
+
           // Extract port from ApplicationEndpoints
           if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
             const endpoint = instance.ApplicationEndpoints[0].Endpoint;
             port = endpoint.split(':')[1];
           }
+
+          return {
+            ...storedServer,
+            name: instance.FriendlyName,
+            type: instance.FriendlyName.toLowerCase().split(' ')[0], // Extract game type from name
+            status: instance.Running,
+            playerCount: activeUsers,
+            maxPlayers: maxUsers,
+            cpuUsage,
+            memoryUsage,
+            maxMemory,
+            port,
+            lastStatusCheck: new Date()
+          };
         } catch (error) {
           console.error(`Failed to get metrics for instance ${instance.InstanceID}:`, error);
+          // Return default values if we fail to get metrics
+          return {
+            ...storedServer,
+            name: instance.FriendlyName,
+            type: instance.FriendlyName.toLowerCase().split(' ')[0],
+            status: instance.Running,
+            playerCount: 0,
+            maxPlayers: 0,
+            cpuUsage: 0,
+            memoryUsage: 0,
+            maxMemory: 0,
+            port: '',
+            lastStatusCheck: new Date()
+          };
         }
-
-        return {
-          ...storedServer,
-          name: instance.FriendlyName,
-          type: instance.FriendlyName.toLowerCase().split(' ')[0], // Extract game type from name
-          status: instance.Running,
-          playerCount: instance.ActiveUsers,
-          maxPlayers: instance.MaxUsers,
-          cpuUsage,
-          memoryUsage,
-          maxMemory,
-          port,
-          lastStatusCheck: new Date()
-        };
       }));
 
       // Only return non-hidden servers unless specifically requested
