@@ -112,7 +112,7 @@ export default function Dashboard() {
                   : "max-h-0 opacity-0 overflow-hidden"
               )}
             >
-              <GameServerList />
+              <GameServerList isAdmin={isAdmin} />
             </div>
           </section>
 
