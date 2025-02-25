@@ -45,7 +45,7 @@ export class AMPService {
     this.sessionExpiry = null;
   }
 
-  private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
+  private async makeAPICall(endpoint: string, parameters: any = {}) {
     try {
       const url = `${this.baseUrl}/API/${endpoint}`;
       console.log(`Making API call to ${url}`, { 
@@ -93,19 +93,15 @@ export class AMPService {
         password: this.password,
         token: '',
         rememberMe: false,
-        PreviousSession: this.sessionId // Include previous session if exists
+        PreviousSession: null // Don't use previous session on fresh login
       };
 
       console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
-      const response = await this.makeAPICall('Core/Login', loginData, false);
+      const response = await this.makeAPICall('Core/Login', loginData);
       console.log('Login response:', response);
 
       if (!response) {
         throw new Error('No response received from login request');
-      }
-
-      if (response.Status === 'Error' || response.Status === 'Failure') {
-        throw new Error(`Login failed: ${response.Message || 'Unknown error'}`);
       }
 
       if (!response.sessionID) {
@@ -130,22 +126,34 @@ export class AMPService {
 
   private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId }, true);
+    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId });
   }
 
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      const result = await this.callAPI('ADSModule/GetInstances', {});
+      const result = await this.callAPI('ADSModule/GetInstances');
       console.log('Raw instance response:', result);
 
-      if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
-        const instances = result[0].AvailableInstances;
-        console.log('Found instances:', instances);
-        return instances;
+      if (!result || !Array.isArray(result)) {
+        console.error('Invalid response format:', result);
+        throw new Error('Invalid response format from AMP server');
       }
-      console.log('No instances found in response');
-      return [];
+
+      if (result.length === 0) {
+        console.log('No instances found');
+        return [];
+      }
+
+      const firstNode = result[0];
+      if (!firstNode || !firstNode.AvailableInstances) {
+        console.error('Unexpected response structure:', firstNode);
+        throw new Error('Unexpected response structure from AMP server');
+      }
+
+      const instances = firstNode.AvailableInstances;
+      console.log('Found instances:', instances);
+      return instances;
     } catch (error) {
       console.error('Failed to fetch instances:', error);
       throw error;
