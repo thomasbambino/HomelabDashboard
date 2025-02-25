@@ -91,12 +91,11 @@ async function updateServiceStatus(service: Service) {
   });
 }
 
-// Rate limit concurrent service checks
 async function checkServicesWithRateLimit(services: Service[], gameServers: GameServer[], batchSize: number = 3) {
   // First check game servers as they need more frequent updates
   for (const server of gameServers) {
     if (!server.hidden && (!server.lastStatusCheck || 
-        Date.now() - server.lastStatusCheck.getTime() >= (server.refreshInterval || 30) * 1000)) {
+        Date.now() - server.lastStatusCheck.getTime() >= (server.refreshInterval || 10) * 1000)) {  // Changed default from 30 to 10
       try {
         await storage.updateGameServer({
           id: server.id,
@@ -140,5 +139,5 @@ export async function startServiceChecker() {
     } catch (error) {
       console.error('Error checking services:', error);
     }
-  }, 5000); // Base interval of 5 seconds, individual checks controlled by refreshInterval
+  }, 3000); // Changed from 5000 to 3000 ms for more frequent updates
 }
