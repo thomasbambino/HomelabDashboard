@@ -35,8 +35,6 @@ import { Loader2, Play, PowerOff, Trash2, RefreshCw, XCircle } from "lucide-reac
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
-const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
-
 interface EditGameServerDialogProps {
   server: GameServer;
   open: boolean;
@@ -52,10 +50,10 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     defaultValues: {
       id: server.id,
       name: server.name,
+      displayName: server.displayName || "",
       type: server.type,
-      instanceId: server.instanceId,
-      icon: server.icon ?? "",
-      background: server.background ?? "",
+      icon: server.icon || "",
+      background: server.background || "",
       refreshInterval: server.refreshInterval ?? 30,
       show_player_count: server.show_player_count ?? false,
       show_status_badge: server.show_status_badge ?? false,
@@ -198,6 +196,8 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     },
   });
 
+  const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -217,6 +217,52 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
               className="space-y-4"
               aria-label="Edit game server form"
             >
+              <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Display Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder={server.name} {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Server Icon</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        onClear={() => field.onChange("")}
+                        uploadType="service"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="background"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Background Image</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        onClear={() => field.onChange("")}
+                        uploadType="service"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="name"
@@ -260,50 +306,6 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                         ))}
                       </SelectContent>
                     </Select>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel id="server-icon-label">Icon Image</FormLabel>
-                    <FormControl>
-                      <ImageUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        onClear={() => field.onChange("")}
-                        aria-labelledby="server-icon-label"
-                        aria-describedby="server-icon-description"
-                        uploadType="service"
-                      />
-                    </FormControl>
-                    <div id="server-icon-description" className="sr-only">
-                      Upload or select an icon image for your game server
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="background"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel id="server-bg-label">Background Image</FormLabel>
-                    <FormControl>
-                      <ImageUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        onClear={() => field.onChange("")}
-                        aria-labelledby="server-bg-label"
-                        aria-describedby="server-bg-description"
-                        uploadType="service"
-                      />
-                    </FormControl>
-                    <div id="server-bg-description" className="sr-only">
-                      Upload or select a background image for your game server
-                    </div>
                   </FormItem>
                 )}
               />
