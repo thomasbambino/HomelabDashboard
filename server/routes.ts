@@ -132,14 +132,25 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
   }
 
   try {
-    let inputBuffer: Buffer;
-    let filename: string;
-
     // Get instanceId from the request
     const { instanceId } = req.body;
     if (!instanceId && type === 'game') {
       return res.status(400).json({ message: "Instance ID is required for game server icons" });
     }
+
+    if (type === 'game') {
+      console.log('Processing icon upload for instance:', instanceId);
+      // Verify instance exists before proceeding
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      if (!instance) {
+        return res.status(404).json({ message: "Game server not found in AMP" });
+      }
+      console.log('Found matching AMP instance:', instance.FriendlyName);
+    }
+
+    let inputBuffer: Buffer;
+    let filename: string;
 
     if (req.file) {
       // Handle direct file upload
@@ -165,9 +176,12 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 
     // If this is a game server icon, ensure the server exists in database
     if (type === 'game' && instanceId) {
+      console.log('Updating icon for instance:', instanceId);
+
       // Find or create server record
       let server = await storage.getGameServerByInstanceId(instanceId);
       if (!server) {
+        console.log('Creating new server record for instance:', instanceId);
         // Get instance details from AMP
         const instances = await ampService.getInstances();
         const instance = instances.find(i => i.InstanceID === instanceId);
@@ -183,12 +197,15 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
           icon: typeof result === 'string' ? result : result.url,
         });
       } else {
+        console.log('Updating existing server record:', server.name);
         // Update existing server with new icon
         server = await storage.updateGameServer({
           ...server,
           icon: typeof result === 'string' ? result : result.url,
         });
       }
+
+      console.log('Server updated successfully:', server.name, 'with icon:', server.icon);
     }
 
     // For site uploads, handle both URLs
@@ -822,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('Chat server not found for broadcasting');
       }
 
-      res.status(201).json(messageWithSender);
+            res.status(201).json(messageWithSender);
     } catch (error) {
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
