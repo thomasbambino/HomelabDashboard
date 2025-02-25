@@ -123,20 +123,10 @@ export class AMPService {
 
   async startInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Start`;
-    console.log(`Starting instance ${instanceId} at URL: ${url}`);
-
     try {
-      const response = await axios.post(url, 
-        { SESSIONID: this.sessionId },
-        {
-          headers: {
-            'Accept': 'text/javascript',
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      console.log('Start instance response:', response.data);
+      console.log(`Starting instance ${instanceId}`);
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+      console.log(`Successfully started instance ${instanceId}`);
     } catch (error) {
       console.error(`Failed to start instance ${instanceId}:`, error);
       throw error;
@@ -145,20 +135,10 @@ export class AMPService {
 
   async stopInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Stop`;
-    console.log(`Stopping instance ${instanceId} at URL: ${url}`);
-
     try {
-      const response = await axios.post(url,
-        { SESSIONID: this.sessionId },
-        {
-          headers: {
-            'Accept': 'text/javascript',
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      console.log('Stop instance response:', response.data);
+      console.log(`Stopping instance ${instanceId}`);
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+      console.log(`Successfully stopped instance ${instanceId}`);
     } catch (error) {
       console.error(`Failed to stop instance ${instanceId}:`, error);
       throw error;
@@ -167,20 +147,10 @@ export class AMPService {
 
   async restartInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Restart`;
-    console.log(`Restarting instance ${instanceId}`);
-
     try {
-      const response = await axios.post(url,
-        { SESSIONID: this.sessionId },
-        {
-          headers: {
-            'Accept': 'text/javascript',
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      console.log('Restart instance response:', response.data);
+      console.log(`Restarting instance ${instanceId}`);
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+      console.log(`Successfully restarted instance ${instanceId}`);
     } catch (error) {
       console.error(`Failed to restart instance ${instanceId}:`, error);
       throw error;
@@ -189,37 +159,27 @@ export class AMPService {
 
   async killInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Kill`;
-    console.log(`Killing instance ${instanceId}`);
-
     try {
-      const response = await axios.post(url,
-        { SESSIONID: this.sessionId },
-        {
-          headers: {
-            'Accept': 'text/javascript',
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      console.log('Kill instance response:', response.data);
+      console.log(`Killing instance ${instanceId}`);
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+      console.log(`Successfully killed instance ${instanceId}`);
     } catch (error) {
       console.error(`Failed to kill instance ${instanceId}:`, error);
       throw error;
     }
   }
+
   async getInstanceStatus(instanceId: string): Promise<any> {
     await this.ensureAuthenticated();
-    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/GetStatus`;
-    return axios.post(url,
-      { SESSIONID: this.sessionId },
-      {
-        headers: {
-          'Accept': 'text/javascript',
-          'Content-Type': 'application/json',
-        }
-      }
-    ).then(response => response.data);
+    try {
+      console.log(`Getting status for instance ${instanceId}`);
+      const status = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
+      console.log(`Status for instance ${instanceId}:`, status);
+      return status;
+    } catch (error) {
+      console.error(`Failed to get status for instance ${instanceId}:`, error);
+      throw error;
+    }
   }
 
   async getMetrics(instanceId: string): Promise<{
