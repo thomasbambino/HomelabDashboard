@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Bug, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Bug, Loader2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +52,15 @@ export function GameServerCard({ server }: GameServerCardProps) {
       });
     },
   });
+
+  const copyServerAddress = async (port: string) => {
+    const serverAddress = `https://game.stylus.services:${port}`;
+    await navigator.clipboard.writeText(serverAddress);
+    toast({
+      title: "Copied!",
+      description: "Server address copied to clipboard",
+    });
+  };
 
   return (
     <>
@@ -121,6 +130,46 @@ export function GameServerCard({ server }: GameServerCardProps) {
                   value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
                   className="h-2"
                 />
+              </div>
+            )}
+
+            {/* CPU Usage */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>CPU Usage</span>
+                <span>{server.cpuUsage ?? 0}%</span>
+              </div>
+              <Progress
+                value={server.cpuUsage ?? 0}
+                className="h-2"
+              />
+            </div>
+
+            {/* RAM Usage */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>RAM</span>
+                <span>{server.memoryUsage ?? 0}/{server.maxMemory ?? 0} MB</span>
+              </div>
+              <Progress
+                value={((server.memoryUsage ?? 0) / (server.maxMemory ?? 1)) * 100}
+                className="h-2"
+              />
+            </div>
+
+            {/* Server Address */}
+            {server.port && (
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-sm text-muted-foreground">Server Address:</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => copyServerAddress(server.port)}
+                >
+                  <span className="mr-2">game.stylus.services:{server.port}</span>
+                  <Copy className="h-3 w-3" />
+                </Button>
               </div>
             )}
           </div>

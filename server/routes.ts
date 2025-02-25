@@ -282,6 +282,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           refreshInterval: 30
         };
 
+        // Get instance metrics for CPU and memory usage
+        let cpuUsage = 0;
+        let memoryUsage = 0;
+        let maxMemory = 0;
+        let port = '';
+
+        try {
+          const status = await ampService.getInstanceStatus(instance.InstanceID);
+
+          // Extract CPU usage
+          cpuUsage = status?.Metrics?.['CPU Usage']?.RawValue || 0;
+
+          // Extract memory usage
+          memoryUsage = status?.Metrics?.['Memory Usage']?.RawValue || 0;
+          maxMemory = status?.Metrics?.['Memory Usage']?.MaxValue || 0;
+
+          // Extract port from ApplicationEndpoints
+          if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
+            const endpoint = instance.ApplicationEndpoints[0].Endpoint;
+            port = endpoint.split(':')[1];
+          }
+        } catch (error) {
+          console.error(`Failed to get metrics for instance ${instance.InstanceID}:`, error);
+        }
+
         return {
           ...storedServer,
           name: instance.FriendlyName,
@@ -289,6 +314,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: instance.Running,
           playerCount: instance.ActiveUsers,
           maxPlayers: instance.MaxUsers,
+          cpuUsage,
+          memoryUsage,
+          maxMemory,
+          port,
           lastStatusCheck: new Date()
         };
       }));
