@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 interface Settings {
   onlineColor?: string;
   offlineColor?: string;
+  beta_features?: boolean;
 }
 
 interface GameServerCardProps {
@@ -40,7 +41,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
   // Query for real-time metrics
   const { data: metrics } = useQuery<MetricsData>({
     queryKey: ["/api/game-servers", server.instanceId, "metrics"],
-    enabled: !!server.instanceId && server.status,
+    enabled: !!server.instanceId && server.status && settings?.beta_features,
     refetchInterval: server.refreshInterval || 30000,
   });
 
@@ -140,7 +141,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
               {server.status ? "Online" : "Offline"}
             </Badge>
           )}
-          {isAdmin && (
+          {isAdmin && settings?.beta_features && (
             <>
               <Button
                 variant="ghost"
@@ -172,7 +173,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {(server.show_player_count ?? true) && (
+          {settings?.beta_features && (server.show_player_count ?? true) && (
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Players</span>
@@ -185,7 +186,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
             </div>
           )}
 
-          {server.status && metrics && (
+          {settings?.beta_features && server.status && metrics && (
             <div className="grid grid-cols-3 gap-2 mt-2">
               <div className="flex items-center gap-2 text-sm">
                 <Activity className="h-4 w-4" />
