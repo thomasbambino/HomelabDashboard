@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export function UserPreferencesDialog({ user }: { user: User }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("visibility");
 
   const form = useForm({
     resolver: zodResolver(updateUserSchema),
@@ -26,7 +25,6 @@ export function UserPreferencesDialog({ user }: { user: User }) {
       show_last_checked: user.show_last_checked ?? true,
       show_service_url: user.show_service_url ?? true,
       show_uptime_log: user.show_uptime_log ?? false,
-      beta_features: user.beta_features ?? false,
     },
   });
 
@@ -41,7 +39,7 @@ export function UserPreferencesDialog({ user }: { user: User }) {
         title: "Preferences updated",
         description: "Your display preferences have been updated successfully",
       });
-      //setOpen(false); // Removed to keep the dialog open
+      setOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -51,22 +49,6 @@ export function UserPreferencesDialog({ user }: { user: User }) {
       });
     },
   });
-
-  const handleSubmit = (data: Parameters<typeof updateUserSchema.parse>[0]) => {
-    // Only include changed fields in the update
-    const changedFields = Object.entries(data).reduce((acc, [key, value]) => {
-      if (value !== form.formState.defaultValues?.[key]) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-
-    // Always include id
-    changedFields.id = user.id;
-
-    // Don't close the dialog on submit to maintain tab state
-    updatePreferencesMutation.mutate(changedFields);
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -80,10 +62,10 @@ export function UserPreferencesDialog({ user }: { user: User }) {
         <DialogHeader>
           <DialogTitle>UI Settings</DialogTitle>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="visibility">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="beta">Beta</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
@@ -91,46 +73,14 @@ export function UserPreferencesDialog({ user }: { user: User }) {
               General settings coming soon
             </div>
           </TabsContent>
-          <TabsContent value="beta">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="beta_features"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="beta_features" className="text-sm cursor-pointer">Enable Beta Features</Label>
-                          <Switch
-                            id="beta_features"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Enable experimental features like server metrics and controls
-                        </p>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={updatePreferencesMutation.isPending}
-                >
-                  {updatePreferencesMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Save Changes
-                </Button>
-              </form>
-            </Form>
+          <TabsContent value="branding">
+            <div className="text-sm text-muted-foreground">
+              Branding settings coming soon
+            </div>
           </TabsContent>
           <TabsContent value="visibility">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-3">
                     <FormField

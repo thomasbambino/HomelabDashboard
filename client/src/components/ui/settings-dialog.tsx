@@ -40,7 +40,6 @@ export function SettingsDialog() {
       show_last_checked: settings?.show_last_checked ?? true,
       show_service_url: settings?.show_service_url ?? true,
       show_uptime_log: settings?.show_uptime_log ?? false,
-      beta_features: settings?.beta_features ?? false,
       admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
       admin_show_last_checked: settings?.admin_show_last_checked ?? true,
       admin_show_service_url: settings?.admin_show_service_url ?? true,
@@ -202,26 +201,6 @@ export function SettingsDialog() {
                           value={field.value || ""}
                         />
                       </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="beta_features"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="font-medium">Beta Features</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Enable experimental features like server metrics and controls
-                      </p>
                     </FormItem>
                   )}
                 />

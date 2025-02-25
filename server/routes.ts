@@ -17,8 +17,6 @@ import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email'; // Import sendEmail function
 import { ampService } from './amp-service';
-import { updateUserSchema } from "@shared/schema"; // Import updateUserSchema
-
 
 // Configure multer for image upload
 const upload = multer({
@@ -981,39 +979,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to fetch instance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
-    }
-  });
-  // Add logging and session update to the user preferences endpoint
-  app.patch("/api/users/:id/preferences", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      console.log('Updating user preferences:', req.body);
-      const data = updateUserSchema.parse({ ...req.body, id: parseInt(req.params.id) });
-      console.log('Parsed data:', data);
-
-      const user = await storage.updateUser(data);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Update the session with new user data
-      req.session.passport.user = user;
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-
-      console.log('Updated user preferences:', user);
-      res.json(user);
-    } catch (error) {
-      console.error('Error updating user preferences:', error);
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: fromZodError(error).message });
-      } else {
-        res.status(500).json({ message: "Failed to update preferences" });
-      }
     }
   });
 

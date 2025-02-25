@@ -26,7 +26,6 @@ export const users = pgTable("users", {
   show_service_url: boolean("show_service_url").notNull().default(true),
   show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
   show_last_checked: boolean("show_last_checked").notNull().default(true),
-  beta_features: boolean("beta_features").notNull().default(false),
   service_order: integer("service_order").array().default([]),
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen").defaultNow(),
