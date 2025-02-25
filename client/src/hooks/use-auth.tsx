@@ -20,14 +20,30 @@ type AuthContextType = {
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
+// Create a dummy mutation result for initialization
+const dummyMutation = {
+  mutate: () => {},
+  mutateAsync: async () => {},
+  isPending: false,
+  isSuccess: false,
+  isError: false,
+  error: null,
+  data: null,
+  failureCount: 0,
+  failureReason: null,
+  reset: () => {},
+  status: 'idle',
+  variables: undefined,
+} as const;
+
 // Initialize context with default values
 const defaultAuthContext: AuthContextType = {
   user: null,
-  isLoading: true,
+  isLoading: false,
   error: null,
-  loginMutation: {} as UseMutationResult<SelectUser, Error, LoginData>,
-  logoutMutation: {} as UseMutationResult<void, Error, void>,
-  registerMutation: {} as UseMutationResult<SelectUser, Error, InsertUser>
+  loginMutation: dummyMutation as UseMutationResult<SelectUser, Error, LoginData>,
+  logoutMutation: dummyMutation as UseMutationResult<void, Error, void>,
+  registerMutation: dummyMutation as UseMutationResult<SelectUser, Error, InsertUser>,
 };
 
 export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
