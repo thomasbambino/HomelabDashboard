@@ -111,6 +111,15 @@ export class AMPService {
       );
 
       console.log(`API Response for ${endpoint}:`, response.data);
+
+      // Match example's error handling pattern
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.Status === false) {
+          throw new Error(response.data.Error || 'API call failed');
+        }
+        return response.data;
+      }
+
       return response.data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
@@ -169,17 +178,63 @@ export class AMPService {
 
   async startInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI(`Core/Start`, { InstanceID: instanceId });
+    await this.callAPI('Core/Start', {});
   }
 
   async stopInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI(`Core/Stop`, { InstanceID: instanceId });
+    await this.callAPI('Core/Stop', {});
+  }
+
+  async restartInstance(instanceId: string): Promise<void> {
+    await this.ensureAuthenticated();
+    await this.callAPI('Core/Restart', {});
+  }
+
+  async killInstance(instanceId: string): Promise<void> {
+    await this.ensureAuthenticated();
+    await this.callAPI('Core/Kill', {});
   }
 
   async getInstanceStatus(instanceId: string): Promise<any> {
     await this.ensureAuthenticated();
-    return this.callAPI(`Core/GetStatus`, { InstanceID: instanceId });
+    const result = await this.callAPI('Core/GetStatus', {});
+    return result;
+  }
+
+  async getMetrics(instanceId: string): Promise<{
+    TPS: string;
+    Users: [string, string];
+    CPU: string;
+    Memory: [string, string];
+    Uptime: string;
+  }> {
+    await this.ensureAuthenticated();
+    const result = await this.callAPI('Core/GetStatus', {});
+
+    if (!result) {
+      return {
+        TPS: '0',
+        Users: ['0', '0'],
+        CPU: '0',
+        Memory: ['0', '0'],
+        Uptime: '0'
+      };
+    }
+
+    return {
+      TPS: result.State?.toString() || '0',
+      Users: [
+        result.Metrics?.['Active Users']?.RawValue?.toString() || '0',
+        result.Metrics?.['Active Users']?.MaxValue?.toString() || '0'
+      ],
+      CPU: result.Metrics?.['CPU Usage']?.RawValue?.toString() || '0',
+      Memory: [
+        result.Metrics?.['Memory Usage']?.RawValue?.toString() || '0',
+        result.Metrics?.['Memory Usage']?.MaxValue?.toString() || '0'
+      ],
+      Uptime: result.Uptime?.toString() || '0'
+    };
   }
 
   async getSystemInfo(): Promise<any> {
