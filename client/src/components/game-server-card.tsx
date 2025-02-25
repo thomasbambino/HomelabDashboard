@@ -2,10 +2,11 @@ import { GameServer } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, PlayCircle, StopCircle, RefreshCcw } from "lucide-react";
+import { Copy, PlayCircle, StopCircle, RefreshCcw, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Settings {
   onlineColor?: string;
@@ -19,6 +20,8 @@ interface GameServerCardProps {
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -38,6 +41,53 @@ export function GameServerCard({ server }: GameServerCardProps) {
       title: "Copied!",
       description: "Server address copied to clipboard",
     });
+  };
+
+  // Icon upload mutation
+  const uploadIconMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/upload/game', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload icon');
+      }
+
+      const { url } = await response.json();
+
+      // Update the game server with the new icon URL
+      await apiRequest('PUT', `/api/game-servers/${server.id}`, {
+        icon: url,
+      });
+
+      return url;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Success",
+        description: "Server icon updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload icon",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadIconMutation.mutate(file);
+    }
   };
 
   // Server control mutations
@@ -112,7 +162,34 @@ export function GameServerCard({ server }: GameServerCardProps) {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {server.icon ? (
-            <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+            <div className="relative">
+              <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+              {isAdmin && (
+                <label htmlFor={`icon-upload-${server.id}`} className="absolute -bottom-1 -right-1 cursor-pointer">
+                  <Upload className="h-3 w-3" />
+                  <input
+                    type="file"
+                    id={`icon-upload-${server.id}`}
+                    className="hidden"
+                    accept="image/png,image/jpeg"
+                    onChange={handleIconUpload}
+                    disabled={uploadIconMutation.isPending}
+                  />
+                </label>
+              )}
+            </div>
+          ) : isAdmin ? (
+            <label htmlFor={`icon-upload-${server.id}`} className="cursor-pointer">
+              <span className="text-xl">🎮</span>
+              <input
+                type="file"
+                id={`icon-upload-${server.id}`}
+                className="hidden"
+                accept="image/png,image/jpeg"
+                onChange={handleIconUpload}
+                disabled={uploadIconMutation.isPending}
+              />
+            </label>
           ) : (
             <span className="text-xl">🎮</span>
           )}
