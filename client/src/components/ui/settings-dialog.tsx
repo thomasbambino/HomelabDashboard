@@ -30,6 +30,7 @@ export function SettingsDialog() {
     defaultValues: {
       id: settings?.id ?? 1,
       favicon_url: settings?.favicon_url ?? "",
+      favicon_label: settings?.favicon_label ?? "",
       default_role: settings?.default_role ?? "pending",
       site_title: settings?.site_title ?? "",
       font_family: settings?.font_family ?? "",
@@ -41,14 +42,14 @@ export function SettingsDialog() {
       show_last_checked: settings?.show_last_checked ?? true,
       show_service_url: settings?.show_service_url ?? true,
       show_uptime_log: settings?.show_uptime_log ?? false,
+      show_status_badge: settings?.show_status_badge ?? true,
       admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
       admin_show_last_checked: settings?.admin_show_last_checked ?? true,
       admin_show_service_url: settings?.admin_show_service_url ?? true,
       admin_show_uptime_log: settings?.admin_show_uptime_log ?? false,
+      admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
-      admin_show_status_badge: settings?.admin_show_status_badge ?? true,
-      show_status_badge: settings?.show_status_badge ?? true,
     },
   });
 
@@ -251,24 +252,42 @@ export function SettingsDialog() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="favicon_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Favicon</FormLabel>
-                      <FormControl>
-                        <ImageUpload
-                          value={field.value}
-                          onChange={field.onChange}
-                          onClear={() => field.onChange("")}
-                          uploadType="favicon"
-                          accept=".ico,.png"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                <div className="flex gap-4">
+                  <FormField
+                    control={form.control}
+                    name="favicon_url"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Favicon</FormLabel>
+                        <FormControl>
+                          <ImageUpload
+                            value={field.value}
+                            onChange={field.onChange}
+                            onClear={() => field.onChange("")}
+                            uploadType="favicon"
+                            accept=".ico,.png"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="favicon_label"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Favicon Label</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter favicon label" 
+                            {...field} 
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="online_color"
