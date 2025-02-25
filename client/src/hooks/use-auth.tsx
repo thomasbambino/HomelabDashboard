@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
@@ -16,51 +16,23 @@ type AuthContextType = {
   registerMutation: ReturnType<typeof useMutation>;
 };
 
-// Create initial context state
-const initialState: AuthContextType = {
+// Create a default context
+const defaultContext: AuthContextType = {
   user: null,
-  isLoading: false,
+  isLoading: true,
   error: null,
-  loginMutation: {
-    mutate: () => {},
-    mutateAsync: async () => {},
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    error: null,
-    data: undefined,
-    reset: () => {},
-    status: 'idle',
-  } as ReturnType<typeof useMutation>,
-  logoutMutation: {
-    mutate: () => {},
-    mutateAsync: async () => {},
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    error: null,
-    data: undefined,
-    reset: () => {},
-    status: 'idle',
-  } as ReturnType<typeof useMutation>,
-  registerMutation: {
-    mutate: () => {},
-    mutateAsync: async () => {},
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    error: null,
-    data: undefined,
-    reset: () => {},
-    status: 'idle',
-  } as ReturnType<typeof useMutation>,
+  loginMutation: null!,
+  logoutMutation: null!,
+  registerMutation: null!,
 };
 
-const AuthContext = createContext(initialState);
+// Create the context with the default value
+const AuthContext = createContext<AuthContextType>(defaultContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     data: user,
@@ -130,17 +102,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  useEffect(() => {
+    if (!isLoading) {
+      setIsInitialized(true);
+    }
+  }, [isLoading]);
+
+  if (!isInitialized) {
+    return null;
+  }
+
+  const contextValue: AuthContextType = {
+    user: user ?? null,
+    isLoading,
+    error,
+    loginMutation,
+    logoutMutation,
+    registerMutation,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user: user ?? null,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
