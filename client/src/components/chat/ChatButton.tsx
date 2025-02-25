@@ -1,17 +1,18 @@
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ChatPanel } from "./ChatPanel";
-import { useState } from "react";
-import { DiscordButton } from "@/components/discord-button";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export function ChatButton() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
   const [location] = useLocation();
+  const { user } = useAuth();
 
-  // Don't render on the auth page
-  if (location === "/auth") {
+  // Don't render on the auth page or if user isn't logged in
+  if (location === "/auth" || !user) {
     return null;
   }
 

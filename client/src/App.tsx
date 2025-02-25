@@ -11,7 +11,7 @@ import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ChatButton } from "@/components/chat/chat-button";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { FaviconUpdater } from "@/components/favicon-updater";
 
 function Router() {
