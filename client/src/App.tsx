@@ -17,9 +17,9 @@ import { FaviconUpdater } from "@/components/favicon-updater";
 function Router() {
   return (
     <Switch>
+      <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/users" component={UsersPage} />
-      <Route path="/auth" component={AuthPage} />
       <Route path="/pending" component={PendingPage} />
       <Route component={NotFound} />
     </Switch>
@@ -31,16 +31,16 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <AuthProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <ChatProvider>
+          <ChatProvider>
+            <div className="min-h-screen bg-background text-foreground">
               <FaviconUpdater />
               <div className="fixed bottom-4 right-4 z-50">
                 <ChatButton />
               </div>
               <Router />
               <Toaster />
-            </ChatProvider>
-          </div>
+            </div>
+          </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
