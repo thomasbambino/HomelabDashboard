@@ -14,7 +14,8 @@ import { GameServer, updateGameServerSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2 } from "lucide-react";
+import { Settings } from "lucide-react";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface EditGameServerDisplayProps {
   server: GameServer;
@@ -38,8 +39,8 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
-      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, data);
+    mutationFn: async (values: typeof form.getValues) => {
+      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, values);
       return res.json();
     },
     onSuccess: () => {
@@ -67,7 +68,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           className="absolute top-2 right-2 h-8 w-8 p-0"
           aria-label="Edit display settings"
         >
-          <Settings2 className="h-4 w-4" />
+          <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -111,11 +112,13 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
               name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon URL (Optional)</FormLabel>
+                  <FormLabel>Icon Image</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="https://example.com/icon.png" 
-                      {...field} 
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      onClear={() => field.onChange("")}
+                      uploadType="service"
                     />
                   </FormControl>
                 </FormItem>
