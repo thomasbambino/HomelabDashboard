@@ -2,9 +2,9 @@ import { GameServer } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Copy, PlayCircle, StopCircle, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface Settings {
@@ -18,6 +18,7 @@ interface GameServerCardProps {
 
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -34,6 +35,73 @@ export function GameServerCard({ server }: GameServerCardProps) {
       description: "Server address copied to clipboard",
     });
   };
+
+  // Server control mutations
+  const startMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/game-servers/${server.instanceId}/start`);
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server Starting",
+        description: "The game server is starting up",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start server",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const stopMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/game-servers/${server.instanceId}/stop`);
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server Stopping",
+        description: "The game server is shutting down",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to stop server",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const restartMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/game-servers/${server.instanceId}/restart`);
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
+      toast({
+        title: "Server Restarting",
+        description: "The game server is restarting",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to restart server",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
@@ -90,10 +158,37 @@ export function GameServerCard({ server }: GameServerCardProps) {
             </div>
           </div>
 
-          {/* Server Address */}
-          {server.port && (
-            <div className="flex items-center justify-between mt-4 pt-2 border-t">
-              <span className="text-sm text-muted-foreground">Server Address:</span>
+          {/* Server Controls */}
+          <div className="flex items-center justify-between gap-2 mt-4 pt-2 border-t">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => startMutation.mutate()}
+                disabled={startMutation.isPending || server.status}
+              >
+                <PlayCircle className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => stopMutation.mutate()}
+                disabled={stopMutation.isPending || !server.status}
+              >
+                <StopCircle className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => restartMutation.mutate()}
+                disabled={restartMutation.isPending || !server.status}
+              >
+                <RefreshCcw className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Server Address */}
+            {server.port && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -103,8 +198,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
                 <span className="mr-2">game.stylus.services:{server.port}</span>
                 <Copy className="h-3 w-3" />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
