@@ -125,78 +125,6 @@ export class AMPService {
     }
   }
 
-  async startInstance(instanceId: string): Promise<void> {
-    try {
-      console.log(`Starting instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
-      console.log(`Successfully sent start command to instance ${instanceId}`);
-
-      // Wait briefly to allow the command to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check the instance status
-      const status = await this.getInstanceStatus(instanceId);
-      console.log(`Status after start command for ${instanceId}:`, status);
-    } catch (error) {
-      console.error(`Failed to start instance ${instanceId}:`, error);
-      throw error;
-    }
-  }
-
-  async stopInstance(instanceId: string): Promise<void> {
-    try {
-      console.log(`Stopping instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
-      console.log(`Successfully sent stop command to instance ${instanceId}`);
-
-      // Wait briefly to allow the command to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check the instance status
-      const status = await this.getInstanceStatus(instanceId);
-      console.log(`Status after stop command for ${instanceId}:`, status);
-    } catch (error) {
-      console.error(`Failed to stop instance ${instanceId}:`, error);
-      throw error;
-    }
-  }
-
-  async restartInstance(instanceId: string): Promise<void> {
-    try {
-      console.log(`Restarting instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
-      console.log(`Successfully sent restart command to instance ${instanceId}`);
-
-      // Wait briefly to allow the command to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check the instance status
-      const status = await this.getInstanceStatus(instanceId);
-      console.log(`Status after restart command for ${instanceId}:`, status);
-    } catch (error) {
-      console.error(`Failed to restart instance ${instanceId}:`, error);
-      throw error;
-    }
-  }
-
-  async killInstance(instanceId: string): Promise<void> {
-    try {
-      console.log(`Killing instance ${instanceId}`);
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
-      console.log(`Successfully sent kill command to instance ${instanceId}`);
-
-      // Wait briefly to allow the command to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check the instance status
-      const status = await this.getInstanceStatus(instanceId);
-      console.log(`Status after kill command for ${instanceId}:`, status);
-    } catch (error) {
-      console.error(`Failed to kill instance ${instanceId}:`, error);
-      throw error;
-    }
-  }
-
   async getInstanceStatus(instanceId: string): Promise<any> {
     try {
       console.log(`Getting status for instance ${instanceId}`);
@@ -221,29 +149,17 @@ export class AMPService {
       const result = await this.getInstanceStatus(instanceId);
       console.log('Raw metrics result:', result);
 
-      // Handle case where result is false or no metrics available
-      if (!result || typeof result === 'boolean' || !result.Metrics) {
-        console.log(`No metrics available for instance ${instanceId}`);
-        return {
-          TPS: '0',
-          Users: ['0', '0'],
-          CPU: '0',
-          Memory: ['0', '0'],
-          Uptime: '00:00:00'
-        };
-      }
-
       // Extract metrics with proper null/undefined checking
       const metrics = {
         TPS: String(result.State || '0'),
         Users: [
-          String(result.Metrics['Active Users']?.RawValue || '0'),
-          String(result.Metrics['Active Users']?.MaxValue || '0')
+          String(result.Metrics?.['Active Users']?.RawValue || '0'),
+          String(result.Metrics?.['Active Users']?.MaxValue || '0')
         ] as [string, string],
-        CPU: String(result.Metrics['CPU Usage']?.RawValue || '0'),
+        CPU: String(result.Metrics?.['CPU Usage']?.RawValue || '0'),
         Memory: [
-          String(result.Metrics['Memory Usage']?.RawValue || '0'),
-          String(result.Metrics['Memory Usage']?.MaxValue || '0')
+          String(result.Metrics?.['Memory Usage']?.RawValue || '0'),
+          String(result.Metrics?.['Memory Usage']?.MaxValue || '0')
         ] as [string, string],
         Uptime: String(result.Uptime || '00:00:00')
       };
@@ -261,21 +177,6 @@ export class AMPService {
         Uptime: '00:00:00'
       };
     }
-  }
-
-  async getSystemInfo(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetSystemInfo');
-  }
-
-  async getAPISpec(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetAPISpec');
-  }
-
-  async getModuleInfo(): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.callAPI('Core/GetModuleInfo');
   }
 
   async getUserList(instanceId: string): Promise<string[]> {
@@ -351,6 +252,23 @@ export class AMPService {
     } catch (error) {
       console.error('Debug operation failed:', error);
     }
+  }
+
+  // Server control methods
+  async startInstance(instanceId: string): Promise<void> {
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+  }
+
+  async stopInstance(instanceId: string): Promise<void> {
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+  }
+
+  async restartInstance(instanceId: string): Promise<void> {
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+  }
+
+  async killInstance(instanceId: string): Promise<void> {
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
   }
 }
 
