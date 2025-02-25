@@ -44,12 +44,12 @@ export class AMPService {
     this.sessionExpiry = null;
   }
 
-  private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
+  private async makeAPICall(method: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
+      console.log(`Making API call to ${method}`, { ...parameters, password: '[REDACTED]' });
 
       const response = await axios.post(
-        `${this.baseUrl}/API/${endpoint}`,
+        `${this.baseUrl}/API/${method}`,
         parameters,
         {
           headers: {
@@ -59,10 +59,10 @@ export class AMPService {
         }
       );
 
-      console.log(`API Response from ${endpoint}:`, response.data);
+      console.log(`API Response from ${method}:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(`API call failed for ${endpoint}:`, error);
+      console.error(`API call failed for ${method}:`, error);
       if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', error.response.data);
         throw new Error(`API call failed: ${error.response.data.message || error.message}`);
@@ -113,16 +113,38 @@ export class AMPService {
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
+      await this.ensureAuthenticated();
+
+      // First get the Instance IDs
       const result = await this.makeAPICall('ADSModule/GetInstances', { SESSIONID: this.sessionId });
       console.log('Raw instance response:', result);
 
-      if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
-        const instances = result[0].AvailableInstances;
-        console.log('Found instances:', instances);
-        return instances;
+      if (!result || !Array.isArray(result)) {
+        console.log('No instances found in response');
+        return [];
       }
-      console.log('No instances found in response');
-      return [];
+
+      // Get details for each instance
+      const instances = [];
+      for (const instanceData of result) {
+        if (instanceData.InstanceID) {
+          try {
+            const status = await this.getInstanceStatus(instanceData.InstanceID);
+            instances.push({
+              InstanceID: instanceData.InstanceID,
+              FriendlyName: instanceData.FriendlyName || 'Unknown',
+              Running: status?.State === 'Running',
+              Status: status?.State || 'Unknown',
+              ActiveUsers: status?.Metrics?.['Active Users']?.RawValue || 0,
+              MaxUsers: status?.Metrics?.['Active Users']?.MaxValue || 0
+            });
+          } catch (error) {
+            console.error(`Error getting status for instance ${instanceData.InstanceID}:`, error);
+          }
+        }
+      }
+
+      return instances;
     } catch (error) {
       console.error('Failed to fetch instances:', error);
       throw error;
