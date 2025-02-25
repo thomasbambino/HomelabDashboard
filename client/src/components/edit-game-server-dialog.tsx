@@ -64,7 +64,12 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
 
   const updateMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateGameServerSchema.parse>[0]) => {
+      console.log("Submitting data:", data); // Debug log
       const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, data);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -76,6 +81,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
       onOpenChange(false);
     },
     onError: (error: Error) => {
+      console.error("Update error:", error); // Debug log
       toast({
         title: "Failed to update server",
         description: error.message,
@@ -181,7 +187,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
       setShowDeleteConfirm(false);
       onOpenChange(false);
       queryClient.removeQueries({ queryKey: [`/api/game-servers/${server.id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
       toast({
         title: "Server deleted",
         description: "The game server has been deleted successfully",
@@ -197,6 +203,22 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     },
   });
 
+  const onSubmit = async (data: Parameters<typeof updateGameServerSchema.parse>[0]) => {
+    try {
+      console.log("Form data before submission:", data); // Debug log
+      const validatedData = updateGameServerSchema.parse(data);
+      console.log("Validated data:", validatedData); // Debug log
+      await updateMutation.mutateAsync(validatedData);
+    } catch (error) {
+      console.error("Validation error:", error); // Debug log
+      toast({
+        title: "Validation Error",
+        description: "Please check all required fields",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,7 +232,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
           </DialogHeader>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
+              onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4"
               aria-label="Edit game server form"
             >
