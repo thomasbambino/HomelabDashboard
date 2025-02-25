@@ -272,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storedServers = await storage.getAllGameServers();
 
       // Map AMP instances to our game server format
-      const servers = await Promise.all(ampInstances.map(async (instance) => {
+      const servers = ampInstances.map(instance => {
         // Find existing stored server or create new one
         const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
           instanceId: instance.InstanceID,
@@ -283,63 +283,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           refreshInterval: 30
         };
 
-        // Extract metrics and other data
-        let cpuUsage = 0;
-        let memoryUsage = 0;
-        let maxMemory = 0;
+        // Get port from ApplicationEndpoints
         let port = '';
-
-        try {
-          const status = await ampService.getInstanceStatus(instance.InstanceID);
-          console.log(`Status for instance ${instance.InstanceID}:`, status);
-
-          if (status?.Metrics) {
-            cpuUsage = status.Metrics['CPU Usage']?.RawValue || 0;
-            memoryUsage = status.Metrics['Memory Usage']?.RawValue || 0;
-            maxMemory = status.Metrics['Memory Usage']?.MaxValue || 0;
-          }
-
-          // Extract port from ApplicationEndpoints
-          if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
-            const endpoint = instance.ApplicationEndpoints[0].Endpoint;
-            port = endpoint.split(':')[1];
-          }
-
-          // Create response object with all data
-          const serverData = {
-            ...storedServer,
-            name: instance.FriendlyName,
-            type: instance.FriendlyName.toLowerCase().split(' ')[0],
-            status: instance.Running,
-            playerCount: instance.ActiveUsers,
-            maxPlayers: instance.MaxUsers,
-            cpuUsage,
-            memoryUsage,
-            maxMemory,
-            port,
-            lastStatusCheck: new Date()
-          };
-
-          console.log('Processed server data:', serverData);
-          return serverData;
-
-        } catch (error) {
-          console.error(`Failed to get metrics for instance ${instance.InstanceID}:`, error);
-          return {
-            ...storedServer,
-            name: instance.FriendlyName,
-            type: instance.FriendlyName.toLowerCase().split(' ')[0],
-            status: instance.Running,
-            playerCount: instance.ActiveUsers,
-            maxPlayers: instance.MaxUsers,
-            cpuUsage: 0,
-            memoryUsage: 0,
-            maxMemory: 0,
-            port: '',
-            lastStatusCheck: new Date()
-          };
+        if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
+          const endpoint = instance.ApplicationEndpoints[0].Endpoint;
+          port = endpoint.split(':')[1];
         }
-      }));
+
+        // Create response object with metrics data directly from instance
+        const serverData = {
+          ...storedServer,
+          name: instance.FriendlyName,
+          type: instance.FriendlyName.toLowerCase().split(' ')[0],
+          status: instance.Running,
+          playerCount: instance.Metrics?.['Active Users']?.RawValue || 0,
+          maxPlayers: instance.Metrics?.['Active Users']?.MaxValue || 0,
+          cpuUsage: instance.Metrics?.['CPU Usage']?.RawValue || 0,
+          memoryUsage: instance.Metrics?.['Memory Usage']?.RawValue || 0,
+          maxMemory: instance.Metrics?.['Memory Usage']?.MaxValue || 0,
+          port,
+          lastStatusCheck: new Date()
+        };
+
+        console.log('Processed server data:', serverData);
+        return serverData;
+      });
 
       // Only return non-hidden servers unless specifically requested
       const showHidden = req.query.showHidden === 'true';
@@ -851,7 +819,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add new route for service status logswith filtering
   app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);    try {      const filters: {
+    if (!req.isAuthenticated()) return res.sendStatus(401);    
+    try {      
+      const filters: {
         serviceId?: number;
         startDate?: Date;
         endDate?: Date;

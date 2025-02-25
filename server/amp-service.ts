@@ -6,17 +6,24 @@ interface AMPInstance {
   FriendlyName: string;
   Running: boolean;
   Status: string;
-  ActiveUsers: number;
-  MaxUsers: number;
+  Metrics: {
+    'CPU Usage': {
+      RawValue: number;
+      MaxValue: number;
+    };
+    'Memory Usage': {
+      RawValue: number;
+      MaxValue: number;
+    };
+    'Active Users': {
+      RawValue: number;
+      MaxValue: number;
+    };
+  };
   ApplicationEndpoints?: Array<{
     DisplayName: string;
     Endpoint: string;
   }>;
-  Metrics?: {
-    'CPU Usage'?: { RawValue: number; MaxValue: number };
-    'Memory Usage'?: { RawValue: number; MaxValue: number };
-    'Active Users'?: { RawValue: number; MaxValue: number };
-  };
 }
 
 export class AMPService {
@@ -123,8 +130,15 @@ export class AMPService {
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
         const instances = result[0].AvailableInstances;
-        console.log('Found instances:', instances);
-        return instances;
+        console.log('Found instances with metrics:', instances);
+        return instances.map(instance => ({
+          ...instance,
+          Metrics: instance.Metrics || {
+            'CPU Usage': { RawValue: 0, MaxValue: 100 },
+            'Memory Usage': { RawValue: 0, MaxValue: 0 },
+            'Active Users': { RawValue: 0, MaxValue: 0 }
+          }
+        }));
       }
       console.log('No instances found in response');
       return [];
