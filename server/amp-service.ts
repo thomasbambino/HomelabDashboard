@@ -8,6 +8,15 @@ interface AMPInstance {
   Status: string;
   ActiveUsers: number;
   MaxUsers: number;
+  ApplicationEndpoints?: Array<{
+    DisplayName: string;
+    Endpoint: string;
+  }>;
+  Metrics?: {
+    'CPU Usage'?: { RawValue: number; MaxValue: number };
+    'Memory Usage'?: { RawValue: number; MaxValue: number };
+    'Active Users'?: { RawValue: number; MaxValue: number };
+  };
 }
 
 export class AMPService {

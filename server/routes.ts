@@ -294,10 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Status for instance ${instance.InstanceID}:`, status);
 
           if (status?.Metrics) {
-            // Extract CPU usage
             cpuUsage = status.Metrics['CPU Usage']?.RawValue || 0;
-
-            // Extract memory usage
             memoryUsage = status.Metrics['Memory Usage']?.RawValue || 0;
             maxMemory = status.Metrics['Memory Usage']?.MaxValue || 0;
           }
@@ -308,20 +305,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             port = endpoint.split(':')[1];
           }
 
-          // Use the instance data directly for player counts
-          return {
+          // Create response object with all data
+          const serverData = {
             ...storedServer,
             name: instance.FriendlyName,
             type: instance.FriendlyName.toLowerCase().split(' ')[0],
             status: instance.Running,
-            playerCount: instance.ActiveUsers || 0,
-            maxPlayers: instance.MaxUsers || 0,
+            playerCount: instance.ActiveUsers,
+            maxPlayers: instance.MaxUsers,
             cpuUsage,
             memoryUsage,
             maxMemory,
             port,
             lastStatusCheck: new Date()
           };
+
+          console.log('Processed server data:', serverData);
+          return serverData;
+
         } catch (error) {
           console.error(`Failed to get metrics for instance ${instance.InstanceID}:`, error);
           return {
@@ -329,8 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: instance.FriendlyName,
             type: instance.FriendlyName.toLowerCase().split(' ')[0],
             status: instance.Running,
-            playerCount: instance.ActiveUsers || 0,
-            maxPlayers: instance.MaxUsers || 0,
+            playerCount: instance.ActiveUsers,
+            maxPlayers: instance.MaxUsers,
             cpuUsage: 0,
             memoryUsage: 0,
             maxMemory: 0,
@@ -344,6 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const showHidden = req.query.showHidden === 'true';
       const filteredServers = showHidden ? servers : servers.filter(s => !s.hidden);
 
+      console.log('Sending filtered servers:', filteredServers);
       res.json(filteredServers);
     } catch (error) {
       console.error('Error fetching game servers:', error);
@@ -849,8 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add new route for service status logswith filtering
   app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);    try {
-      const filters: {
+    if (!req.isAuthenticated()) return res.sendStatus(401);    try {      const filters: {
         serviceId?: number;
         startDate?: Date;
         endDate?: Date;
