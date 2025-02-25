@@ -29,8 +29,8 @@ function Router() {
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <div className="min-h-screen bg-background text-foreground">
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen bg-background text-foreground">
           <AuthProvider>
             <ChatProvider>
               <FaviconUpdater />
@@ -41,8 +41,8 @@ function App() {
               <Toaster />
             </ChatProvider>
           </AuthProvider>
-        </QueryClientProvider>
-      </div>
+        </div>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
