@@ -6,10 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useTheme as useNextTheme } from "next-themes"
+import { useTheme } from "next-themes"
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useNextTheme()
+  const { setTheme } = useTheme()
 
   return (
     <DropdownMenu>
