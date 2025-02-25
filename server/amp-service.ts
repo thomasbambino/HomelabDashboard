@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import https from 'https';
 
 interface AMPInstance {
@@ -45,11 +45,11 @@ export class AMPService {
   }
 
   private async callAPI(endpoint: string, parameters: any = {}) {
-    console.log(`Calling API endpoint: ${endpoint} with parameters:`, {...parameters, password: '[REDACTED]'});
-
     if (this.sessionId) {
       parameters.SESSIONID = this.sessionId;
     }
+
+    console.log(`Calling API endpoint: ${endpoint} with parameters:`, {...parameters, password: '[REDACTED]'});
 
     try {
       const response = await axios.post(
@@ -105,7 +105,7 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log('Fetching AMP instances');
-      const result = await this.callAPI('ADSModule/GetInstances');
+      const result = await this.callAPI('ADSModule/GetInstances', {});
       console.log('Raw instance response:', result);
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
@@ -121,18 +121,14 @@ export class AMPService {
     }
   }
 
-  private async callInstanceAPI(instanceId: string, endpoint: string, parameters: any = {}) {
+  async startInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    const instanceUrl = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/${endpoint}`;
-    console.log(`Calling instance API: ${instanceUrl}`);
+    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Start`;
+    console.log(`Starting instance ${instanceId} at URL: ${url}`);
 
     try {
-      const response = await axios.post(
-        instanceUrl,
-        {
-          ...parameters,
-          SESSIONID: this.sessionId
-        },
+      const response = await axios.post(url, 
+        { SESSIONID: this.sessionId },
         {
           headers: {
             'Accept': 'text/javascript',
@@ -140,35 +136,90 @@ export class AMPService {
           }
         }
       );
-      return response.data;
+      console.log('Start instance response:', response.data);
     } catch (error) {
-      console.error(`Instance API call failed for ${endpoint}:`, error);
+      console.error(`Failed to start instance ${instanceId}:`, error);
       throw error;
     }
   }
 
-  async startInstance(instanceId: string): Promise<void> {
-    console.log(`Starting instance ${instanceId}`);
-    await this.callInstanceAPI(instanceId, 'Core/Start');
-  }
-
   async stopInstance(instanceId: string): Promise<void> {
-    console.log(`Stopping instance ${instanceId}`);
-    await this.callInstanceAPI(instanceId, 'Core/Stop');
+    await this.ensureAuthenticated();
+    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Stop`;
+    console.log(`Stopping instance ${instanceId} at URL: ${url}`);
+
+    try {
+      const response = await axios.post(url,
+        { SESSIONID: this.sessionId },
+        {
+          headers: {
+            'Accept': 'text/javascript',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      console.log('Stop instance response:', response.data);
+    } catch (error) {
+      console.error(`Failed to stop instance ${instanceId}:`, error);
+      throw error;
+    }
   }
 
   async restartInstance(instanceId: string): Promise<void> {
+    await this.ensureAuthenticated();
+    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Restart`;
     console.log(`Restarting instance ${instanceId}`);
-    await this.callInstanceAPI(instanceId, 'Core/Restart');
+
+    try {
+      const response = await axios.post(url,
+        { SESSIONID: this.sessionId },
+        {
+          headers: {
+            'Accept': 'text/javascript',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      console.log('Restart instance response:', response.data);
+    } catch (error) {
+      console.error(`Failed to restart instance ${instanceId}:`, error);
+      throw error;
+    }
   }
 
   async killInstance(instanceId: string): Promise<void> {
+    await this.ensureAuthenticated();
+    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/Kill`;
     console.log(`Killing instance ${instanceId}`);
-    await this.callInstanceAPI(instanceId, 'Core/Kill');
-  }
 
+    try {
+      const response = await axios.post(url,
+        { SESSIONID: this.sessionId },
+        {
+          headers: {
+            'Accept': 'text/javascript',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      console.log('Kill instance response:', response.data);
+    } catch (error) {
+      console.error(`Failed to kill instance ${instanceId}:`, error);
+      throw error;
+    }
+  }
   async getInstanceStatus(instanceId: string): Promise<any> {
-    return this.callInstanceAPI(instanceId, 'Core/GetStatus');
+    await this.ensureAuthenticated();
+    const url = `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/Core/GetStatus`;
+    return axios.post(url,
+      { SESSIONID: this.sessionId },
+      {
+        headers: {
+          'Accept': 'text/javascript',
+          'Content-Type': 'application/json',
+        }
+      }
+    ).then(response => response.data);
   }
 
   async getMetrics(instanceId: string): Promise<{
@@ -178,8 +229,7 @@ export class AMPService {
     Memory: [string, string];
     Uptime: string;
   }> {
-    await this.ensureAuthenticated();
-    const result = await this.callInstanceAPI(instanceId, 'Core/GetStatus');
+    const result = await this.getInstanceStatus(instanceId);
 
     if (!result) {
       return {
