@@ -10,7 +10,11 @@ type ChatContextType = {
   error: Error | null;
 };
 
-const ChatContext = createContext<ChatContextType | null>(null);
+const ChatContext = createContext<ChatContextType>({
+  chatClient: null,
+  loading: true,
+  error: null
+});
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chatClient, setChatClient] = useState<StreamChat<DefaultStreamChatGenerics> | null>(null);
@@ -20,7 +24,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // Only fetch token if user is logged in
   const { data: chatToken } = useQuery({
-    queryKey: ['/api/chat/token', user?.id], // Add user.id to query key to ensure fresh data
+    queryKey: ['/api/chat/token', user?.id],
     enabled: !!user,
   });
 
@@ -29,46 +33,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     const initChat = async () => {
       if (!user) {
-        console.log('No user logged in');
         setLoading(false);
         return;
       }
 
       if (!chatToken) {
-        console.log('Waiting for chat token...');
         return;
       }
 
       const apiKey = import.meta.env.VITE_STREAM_API_KEY;
-      console.log('Environment variables:', {
-        VITE_STREAM_API_KEY: apiKey,
-        hasKey: !!apiKey,
-        user: {
-          id: user.id,
-          id_type: typeof user.id,
-          id_string: user.id.toString()
-        },
-        token: chatToken.token
-      });
-
       if (!apiKey) {
-        console.error('Stream API key not found');
         setError(new Error('Stream API key not configured'));
         setLoading(false);
         return;
       }
 
       try {
-        // Cleanup any existing client first
         if (chatClient) {
           await chatClient.disconnectUser();
           setChatClient(null);
         }
 
-        console.log('Initializing Stream Chat client with API key:', apiKey);
         client = StreamChat.getInstance<DefaultStreamChatGenerics>(apiKey);
-
-        // Map application roles to Stream Chat roles
         const streamRole = user.role === 'admin' ? 'admin' : 'user';
 
         const userData = {
@@ -77,11 +63,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           role: streamRole
         };
 
-        console.log('Connecting user:', userData);
-
         await client.connectUser(userData, chatToken.token);
-
-        console.log('Successfully connected to Stream Chat');
         setChatClient(client);
         setError(null);
       } catch (error) {
@@ -99,13 +81,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     return () => {
       if (client) {
-        console.log('Cleaning up Stream Chat client');
         client.disconnectUser().then(() => {
           setChatClient(null);
         });
       }
     };
-  }, [user, chatToken]); // Only depend on user and chatToken
+  }, [user, chatToken]);
 
   return (
     <ChatContext.Provider value={{ chatClient, loading, error }}>

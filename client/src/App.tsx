@@ -28,10 +28,10 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-background text-foreground">
-          <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
+          <div className="min-h-screen bg-background text-foreground">
             <ChatProvider>
               <FaviconUpdater />
               <div className="fixed bottom-4 right-4 z-50">
@@ -40,10 +40,10 @@ function App() {
               <Router />
               <Toaster />
             </ChatProvider>
-          </AuthProvider>
-        </div>
-      </QueryClientProvider>
-    </ThemeProvider>
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
