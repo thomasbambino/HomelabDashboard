@@ -217,8 +217,10 @@ export class AMPService {
     Uptime: string;
   }> {
     const result = await this.getInstanceStatus(instanceId);
+    console.log('Raw metrics result:', result);
 
-    if (!result) {
+    if (!result || !result.Metrics) {
+      console.log(`No metrics available for instance ${instanceId}`);
       return {
         TPS: '0',
         Users: ['0', '0'],
@@ -228,19 +230,23 @@ export class AMPService {
       };
     }
 
-    return {
+    // Extract metrics with proper type conversion
+    const metrics = {
       TPS: result.State?.toString() || '0',
       Users: [
-        result.Metrics?.['Active Users']?.RawValue?.toString() || '0',
-        result.Metrics?.['Active Users']?.MaxValue?.toString() || '0'
+        result.Metrics['Active Users']?.RawValue?.toString() || '0',
+        result.Metrics['Active Users']?.MaxValue?.toString() || '0'
       ],
-      CPU: result.Metrics?.['CPU Usage']?.RawValue?.toString() || '0',
+      CPU: result.Metrics['CPU Usage']?.RawValue?.toString() || '0',
       Memory: [
-        result.Metrics?.['Memory Usage']?.RawValue?.toString() || '0',
-        result.Metrics?.['Memory Usage']?.MaxValue?.toString() || '0'
+        result.Metrics['Memory Usage']?.RawValue?.toString() || '0',
+        result.Metrics['Memory Usage']?.MaxValue?.toString() || '0'
       ],
       Uptime: result.Uptime?.toString() || '0'
     };
+
+    console.log('Formatted metrics:', metrics);
+    return metrics;
   }
 
   async getSystemInfo(): Promise<any> {
