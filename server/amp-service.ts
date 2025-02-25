@@ -270,6 +270,29 @@ export class AMPService {
   async killInstance(instanceId: string): Promise<void> {
     await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
   }
+
+  async getAvailableAPIMethods(): Promise<any> {
+    try {
+      console.log('Attempting to get API specification...');
+      // Try to get the API specification
+      const apiSpec = await this.callAPI('Core/GetAPISpec', {});
+      console.log('Available API methods:', apiSpec);
+      return apiSpec;
+    } catch (error) {
+      console.error('Failed to get API specification:', error);
+
+      // If GetAPISpec also doesn't exist, try a different approach
+      try {
+        console.log('Trying to get module info instead...');
+        const moduleInfo = await this.callAPI('Core/GetModuleInfo', {});
+        console.log('Module info (might contain API hints):', moduleInfo);
+        return moduleInfo;
+      } catch (innerError) {
+        console.error('Also failed to get module info:', innerError);
+        throw new Error('Cannot determine available API methods');
+      }
+    }
+  }
 }
 
 export const ampService = new AMPService();

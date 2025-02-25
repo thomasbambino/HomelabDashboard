@@ -535,19 +535,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('AMP URL:', process.env.AMP_API_URL);
       console.log('Username configured:', !!process.env.AMP_API_USERNAME);
 
-      // Get system info
-      const systemInfo = await ampService.getSystemInfo();
-      console.log('System info:', systemInfo);
+      // Try to get available API methods
+      const apiMethods = await ampService.getAvailableAPIMethods();
+      console.log('Available API methods:', apiMethods);
 
-      // Get API spec
-      const apiSpec = await ampService.getAPISpec();
-      console.log('API spec available:', !!apiSpec);
-
-      // Get module info
-      const moduleInfo = await ampService.getModuleInfo();
-      console.log('Module info:', moduleInfo);
-
-      // Test AMP connection
+      // Get instance information
       const instances = await ampService.getInstances();
 
       res.json({
@@ -555,11 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "AMP connection test completed",
         instanceCount: instances.length,
         instances: instances,
-        systemInfo: systemInfo,
-        moduleInfo: moduleInfo,
-        availableEndpoints: Object.values(apiSpec || {})
-          .map(method => method.Name)
-          .filter(name => name.toLowerCase().includes('instance'))
+        availableAPIMethods: apiMethods
       });
     } catch (error) {
       console.error('AMP test endpoint error:', error);
@@ -865,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Returning logs count:', logsWithServiceDetails.length);
       res.json(logsWithServiceDetails);
     } catch (error) {
-      console.error('Error fetching status logs:', error);
+      console.error('Error fetching statuslogs:', error);
       res.status(500).json({ message: "Failed to fetch status logs" });
     }
   });
