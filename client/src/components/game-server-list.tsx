@@ -3,15 +3,10 @@ import { GameServer } from "@shared/schema";
 import { GameServerCard } from "./game-server-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
 
 export function GameServerList() {
-  const [showHidden, setShowHidden] = useState(false);
-
   const { data: servers, error, isLoading } = useQuery<GameServer[]>({
-    queryKey: ["/api/game-servers", { showHidden }],
+    queryKey: ["/api/game-servers"],
   });
 
   if (isLoading) {
@@ -29,15 +24,6 @@ export function GameServerList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="show-hidden"
-          checked={showHidden}
-          onCheckedChange={setShowHidden}
-        />
-        <Label htmlFor="show-hidden">Show hidden servers</Label>
-      </div>
-      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {servers?.map((server) => (
           <GameServerCard key={server.instanceId} server={server} />

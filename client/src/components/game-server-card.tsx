@@ -2,10 +2,9 @@ import { GameServer } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface Settings {
@@ -19,29 +18,13 @@ interface GameServerCardProps {
 
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const isAdmin = user?.role === 'admin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const toggleVisibilityMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/hide`, {
-        hidden: !server.hidden,
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
-      toast({
-        title: server.hidden ? "Server visible" : "Server hidden",
-        description: `The game server is now ${server.hidden ? "visible" : "hidden"} from the dashboard`,
-      });
-    },
-  });
+  // Convert MB to GB with 2 decimal places
+  const mbToGb = (mb: number) => (mb / 1024).toFixed(2);
 
   const copyServerAddress = async (port: string) => {
     const serverAddress = `https://game.stylus.services:${port}`;
@@ -51,9 +34,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
       description: "Server address copied to clipboard",
     });
   };
-
-  // Convert MB to GB with 2 decimal places
-  const mbToGb = (mb: number) => (mb / 1024).toFixed(2);
 
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
@@ -84,20 +64,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
             >
               {server.status ? "Online" : "Offline"}
             </Badge>
-          )}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => toggleVisibilityMutation.mutate()}
-              disabled={toggleVisibilityMutation.isPending}
-            >
-              {server.hidden ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="h-4 w-4" />
-              )}
-            </Button>
           )}
         </div>
       </CardHeader>
