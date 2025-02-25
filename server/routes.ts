@@ -528,142 +528,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update the AMP test endpoint
-  app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const filters: {
-        serviceId?: number;
-        startDate?: Date;
-        endDate?: Date;
-        status?: boolean;
-      } = {};
-
-      console.log('Raw query params:', req.query);
-
-      // Parse serviceId
-      if (req.query.serviceId) {
-        const serviceId = parseInt(req.query.serviceId as string);
-        if (!isNaN(serviceId)) {
-          filters.serviceId = serviceId;
-          console.log('Parsed serviceId:', filters.serviceId);
-        }
-      }
-
-      // Parse status
-      if (req.query.status) {
-        filters.status = req.query.status === 'true';
-        console.log('Parsed status:', filters.status);
-      }
-
-      // Parse dates
-      if (req.query.startDate) {
-        filters.startDate = new Date(req.query.startDate as string);
-      }
-
-      if (req.query.endDate) {
-        filters.endDate = new Date(req.query.endDate as string);
-      }
-
-      console.log('Final filters:', filters);
-
-      const logs = await storage.getServiceStatusLogs(filters);
-
-      // Fetch service details for each log and combine with log data
-      const logsWithServiceDetails = await Promise.all(
-        logs.map(async (log) => {
-          const service = await storage.getService(log.serviceId);
-          return { ...log, service };
-        })
-      );
-
-      console.log('Returning logs count:', logsWithServiceDetails.length);
-      res.json(logsWithServiceDetails);
-    } catch (error) {
-      console.error('Error fetching status logs:', error);
-      res.status(500).json({ message: "Failed to fetch status logs" });
-    }
-  });
-  // Inside /api/register route
-  app.post("/api/register", async (req, res) => {
-    if (req.isAuthenticated()) {
-      return res.status(400).json({ message: "Already logged in" });
-    }
-
-    try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const user = await storage.createUser({
-        ...req.body,
-        role: 'user',
-        approved: true,
-      });
-
-      // Add user to public chat room
-      await storage.addUserToPublicRoom(user.id);
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login error after registration:", err);
-          return res.status(500).json({ message: "Error during login" });
-        }
-        res.json(user);
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Error creating user" });
-    }
-  });
-
-  app.post("/api/update-amp-credentials", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { amp_url, amp_username, amp_password } = req.body;
-
-      // Basic validation
-      if (!amp_url || !amp_username || !amp_password) {
-        return res.status(400).json({ message: "Missing required credentials" });
-      }
-
-      // Update environment variables
-      process.env.AMP_API_URL = amp_url;
-      process.env.AMP_API_USERNAME = amp_username;
-      process.env.AMP_API_PASSWORD = amp_password;
-
-      // Reinitialize the AMP service with new credentials
-      ampService.reinitialize(amp_url, amp_username, amp_password);
-
-      // Test the new credentials
-      try {
-        console.log('Testing new AMP credentials...');
-        console.log('Using URL:', amp_url);
-        console.log('Using username:', amp_username);
-        const systemInfo = await ampService.getSystemInfo();
-        console.log('Updated credentials test - System info:', systemInfo);
-        res.json({ message: "AMP credentials updated successfully" });
-      } catch (error) {
-        console.error('Error testing new credentials:', error);
-
-        // Extract the specific error message if available
-        let errorMessage = "Failed to connect with new credentials";
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-
-        res.status(400).json({ 
-          message: "Failed to connect with new credentials",
-          error: errorMessage
-        });
-      }
-    } catch (error) {
-      console.error('Error updating AMP credentials:', error);
-      res.status(500).json({ message: "Failed to update AMP credentials" });
-    }
-  });
-
   app.get("/api/amp-test", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -694,8 +558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         systemInfo: systemInfo,
         moduleInfo: moduleInfo,
         availableEndpoints: Object.values(apiSpec || {})
-          .map((method: any) => method.Name)
-          .filter((name: string) => name.toLowerCase().includes('instance'))
+          .map(method => method.Name)
+          .filter(name => name.toLowerCase().includes('instance'))
       });
     } catch (error) {
       console.error('AMP test endpoint error:', error);
@@ -990,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const logs = await storage.getServiceStatusLogs(filters);
 
-      // Fetch service details for each log and combine with log data
+      //      // Fetch service details for each log
       const logsWithServiceDetails = await Promise.all(
         logs.map(async (log) => {
           const service = await storage.getService(log.serviceId);
@@ -1060,7 +924,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test the new credentials
       try {
         console.log('Testing new AMP credentials...');
-        console.log('Using URL:', amp_url);
         console.log('Using username:', amp_username);
         const systemInfo = await ampService.getSystemInfo();
         console.log('Updated credentials test - System info:', systemInfo);
@@ -1082,49 +945,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error updating AMP credentials:', error);
       res.status(500).json({ message: "Failed to update AMP credentials" });
-    }
-  });
-
-  app.get("/api/amp-test", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      console.log('Testing AMP connection...');
-      console.log('AMP URL:', process.env.AMP_API_URL);
-      console.log('Username configured:', !!process.env.AMP_API_USERNAME);
-
-      // Get system info
-      const systemInfo = await ampService.getSystemInfo();
-      console.log('System info:', systemInfo);
-
-      // Get API spec
-      const apiSpec = await ampService.getAPISpec();
-      console.log('API spec available:', !!apiSpec);
-
-      // Get module info
-      const moduleInfo = await ampService.getModuleInfo();
-      console.log('Module info:', moduleInfo);
-
-      // Test AMP connection
-      const instances = await ampService.getInstances();
-
-      res.json({
-        success: true,
-        message: "AMP connection test completed",
-        instanceCount: instances.length,
-        instances: instances,
-        systemInfo: systemInfo,
-        moduleInfo: moduleInfo,
-        availableEndpoints: Object.values(apiSpec || {})
-          .map((method: any) => method.Name)
-          .filter((name: string) => name.toLowerCase().includes('instance'))
-      });
-    } catch (error) {
-      console.error('AMP test endpoint error:', error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to connect to AMP",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

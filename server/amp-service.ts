@@ -18,7 +18,7 @@ export class AMPService {
   private sessionExpiry: Date | null = null;
 
   constructor() {
-    this.baseUrl = process.env.AMP_API_URL || '';
+    this.baseUrl = (process.env.AMP_API_URL || '').replace(/\/$/, '');
     this.username = process.env.AMP_API_USERNAME || '';
     this.password = process.env.AMP_API_PASSWORD || '';
 
@@ -30,7 +30,6 @@ export class AMPService {
       });
     }
 
-    // Configure axios for HTTPS
     axios.defaults.httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
@@ -38,30 +37,25 @@ export class AMPService {
 
   public reinitialize(url: string, username: string, password: string) {
     console.log('Reinitializing AMP service with new credentials');
-    this.baseUrl = url;
+    this.baseUrl = url.replace(/\/$/, '');
     this.username = username;
     this.password = password;
     this.sessionId = null;
     this.sessionExpiry = null;
   }
 
-  private async makeAPICall(endpoint: string, parameters: any = {}) {
+  private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      const url = `${this.baseUrl}/API/${endpoint}`;
-      console.log(`Making API call to ${url}`, { 
-        ...parameters, 
-        password: parameters.password ? '[REDACTED]' : undefined 
-      });
+      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
 
       const response = await axios.post(
-        url,
+        `${this.baseUrl}/API/${endpoint}`,
         parameters,
         {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-          },
-          timeout: 10000 // 10 second timeout
+          }
         }
       );
 
@@ -69,17 +63,9 @@ export class AMPService {
       return response.data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
-      if (axios.isAxiosError(error)) {
-        console.error('Error details:', {
-          url: error.config?.url,
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
-        if (error.code === 'ECONNREFUSED') {
-          throw new Error(`Failed to connect to AMP server at ${this.baseUrl}. Please check if the server is running and accessible.`);
-        }
-        throw new Error(`API call failed: ${error.response?.data?.message || error.message}`);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response:', error.response.data);
+        throw new Error(`API call failed: ${error.response.data.message || error.message}`);
       }
       throw error;
     }
@@ -92,29 +78,20 @@ export class AMPService {
         username: this.username,
         password: this.password,
         token: '',
-        rememberMe: false,
-        PreviousSession: null // Don't use previous session on fresh login
+        rememberMe: false
       };
 
-      console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
-      const response = await this.makeAPICall('Core/Login', loginData);
-      console.log('Login response:', response);
-
-      if (!response) {
-        throw new Error('No response received from login request');
+      const response = await this.makeAPICall('Core/Login', loginData, false);
+      if (response.sessionID) {
+        this.sessionId = response.sessionID;
+        this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        console.log('Login successful, session established');
+      } else {
+        throw new Error('No session ID in login response');
       }
-
-      if (!response.sessionID) {
-        console.error('Login response:', response);
-        throw new Error('No session ID in login response. Full response logged above.');
-      }
-
-      this.sessionId = response.sessionID;
-      this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      console.log('Login successful, session established');
     } catch (error) {
       console.error('Login failed:', error);
-      throw new Error(`Failed to authenticate with AMP server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 
@@ -126,34 +103,22 @@ export class AMPService {
 
   private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId });
+    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId }, true);
   }
 
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      const result = await this.callAPI('ADSModule/GetInstances');
+      const result = await this.callAPI('ADSModule/GetInstances', {});
       console.log('Raw instance response:', result);
 
-      if (!result || !Array.isArray(result)) {
-        console.error('Invalid response format:', result);
-        throw new Error('Invalid response format from AMP server');
+      if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
+        const instances = result[0].AvailableInstances;
+        console.log('Found instances:', instances);
+        return instances;
       }
-
-      if (result.length === 0) {
-        console.log('No instances found');
-        return [];
-      }
-
-      const firstNode = result[0];
-      if (!firstNode || !firstNode.AvailableInstances) {
-        console.error('Unexpected response structure:', firstNode);
-        throw new Error('Unexpected response structure from AMP server');
-      }
-
-      const instances = firstNode.AvailableInstances;
-      console.log('Found instances:', instances);
-      return instances;
+      console.log('No instances found in response');
+      return [];
     } catch (error) {
       console.error('Failed to fetch instances:', error);
       throw error;
@@ -279,33 +244,18 @@ export class AMPService {
   }
 
   async getSystemInfo(): Promise<any> {
-    try {
-      await this.ensureAuthenticated();
-      return await this.callAPI('Core/GetSystemInfo');
-    } catch (error) {
-      console.error('Failed to get system info:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetSystemInfo');
   }
 
   async getAPISpec(): Promise<any> {
-    try {
-      await this.ensureAuthenticated();
-      return await this.callAPI('Core/GetAPISpec');
-    } catch (error) {
-      console.error('Failed to get API spec:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetAPISpec');
   }
 
   async getModuleInfo(): Promise<any> {
-    try {
-      await this.ensureAuthenticated();
-      return await this.callAPI('Core/GetModuleInfo');
-    } catch (error) {
-      console.error('Failed to get module info:', error);
-      throw error;
-    }
+    await this.ensureAuthenticated();
+    return this.callAPI('Core/GetModuleInfo');
   }
 }
 
