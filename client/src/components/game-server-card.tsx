@@ -49,16 +49,20 @@ export function GameServerCard({ server }: GameServerCardProps) {
       const formData = new FormData();
       formData.append('image', file);
 
+      console.log('Uploading icon for server:', server.instanceId);
+
       const response = await fetch('/api/upload/game', {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload icon');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to upload icon');
       }
 
       const { url } = await response.json();
+      console.log('Icon uploaded successfully, URL:', url);
 
       // Find the server in storage first to get its database ID
       const serversResponse = await fetch('/api/game-servers');
@@ -72,14 +76,25 @@ export function GameServerCard({ server }: GameServerCardProps) {
         throw new Error('Server not found in database');
       }
 
+      console.log('Updating server with new icon:', storedServer.id);
+
       // Update the game server with the new icon URL
-      await apiRequest('PUT', `/api/game-servers/${storedServer.id}`, {
+      const updateResponse = await apiRequest('PUT', `/api/game-servers/${storedServer.id}`, {
         icon: url,
       });
 
+      if (!updateResponse.ok) {
+        const error = await updateResponse.json();
+        throw new Error(error.message || 'Failed to update server with new icon');
+      }
+
+      const updatedServer = await updateResponse.json();
+      console.log('Server updated successfully:', updatedServer);
+
       return url;
     },
-    onSuccess: () => {
+    onSuccess: (url) => {
+      console.log('Mutation completed successfully, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
       toast({
         title: "Success",
@@ -87,6 +102,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
       });
     },
     onError: (error) => {
+      console.error('Icon upload error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to upload icon",
