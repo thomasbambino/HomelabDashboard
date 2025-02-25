@@ -5,24 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,9 +14,10 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Loader2, Play, PowerOff, Trash2, RefreshCw, XCircle } from "lucide-react";
+import { Loader2, Play, PowerOff, RefreshCw, XCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface EditGameServerDialogProps {
   server: GameServer;
@@ -49,14 +33,19 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     resolver: zodResolver(updateGameServerSchema),
     defaultValues: {
       id: server.id,
+      instanceId: server.instanceId,
       name: server.name,
       displayName: server.displayName || "",
       type: server.type,
       icon: server.icon || "",
       background: server.background || "",
+      status: server.status,
+      playerCount: server.playerCount,
+      maxPlayers: server.maxPlayers,
+      hidden: server.hidden,
       refreshInterval: server.refreshInterval ?? 30,
-      show_player_count: server.show_player_count ?? false,
-      show_status_badge: server.show_status_badge ?? false,
+      show_player_count: server.show_player_count ?? true,
+      show_status_badge: server.show_status_badge ?? true,
       autoStart: server.autoStart ?? false,
     },
   });
@@ -209,9 +198,6 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
           <DialogHeader>
             <DialogTitle id="edit-server-title">Edit Game Server</DialogTitle>
           </DialogHeader>
-          <div id="edit-server-description" className="sr-only">
-            Edit the settings and appearance of your game server
-          </div>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))}
@@ -321,15 +307,9 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                         type="number"
                         min="5"
                         {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
-                        aria-labelledby="refresh-interval-label"
-                        aria-describedby="refresh-interval-description"
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
                       />
                     </FormControl>
-                    <div id="refresh-interval-description" className="sr-only">
-                      Set how often the server status should be checked, minimum 5 seconds
-                    </div>
                   </FormItem>
                 )}
               />
