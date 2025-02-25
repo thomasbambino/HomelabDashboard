@@ -46,7 +46,12 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomizeServerForm) => {
-      const res = await apiRequest("PATCH", `/api/game-servers/${server.id}/customize`, data);
+      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, {
+        ...data,
+        name: server.name, // Keep existing name
+        type: server.type, // Keep existing type
+        instanceId: server.instanceId, // Keep existing instanceId
+      });
       return res.json();
     },
     onSuccess: () => {
