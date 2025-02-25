@@ -50,7 +50,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
       formData.append('image', file);
       formData.append('instanceId', server.instanceId);
 
-      console.log('Uploading icon for server:', server.instanceId);
+      console.log('Uploading icon for server:', server.instanceId, server.name);
 
       const response = await fetch('/api/upload/game', {
         method: 'POST',
@@ -59,24 +59,25 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Upload error response:', error);
         throw new Error(error.message || 'Failed to upload icon');
       }
 
-      const { url } = await response.json();
-      console.log('Icon uploaded successfully, URL:', url);
+      const data = await response.json();
+      console.log('Upload response:', data);
 
-      return url;
+      return data.url;
     },
     onSuccess: (url) => {
-      console.log('Mutation completed successfully, invalidating queries');
+      console.log('Icon upload successful for server:', server.name, 'URL:', url);
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
       toast({
         title: "Success",
-        description: "Server icon updated successfully",
+        description: `Icon updated for ${server.name}`,
       });
     },
     onError: (error) => {
-      console.error('Icon upload error:', error);
+      console.error('Icon upload error for server:', server.name, error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to upload icon",
@@ -88,6 +89,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
   const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Handling icon upload for server:', server.name, server.instanceId);
       uploadIconMutation.mutate(file);
     }
   };
@@ -167,11 +169,11 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div className="relative">
               <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
               {isAdmin && (
-                <label htmlFor={`icon-upload-${server.id}`} className="absolute -bottom-1 -right-1 cursor-pointer">
+                <label htmlFor={`icon-upload-${server.instanceId}`} className="absolute -bottom-1 -right-1 cursor-pointer">
                   <Upload className="h-3 w-3" />
                   <input
                     type="file"
-                    id={`icon-upload-${server.id}`}
+                    id={`icon-upload-${server.instanceId}`}
                     className="hidden"
                     accept="image/png,image/jpeg"
                     onChange={handleIconUpload}
@@ -181,11 +183,11 @@ export function GameServerCard({ server }: GameServerCardProps) {
               )}
             </div>
           ) : isAdmin ? (
-            <label htmlFor={`icon-upload-${server.id}`} className="cursor-pointer">
+            <label htmlFor={`icon-upload-${server.instanceId}`} className="cursor-pointer">
               <span className="text-xl">🎮</span>
               <input
                 type="file"
-                id={`icon-upload-${server.id}`}
+                id={`icon-upload-${server.instanceId}`}
                 className="hidden"
                 accept="image/png,image/jpeg"
                 onChange={handleIconUpload}

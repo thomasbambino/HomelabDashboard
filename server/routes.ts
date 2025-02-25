@@ -839,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('Chat server not found for broadcasting');
       }
 
-            res.status(201).json(messageWithSender);
+      res.status(201).json(messageWithSender);
     } catch (error) {
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
