@@ -310,11 +310,46 @@ export class AMPService {
 
   async getActivePlayerCount(instanceId: string): Promise<number> {
     try {
+      // Try getting count from user list first
+      const userList = await this.getUserList(instanceId);
+      if (userList.length > 0) {
+        return userList.length;
+      }
+
+      // Fall back to metrics if user list is empty
       const metrics = await this.getMetrics(instanceId);
       return parseInt(metrics.Users[0]) || 0;
     } catch (error) {
       console.error(`Failed to get active player count for instance ${instanceId}:`, error);
       return 0;
+    }
+  }
+
+  async debugPlayerCount(instanceId: string): Promise<void> {
+    try {
+      console.log(`\n=== Debug Player Count for Instance ${instanceId} ===`);
+
+      // Method 1: Get count from metrics
+      console.log('\n1. Getting count from metrics:');
+      const metrics = await this.getMetrics(instanceId);
+      console.log('Raw metrics response:', metrics);
+      console.log('Users from metrics:', metrics.Users);
+      const metricsCount = parseInt(metrics.Users[0]) || 0;
+      console.log('Parsed metrics count:', metricsCount);
+
+      // Method 2: Get count from user list
+      console.log('\n2. Getting count from user list:');
+      const userList = await this.getUserList(instanceId);
+      console.log('Raw user list:', userList);
+      console.log('User list count:', userList.length);
+
+      // Get full instance status for comparison
+      console.log('\n3. Getting full instance status:');
+      const status = await this.getInstanceStatus(instanceId);
+      console.log('Full instance status:', JSON.stringify(status, null, 2));
+
+    } catch (error) {
+      console.error('Debug operation failed:', error);
     }
   }
 }
