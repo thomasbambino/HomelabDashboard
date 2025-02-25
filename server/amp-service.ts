@@ -234,18 +234,17 @@ export class AMPService {
       }
 
       // Extract metrics with proper null/undefined checking
-      // This matches the Python implementation in how it extracts metrics
       const metrics = {
         TPS: String(result.State || '0'),
         Users: [
           String(result.Metrics['Active Users']?.RawValue || '0'),
           String(result.Metrics['Active Users']?.MaxValue || '0')
-        ],
+        ] as [string, string],
         CPU: String(result.Metrics['CPU Usage']?.RawValue || '0'),
         Memory: [
           String(result.Metrics['Memory Usage']?.RawValue || '0'),
           String(result.Metrics['Memory Usage']?.MaxValue || '0')
-        ],
+        ] as [string, string],
         Uptime: String(result.Uptime || '00:00:00')
       };
 
@@ -256,9 +255,9 @@ export class AMPService {
       // Return default values in case of error
       return {
         TPS: '0',
-        Users: ['0', '0'],
+        Users: ['0', '0'] as [string, string],
         CPU: '0',
-        Memory: ['0', '0'],
+        Memory: ['0', '0'] as [string, string],
         Uptime: '00:00:00'
       };
     }
@@ -277,6 +276,46 @@ export class AMPService {
   async getModuleInfo(): Promise<any> {
     await this.ensureAuthenticated();
     return this.callAPI('Core/GetModuleInfo');
+  }
+
+  async getUserList(instanceId: string): Promise<string[]> {
+    try {
+      console.log(`Getting user list for instance ${instanceId}`);
+
+      // Call the GetUserList API endpoint
+      const result = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetUserList`, {});
+      console.log('Raw user list response:', result);
+
+      // Handle empty or invalid responses
+      if (!result || typeof result !== 'object') {
+        console.log(`No valid user list returned for instance ${instanceId}`);
+        return [];
+      }
+
+      // Extract the values into an array
+      const userList: string[] = [];
+      for (const key in result) {
+        if (Object.prototype.hasOwnProperty.call(result, key)) {
+          userList.push(result[key]);
+        }
+      }
+
+      console.log(`Found ${userList.length} active players:`, userList);
+      return userList;
+    } catch (error) {
+      console.error(`Failed to get user list for instance ${instanceId}:`, error);
+      return [];
+    }
+  }
+
+  async getActivePlayerCount(instanceId: string): Promise<number> {
+    try {
+      const metrics = await this.getMetrics(instanceId);
+      return parseInt(metrics.Users[0]) || 0;
+    } catch (error) {
+      console.error(`Failed to get active player count for instance ${instanceId}:`, error);
+      return 0;
+    }
   }
 }
 
