@@ -39,7 +39,7 @@ async function updateServiceStatus(service: Service) {
   // Skip check if service was checked recently based on its refreshInterval
   const cachedStatus = statusCache.get(service.id);
   const now = Date.now();
-  if (cachedStatus && 
+  if (cachedStatus && service.refreshInterval && 
       (now - cachedStatus.lastCheck) < (service.refreshInterval * 1000)) {
     return;
   }
@@ -92,7 +92,23 @@ async function updateServiceStatus(service: Service) {
 }
 
 // Rate limit concurrent service checks
-async function checkServicesWithRateLimit(services: Service[], batchSize: number = 3) {
+async function checkServicesWithRateLimit(services: Service[], gameServers: GameServer[], batchSize: number = 3) {
+  // First check game servers as they need more frequent updates
+  for (const server of gameServers) {
+    if (!server.hidden && (!server.lastStatusCheck || 
+        Date.now() - server.lastStatusCheck.getTime() >= (server.refreshInterval || 30) * 1000)) {
+      try {
+        await storage.updateGameServer({
+          id: server.id,
+          lastStatusCheck: new Date()
+        });
+      } catch (error) {
+        console.error(`Error updating game server ${server.name}:`, error);
+      }
+    }
+  }
+
+  // Then check other services
   for (let i = 0; i < services.length; i += batchSize) {
     const batch = services.slice(i, i + batchSize);
     await Promise.all(batch.map(updateServiceStatus));
@@ -108,19 +124,21 @@ export async function startServiceChecker() {
   // Initial check
   try {
     const allServices = await db.select().from(services);
-    console.log(`Found ${allServices.length} services to check`);
-    await checkServicesWithRateLimit(allServices);
+    const allGameServers = await db.select().from(gameServers);
+    console.log(`Found ${allServices.length} services and ${allGameServers.length} game servers to check`);
+    await checkServicesWithRateLimit(allServices, allGameServers);
   } catch (error) {
     console.error('Error in initial service check:', error);
   }
 
-  // Check services at their specified intervals
+  // Check services and game servers more frequently
   setInterval(async () => {
     try {
       const allServices = await db.select().from(services);
-      await checkServicesWithRateLimit(allServices);
+      const allGameServers = await db.select().from(gameServers);
+      await checkServicesWithRateLimit(allServices, allGameServers);
     } catch (error) {
       console.error('Error checking services:', error);
     }
-  }, 10000); // Base interval of 10 seconds, individual service checks controlled by refreshInterval
+  }, 5000); // Base interval of 5 seconds, individual checks controlled by refreshInterval
 }
