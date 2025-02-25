@@ -204,6 +204,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
         <DialogContent
           aria-labelledby="edit-server-title"
           aria-describedby="edit-server-description"
+          className="max-h-[90vh] overflow-y-auto"
         >
           <DialogHeader>
             <DialogTitle id="edit-server-title">Edit Game Server</DialogTitle>
@@ -383,86 +384,88 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                   </FormItem>
                 )}
               />
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => startServerMutation.mutate()}
-                  disabled={startServerMutation.isPending || !server.instanceId}
-                  aria-label="Start server"
-                >
-                  {startServerMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                  Start
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => stopServerMutation.mutate()}
-                  disabled={stopServerMutation.isPending || !server.instanceId}
-                  aria-label="Stop server"
-                >
-                  {stopServerMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <PowerOff className="h-4 w-4" />
-                  )}
-                  Stop
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => restartServerMutation.mutate()}
-                  disabled={restartServerMutation.isPending || !server.instanceId}
-                  aria-label="Restart server"
-                >
-                  {restartServerMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  Restart
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => killServerMutation.mutate()}
-                  disabled={killServerMutation.isPending || !server.instanceId}
-                  aria-label="Kill server"
-                >
-                  {killServerMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <XCircle className="h-4 w-4" />
-                  )}
-                  Kill
-                </Button>
-              </div>
-              <div className="flex justify-between gap-4">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={deleteMutation.isPending}
-                  aria-label="Delete server"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Delete Server
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={updateMutation.isPending}
-                  aria-label={updateMutation.isPending ? "Saving changes..." : "Save changes"}
-                >
-                  {updateMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  )}
-                  Save Changes
-                </Button>
+              <div className="sticky bottom-0 pt-4 bg-background">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => startServerMutation.mutate()}
+                    disabled={startServerMutation.isPending || !server.instanceId}
+                    aria-label="Start server"
+                  >
+                    {startServerMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                    Start
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => stopServerMutation.mutate()}
+                    disabled={stopServerMutation.isPending || !server.instanceId}
+                    aria-label="Stop server"
+                  >
+                    {stopServerMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PowerOff className="h-4 w-4" />
+                    )}
+                    Stop
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => restartServerMutation.mutate()}
+                    disabled={restartServerMutation.isPending || !server.instanceId}
+                    aria-label="Restart server"
+                  >
+                    {restartServerMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    Restart
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => killServerMutation.mutate()}
+                    disabled={killServerMutation.isPending || !server.instanceId}
+                    aria-label="Kill server"
+                  >
+                    {killServerMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    Kill
+                  </Button>
+                </div>
+                <div className="flex justify-between gap-4 mt-4">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={deleteMutation.isPending}
+                    aria-label="Delete server"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                    Delete Server
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={updateMutation.isPending}
+                    aria-label={updateMutation.isPending ? "Saving changes..." : "Save changes"}
+                  >
+                    {updateMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    )}
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
