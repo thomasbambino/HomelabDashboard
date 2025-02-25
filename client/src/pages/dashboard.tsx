@@ -12,13 +12,27 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
-  const [isServersExpanded, setIsServersExpanded] = useState(false);
-  const [isServicesExpanded, setIsServicesExpanded] = useState(true);
+  const [isServersExpanded, setIsServersExpanded] = useState(() => {
+    const saved = localStorage.getItem('isServersExpanded');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [isServicesExpanded, setIsServicesExpanded] = useState(() => {
+    const saved = localStorage.getItem('isServicesExpanded');
+    return saved ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('isServersExpanded', JSON.stringify(isServersExpanded));
+  }, [isServersExpanded]);
+
+  useEffect(() => {
+    localStorage.setItem('isServicesExpanded', JSON.stringify(isServicesExpanded));
+  }, [isServicesExpanded]);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
