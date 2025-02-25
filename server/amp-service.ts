@@ -91,16 +91,22 @@ export class AMPService {
     this.sessionExpiry = null;
   }
 
-  private async callAPI(endpoint: string, parameters: any = {}) {
-    console.log(`Calling API endpoint: ${endpoint}`);
+  private async callAPI(endpoint: string, parameters: any = {}, instanceId?: string) {
+    console.log(`Calling API endpoint: ${endpoint} with instanceId: ${instanceId || 'none'}`);
 
     if (this.sessionId) {
       parameters.SESSIONID = this.sessionId;
     }
 
+    const apiUrl = instanceId 
+      ? `${this.baseUrl}/API/ADSModule/Servers/${instanceId}/API/${endpoint}`
+      : `${this.baseUrl}/API/${endpoint}`;
+
+    console.log('Full API URL:', apiUrl);
+
     try {
       const response = await axios.post(
-        `${this.baseUrl}/API/${endpoint}`,
+        apiUrl,
         parameters,
         {
           headers: {
@@ -112,7 +118,6 @@ export class AMPService {
 
       console.log(`API Response for ${endpoint}:`, response.data);
 
-      // Match example's error handling pattern
       if (response.data && typeof response.data === 'object') {
         if (response.data.Status === false) {
           throw new Error(response.data.Error || 'API call failed');
@@ -163,7 +168,6 @@ export class AMPService {
       console.log('Fetching AMP instances');
       const response = await this.callAPI('ADSModule/GetInstances');
 
-      // Handle the response structure as shown in the example code
       if (response && Array.isArray(response) && response.length > 0) {
         const instances = response[0].AvailableInstances || [];
         console.log('Found instances:', instances);
@@ -178,28 +182,27 @@ export class AMPService {
 
   async startInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI('Core/Start', {});
+    await this.callAPI('Core/Start', {}, instanceId);
   }
 
   async stopInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI('Core/Stop', {});
+    await this.callAPI('Core/Stop', {}, instanceId);
   }
 
   async restartInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI('Core/Restart', {});
+    await this.callAPI('Core/Restart', {}, instanceId);
   }
 
   async killInstance(instanceId: string): Promise<void> {
     await this.ensureAuthenticated();
-    await this.callAPI('Core/Kill', {});
+    await this.callAPI('Core/Kill', {}, instanceId);
   }
 
   async getInstanceStatus(instanceId: string): Promise<any> {
     await this.ensureAuthenticated();
-    const result = await this.callAPI('Core/GetStatus', {});
-    return result;
+    return this.callAPI('Core/GetStatus', {}, instanceId);
   }
 
   async getMetrics(instanceId: string): Promise<{
@@ -210,7 +213,7 @@ export class AMPService {
     Uptime: string;
   }> {
     await this.ensureAuthenticated();
-    const result = await this.callAPI('Core/GetStatus', {});
+    const result = await this.callAPI('Core/GetStatus', {}, instanceId);
 
     if (!result) {
       return {
