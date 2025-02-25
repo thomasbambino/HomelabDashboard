@@ -103,6 +103,13 @@ export function GameServerCard({ server }: GameServerCardProps) {
     },
   });
 
+  // Safe access to metrics with defaults
+  const playerCount = metrics?.Users?.[0] ? Number(metrics.Users[0]) : 0;
+  const maxPlayers = metrics?.Users?.[1] ? Number(metrics.Users[1]) : (server.maxPlayers || 0);
+  const tps = metrics?.TPS ? Number(metrics.TPS).toFixed(1) : '0.0';
+  const cpu = metrics?.CPU ? Number(metrics.CPU).toFixed(1) : '0.0';
+  const memoryGB = metrics?.Memory?.[0] ? (Number(metrics.Memory[0]) / 1024).toFixed(1) : '0.0';
+
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -169,10 +176,10 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Players</span>
-                <span>{metrics?.Users?.[0] || 0}/{metrics?.Users?.[1] || server.maxPlayers || 0}</span>
+                <span>{playerCount}/{maxPlayers}</span>
               </div>
               <Progress
-                value={((Number(metrics?.Users?.[0]) || 0) / (Number(metrics?.Users?.[1]) || server.maxPlayers || 1)) * 100}
+                value={(playerCount / (maxPlayers || 1)) * 100}
                 className="h-2"
               />
             </div>
@@ -182,15 +189,15 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div className="grid grid-cols-3 gap-2 mt-2">
               <div className="flex items-center gap-2 text-sm">
                 <Activity className="h-4 w-4" />
-                <span>TPS: {Number(metrics.TPS).toFixed(1)}</span>
+                <span>TPS: {tps}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Cpu className="h-4 w-4" />
-                <span>CPU: {Number(metrics.CPU).toFixed(1)}%</span>
+                <span>CPU: {cpu}%</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <HardDrive className="h-4 w-4" />
-                <span>RAM: {(Number(metrics.Memory[0]) / 1024).toFixed(1)}GB</span>
+                <span>RAM: {memoryGB}GB</span>
               </div>
             </div>
           )}
