@@ -282,25 +282,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           refreshInterval: 30
         };
 
-        // Get instance metrics for CPU and memory usage
+        // Extract metrics and other data
         let cpuUsage = 0;
         let memoryUsage = 0;
         let maxMemory = 0;
         let port = '';
+        let activeUsers = 0;
+        let maxUsers = 0;
 
         try {
           const status = await ampService.getInstanceStatus(instance.InstanceID);
+          console.log(`Status for instance ${instance.InstanceID}:`, status);
 
-          // Extract CPU usage
-          cpuUsage = status?.Metrics?.['CPU Usage']?.RawValue || 0;
+          if (status?.Metrics) {
+            // Extract CPU usage
+            cpuUsage = status.Metrics['CPU Usage']?.RawValue || 0;
 
-          // Extract memory usage
-          memoryUsage = status?.Metrics?.['Memory Usage']?.RawValue || 0;
-          maxMemory = status?.Metrics?.['Memory Usage']?.MaxValue || 0;
+            // Extract memory usage
+            memoryUsage = status.Metrics['Memory Usage']?.RawValue || 0;
+            maxMemory = status.Metrics['Memory Usage']?.MaxValue || 0;
 
-          // Extract active users
-          const activeUsers = status?.Metrics?.['Active Users']?.RawValue || 0;
-          const maxUsers = status?.Metrics?.['Active Users']?.MaxValue || 0;
+            // Extract active users
+            activeUsers = status.Metrics['Active Users']?.RawValue || 0;
+            maxUsers = status.Metrics['Active Users']?.MaxValue || 0;
+          }
 
           // Extract port from ApplicationEndpoints
           if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
@@ -311,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             ...storedServer,
             name: instance.FriendlyName,
-            type: instance.FriendlyName.toLowerCase().split(' ')[0], // Extract game type from name
+            type: instance.FriendlyName.toLowerCase().split(' ')[0],
             status: instance.Running,
             playerCount: activeUsers,
             maxPlayers: maxUsers,
@@ -323,7 +328,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         } catch (error) {
           console.error(`Failed to get metrics for instance ${instance.InstanceID}:`, error);
-          // Return default values if we fail to get metrics
           return {
             ...storedServer,
             name: instance.FriendlyName,
@@ -847,7 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new route for service status logs with filtering
+  // Add new route for service status logswith filtering
   app.get("/api/services/status-logs", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
