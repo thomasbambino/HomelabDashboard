@@ -167,10 +167,13 @@ export function GameServerCard({ server }: GameServerCardProps) {
         <div className="flex items-center gap-2">
           {server.icon ? (
             <div className="relative">
-              <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
-              {isAdmin && (
-                <label htmlFor={`icon-upload-${server.instanceId}`} className="absolute -bottom-1 -right-1 cursor-pointer">
-                  <Upload className="h-3 w-3" />
+              {isAdmin ? (
+                <label 
+                  htmlFor={`icon-upload-${server.instanceId}`} 
+                  className="cursor-pointer"
+                  title="Click to change icon"
+                >
+                  <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain hover:opacity-80 transition-opacity" />
                   <input
                     type="file"
                     id={`icon-upload-${server.instanceId}`}
@@ -180,14 +183,19 @@ export function GameServerCard({ server }: GameServerCardProps) {
                     disabled={uploadIconMutation.isPending}
                   />
                 </label>
+              ) : (
+                <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
               )}
             </div>
           ) : (
             <div className="relative">
-              <span className="text-xl">🎮</span>
-              {isAdmin && (
-                <label htmlFor={`icon-upload-${server.instanceId}`} className="absolute -bottom-1 -right-1 cursor-pointer">
-                  <Upload className="h-3 w-3" />
+              {isAdmin ? (
+                <label 
+                  htmlFor={`icon-upload-${server.instanceId}`} 
+                  className="cursor-pointer"
+                  title="Click to add icon"
+                >
+                  <span className="text-xl hover:opacity-80 transition-opacity">🎮</span>
                   <input
                     type="file"
                     id={`icon-upload-${server.instanceId}`}
@@ -197,6 +205,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
                     disabled={uploadIconMutation.isPending}
                   />
                 </label>
+              ) : (
+                <span className="text-xl">🎮</span>
               )}
             </div>
           )}
