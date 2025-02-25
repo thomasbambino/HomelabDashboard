@@ -18,6 +18,7 @@ import * as z from 'zod';
 
 const customizeServerSchema = z.object({
   icon: z.string().optional(),
+  background: z.string().optional(),
   show_player_count: z.boolean(),
   show_status_badge: z.boolean(),
 });
@@ -37,6 +38,7 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
     resolver: zodResolver(customizeServerSchema),
     defaultValues: {
       icon: server.icon ?? "",
+      background: server.background ?? "",
       show_player_count: server.show_player_count ?? true,
       show_status_badge: server.show_status_badge ?? true,
     },
@@ -44,7 +46,7 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomizeServerForm) => {
-      const res = await apiRequest("PATCH", `/api/game-servers/${server.instanceId}/appearance`, data);
+      const res = await apiRequest("PATCH", `/api/game-servers/${server.id}/appearance`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -83,7 +85,24 @@ export function CustomizeServerDialog({ server, open, onOpenChange }: CustomizeS
                       value={field.value}
                       onChange={field.onChange}
                       onClear={() => field.onChange("")}
-                      uploadType="server"
+                      uploadType="service"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="background"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Background Image</FormLabel>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      onClear={() => field.onChange("")}
+                      uploadType="service"
                     />
                   </FormControl>
                 </FormItem>
