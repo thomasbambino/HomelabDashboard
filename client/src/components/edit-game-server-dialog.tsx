@@ -5,6 +5,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -24,6 +34,8 @@ interface EditGameServerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
 
 export function EditGameServerDialog({ server, open, onOpenChange }: EditGameServerDialogProps) {
   const { toast } = useToast();
@@ -185,8 +197,6 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
     },
   });
 
-  const SERVER_TYPES = ["minecraft", "satisfactory", "valheim", "terraria"];
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -255,33 +265,25 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel id="server-name-label">Server Name</FormLabel>
+                    <FormLabel>Server Name</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        aria-labelledby="server-name-label"
-                        aria-required="true"
-                      />
+                      <Input {...field} />
                     </FormControl>
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4" role="group" aria-label="Server connection details">
-                {/* This part remains unchanged */}
-              </div>
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel id="server-type-label">Server Type</FormLabel>
+                    <FormLabel>Server Type</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      aria-labelledby="server-type-label"
                     >
                       <FormControl>
-                        <SelectTrigger aria-label="Select game type">
+                        <SelectTrigger>
                           <SelectValue placeholder="Select a game type" />
                         </SelectTrigger>
                       </FormControl>
@@ -301,7 +303,7 @@ export function EditGameServerDialog({ server, open, onOpenChange }: EditGameSer
                 name="refreshInterval"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel id="refresh-interval-label">Refresh Interval (seconds)</FormLabel>
+                    <FormLabel>Refresh Interval (seconds)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
