@@ -994,20 +994,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const instance = instances.find(i => i.InstanceID === instanceId);
 
       if (!instance) {
+        console.log(`Instance ${instanceId} not found`);
         return res.status(404).json({ message: "Instance not found" });
       }
 
-      // Get debug information using our new debug method
-      await ampService.debugPlayerCount(instanceId);
+      console.log('Found instance:', instance);
 
       // Get data from all possible sources
+      console.log('Fetching metrics...');
       const metrics = await ampService.getMetrics(instanceId);
+      console.log('Raw metrics:', metrics);
+
+      console.log('Fetching user list...');
       const userList = await ampService.getUserList(instanceId);
+      console.log('Raw user list:', userList);
+
+      console.log('Fetching instance status...');
       const status = await ampService.getInstanceStatus(instanceId);
+      console.log('Raw instance status:', status);
+
+      const activeUsers = status?.Metrics?.['Active Users']?.RawValue || 0;
+      console.log('Extracted active users:', activeUsers);
 
       // Return all debug information
-      res.json({
-        instanceInfo: instance,
+      const response = {
+        instanceInfo: {
+          ...instance,
+          FriendlyName: instance.FriendlyName,
+          Running: instance.Running,
+          ActiveUsers: instance.ActiveUsers,
+          MaxUsers: instance.MaxUsers
+        },
         metrics: {
           raw: metrics,
           playerCount: parseInt(metrics.Users[0]) || 0,
@@ -1018,9 +1035,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           count: userList.length
         },
         status: status,
-        activeUsers: status?.Metrics?.['Active Users']?.RawValue,
+        activeUsers: activeUsers,
         state: status?.State
-      });
+      };
+
+      console.log('Sending debug response:', response);
+      res.json(response);
 
     } catch (error) {
       console.error('Debug endpoint error:', error);

@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Bug } from "lucide-react";
+import { Eye, EyeOff, Bug, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Settings {
   onlineColor?: string;
@@ -31,8 +32,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
     queryKey: ["/api/settings"],
   });
 
-  const { data: debugInfo, isLoading: debugLoading } = useQuery({
-    queryKey: ["/api/game-servers", server.instanceId, "debug"],
+  const { data: debugInfo, isLoading: debugLoading, error: debugError } = useQuery({
+    queryKey: [`/api/game-servers/${server.instanceId}/debug`],
     enabled: showDebug,
   });
 
@@ -132,27 +133,52 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <DialogTitle>Debug Info: {server.name}</DialogTitle>
           </DialogHeader>
           {debugLoading ? (
-            <div>Loading debug information...</div>
-          ) : (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading debug information...</span>
+            </div>
+          ) : debugError ? (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Failed to load debug information: {debugError instanceof Error ? debugError.message : 'Unknown error'}
+              </AlertDescription>
+            </Alert>
+          ) : debugInfo ? (
             <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold">Instance Info:</h3>
+                <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
+                  {JSON.stringify(debugInfo.instanceInfo, null, 2)}
+                </pre>
+              </div>
               <div>
                 <h3 className="font-semibold">Metrics Data:</h3>
                 <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo?.metrics, null, 2)}
+                  {JSON.stringify(debugInfo.metrics, null, 2)}
                 </pre>
               </div>
               <div>
                 <h3 className="font-semibold">User List Data:</h3>
                 <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo?.userList, null, 2)}
+                  {JSON.stringify(debugInfo.userList, null, 2)}
                 </pre>
               </div>
               <div>
-                <h3 className="font-semibold">Instance Status:</h3>
-                <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo?.status, null, 2)}
-                </pre>
+                <h3 className="font-semibold">Active Users:</h3>
+                <div className="bg-muted p-2 rounded-md text-sm">
+                  Current: {debugInfo.activeUsers || 0}
+                </div>
               </div>
+              <div>
+                <h3 className="font-semibold">Server State:</h3>
+                <div className="bg-muted p-2 rounded-md text-sm">
+                  {debugInfo.state || 'Unknown'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              No debug information available
             </div>
           )}
         </DialogContent>
