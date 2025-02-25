@@ -16,7 +16,47 @@ type AuthContextType = {
   registerMutation: ReturnType<typeof useMutation>;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create initial context state
+const initialState: AuthContextType = {
+  user: null,
+  isLoading: false,
+  error: null,
+  loginMutation: {
+    mutate: () => {},
+    mutateAsync: async () => {},
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+    data: undefined,
+    reset: () => {},
+    status: 'idle',
+  } as ReturnType<typeof useMutation>,
+  logoutMutation: {
+    mutate: () => {},
+    mutateAsync: async () => {},
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+    data: undefined,
+    reset: () => {},
+    status: 'idle',
+  } as ReturnType<typeof useMutation>,
+  registerMutation: {
+    mutate: () => {},
+    mutateAsync: async () => {},
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+    data: undefined,
+    reset: () => {},
+    status: 'idle',
+  } as ReturnType<typeof useMutation>,
+};
+
+const AuthContext = createContext(initialState);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
@@ -93,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user ?? null,
         isLoading,
         error,
         loginMutation,
@@ -108,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

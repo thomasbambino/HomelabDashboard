@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+const root = document.getElementById("root");
+if (!root) throw new Error("Root element not found");
+
+createRoot(root).render(<App />);
+
 // Register service worker for offline capabilities
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -14,5 +19,3 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
-createRoot(document.getElementById("root")!).render(<App />);
