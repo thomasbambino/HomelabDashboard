@@ -41,7 +41,7 @@ export function UserPreferencesDialog({ user }: { user: User }) {
         title: "Preferences updated",
         description: "Your display preferences have been updated successfully",
       });
-      setOpen(false);
+      //setOpen(false); // Removed to keep the dialog open
     },
     onError: (error: Error) => {
       toast({
@@ -64,6 +64,7 @@ export function UserPreferencesDialog({ user }: { user: User }) {
     // Always include id
     changedFields.id = user.id;
 
+    // Don't close the dialog on submit to maintain tab state
     updatePreferencesMutation.mutate(changedFields);
   };
 
