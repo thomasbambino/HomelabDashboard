@@ -266,6 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all AMP instances
       const ampInstances = await ampService.getInstances();
+      console.log('Raw AMP instances:', ampInstances);
 
       // Get all stored game servers (for hidden status and customizations)
       const storedServers = await storage.getAllGameServers();
@@ -287,8 +288,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let memoryUsage = 0;
         let maxMemory = 0;
         let port = '';
-        let activeUsers = 0;
-        let maxUsers = 0;
 
         try {
           const status = await ampService.getInstanceStatus(instance.InstanceID);
@@ -301,10 +300,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Extract memory usage
             memoryUsage = status.Metrics['Memory Usage']?.RawValue || 0;
             maxMemory = status.Metrics['Memory Usage']?.MaxValue || 0;
-
-            // Extract active users
-            activeUsers = status.Metrics['Active Users']?.RawValue || 0;
-            maxUsers = status.Metrics['Active Users']?.MaxValue || 0;
           }
 
           // Extract port from ApplicationEndpoints
@@ -313,13 +308,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             port = endpoint.split(':')[1];
           }
 
+          // Use the instance data directly for player counts
           return {
             ...storedServer,
             name: instance.FriendlyName,
             type: instance.FriendlyName.toLowerCase().split(' ')[0],
             status: instance.Running,
-            playerCount: activeUsers,
-            maxPlayers: maxUsers,
+            playerCount: instance.ActiveUsers || 0,
+            maxPlayers: instance.MaxUsers || 0,
             cpuUsage,
             memoryUsage,
             maxMemory,
@@ -333,8 +329,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: instance.FriendlyName,
             type: instance.FriendlyName.toLowerCase().split(' ')[0],
             status: instance.Running,
-            playerCount: 0,
-            maxPlayers: 0,
+            playerCount: instance.ActiveUsers || 0,
+            maxPlayers: instance.MaxUsers || 0,
             cpuUsage: 0,
             memoryUsage: 0,
             maxMemory: 0,
@@ -853,9 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add new route for service status logswith filtering
   app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
+    if (!req.isAuthenticated()) return res.sendStatus(401);    try {
       const filters: {
         serviceId?: number;
         startDate?: Date;
