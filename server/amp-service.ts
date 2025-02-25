@@ -92,20 +92,33 @@ export class AMPService {
         username: this.username,
         password: this.password,
         token: '',
-        rememberMe: false
+        rememberMe: false,
+        PreviousSession: this.sessionId // Include previous session if exists
       };
 
+      console.log('Login request data:', { ...loginData, password: '[REDACTED]' });
       const response = await this.makeAPICall('Core/Login', loginData, false);
-      if (response.sessionID) {
-        this.sessionId = response.sessionID;
-        this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-        console.log('Login successful, session established');
-      } else {
-        throw new Error('No session ID in login response');
+      console.log('Login response:', response);
+
+      if (!response) {
+        throw new Error('No response received from login request');
       }
+
+      if (response.Status === 'Error' || response.Status === 'Failure') {
+        throw new Error(`Login failed: ${response.Message || 'Unknown error'}`);
+      }
+
+      if (!response.sessionID) {
+        console.error('Login response:', response);
+        throw new Error('No session ID in login response. Full response logged above.');
+      }
+
+      this.sessionId = response.sessionID;
+      this.sessionExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      console.log('Login successful, session established');
     } catch (error) {
       console.error('Login failed:', error);
-      throw error;
+      throw new Error(`Failed to authenticate with AMP server: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
