@@ -52,6 +52,9 @@ export function GameServerCard({ server }: GameServerCardProps) {
     });
   };
 
+  // Convert MB to GB with 2 decimal places
+  const mbToGb = (mb: number) => (mb / 1024).toFixed(2);
+
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -117,7 +120,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div>
               <span className="text-muted-foreground">RAM:</span>
               <br />
-              <span>{server.memoryUsage ?? 0}/{server.maxMemory ?? 0} MB</span>
+              <span>{mbToGb(server.memoryUsage ?? 0)}/{mbToGb(server.maxMemory ?? 0)} GB</span>
             </div>
           </div>
 
