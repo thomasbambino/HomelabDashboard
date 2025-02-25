@@ -38,6 +38,7 @@ export const settings = pgTable("settings", {
   font_family: text("font_family").default("Inter"),
   logo_url: text("logo_url"),
   logo_url_large: text("logo_url_large"),
+  favicon_url: text("favicon_url"),  // Added favicon_url field
   login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard."),
   online_color: text("online_color").default("#22c55e"),
   offline_color: text("offline_color").default("#ef4444"),

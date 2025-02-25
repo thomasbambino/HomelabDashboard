@@ -12,6 +12,7 @@ import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ChatButton } from "@/components/chat/chat-button";
+import { FaviconUpdater } from "@/components/favicon-updater";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ChatProvider>
+              <FaviconUpdater />
               <div className="fixed bottom-4 right-4 z-50">
                 <ChatButton />
               </div>

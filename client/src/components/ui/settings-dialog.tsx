@@ -29,6 +29,7 @@ export function SettingsDialog() {
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
       id: settings?.id ?? 1,
+      favicon_url: settings?.favicon_url ?? "",
       default_role: settings?.default_role ?? "pending",
       site_title: settings?.site_title ?? "",
       font_family: settings?.font_family ?? "",
@@ -245,6 +246,24 @@ export function SettingsDialog() {
                           onChange={field.onChange}
                           onClear={() => field.onChange("")}
                           uploadType="site"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="favicon_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Favicon</FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          onClear={() => field.onChange("")}
+                          uploadType="favicon"
+                          accept=".ico,.png"
                         />
                       </FormControl>
                     </FormItem>
