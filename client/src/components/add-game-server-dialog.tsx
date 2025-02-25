@@ -32,8 +32,7 @@ export function AddGameServerDialog() {
     resolver: zodResolver(insertGameServerSchema),
     defaultValues: {
       name: "",
-      host: "",
-      port: 25565,
+      instanceId: "",  // Add this field
       type: "minecraft",
       status: false,
       playerCount: 0,
@@ -84,6 +83,23 @@ export function AddGameServerDialog() {
           >
             <FormField
               control={form.control}
+              name="instanceId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel id="server-instance-label">Instance ID</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="AMP Instance ID" 
+                      {...field} 
+                      aria-labelledby="server-instance-label"
+                      aria-required="true"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
@@ -99,43 +115,6 @@ export function AddGameServerDialog() {
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4" role="group" aria-label="Server connection details">
-              <FormField
-                control={form.control}
-                name="host"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel id="server-host-label">Host</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="mc.example.com" 
-                        {...field} 
-                        aria-labelledby="server-host-label"
-                        aria-required="true"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="port"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel id="server-port-label">Port</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        aria-labelledby="server-port-label"
-                        aria-required="true"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
             <FormField
               control={form.control}
               name="type"
