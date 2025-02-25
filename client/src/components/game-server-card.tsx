@@ -182,20 +182,23 @@ export function GameServerCard({ server }: GameServerCardProps) {
                 </label>
               )}
             </div>
-          ) : isAdmin ? (
-            <label htmlFor={`icon-upload-${server.instanceId}`} className="cursor-pointer">
-              <span className="text-xl">🎮</span>
-              <input
-                type="file"
-                id={`icon-upload-${server.instanceId}`}
-                className="hidden"
-                accept="image/png,image/jpeg"
-                onChange={handleIconUpload}
-                disabled={uploadIconMutation.isPending}
-              />
-            </label>
           ) : (
-            <span className="text-xl">🎮</span>
+            <div className="relative">
+              <span className="text-xl">🎮</span>
+              {isAdmin && (
+                <label htmlFor={`icon-upload-${server.instanceId}`} className="absolute -bottom-1 -right-1 cursor-pointer">
+                  <Upload className="h-3 w-3" />
+                  <input
+                    type="file"
+                    id={`icon-upload-${server.instanceId}`}
+                    className="hidden"
+                    accept="image/png,image/jpeg"
+                    onChange={handleIconUpload}
+                    disabled={uploadIconMutation.isPending}
+                  />
+                </label>
+              )}
+            </div>
           )}
           <CardTitle className="text-sm font-medium">
             {server.displayName || server.name}
