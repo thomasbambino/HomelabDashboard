@@ -64,7 +64,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
         <Button 
           variant="ghost" 
           size="icon"
-          className="absolute top-2 right-2"
+          className="absolute top-2 right-2 h-8 w-8 p-0"
           aria-label="Edit display settings"
         >
           <Settings2 className="h-4 w-4" />
