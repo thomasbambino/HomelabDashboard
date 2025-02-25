@@ -1145,8 +1145,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!plexResponse.ok) {
-        const errorData = await plexResponse.json();
-        throw new Error(errorData.errors?.[0] || "Failed to send Plex invitation");
+        const errorText = await plexResponse.text();
+        let errorMessage = "Failed to send Plex invitation";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.errors?.[0] || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       res.json({ message: "Invitation sent successfully" });

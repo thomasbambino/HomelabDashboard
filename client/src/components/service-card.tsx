@@ -80,10 +80,10 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
       setShowPlexDialog(false);
       form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to send invitation",
         variant: "destructive",
       });
     },
