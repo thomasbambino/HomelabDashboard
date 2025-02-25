@@ -128,7 +128,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
       </Card>
 
       <Dialog open={showDebug} onOpenChange={setShowDebug}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Debug Info: {server.name}</DialogTitle>
           </DialogHeader>
@@ -144,40 +144,85 @@ export function GameServerCard({ server }: GameServerCardProps) {
               </AlertDescription>
             </Alert>
           ) : debugInfo ? (
-            <div className="space-y-4">
+            <div className="space-y-6 p-4">
               <div>
-                <h3 className="font-semibold">Instance Info:</h3>
-                <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo.instanceInfo, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">Metrics Data:</h3>
-                <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo.metrics, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">User List Data:</h3>
-                <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">
-                  {JSON.stringify(debugInfo.userList, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <h3 className="font-semibold">Active Users:</h3>
-                <div className="bg-muted p-2 rounded-md text-sm">
-                  Current: {debugInfo.activeUsers || 0}
+                <h3 className="font-semibold mb-2">Instance Info</h3>
+                <div className="bg-muted p-4 rounded-lg">
+                  <dl className="space-y-2">
+                    <div>
+                      <dt className="text-sm font-medium">Name:</dt>
+                      <dd className="text-sm">{debugInfo.instanceInfo.FriendlyName}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium">Status:</dt>
+                      <dd className="text-sm">{debugInfo.instanceInfo.Running ? 'Running' : 'Stopped'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium">Active Users:</dt>
+                      <dd className="text-sm">{debugInfo.instanceInfo.ActiveUsers} / {debugInfo.instanceInfo.MaxUsers}</dd>
+                    </div>
+                  </dl>
                 </div>
               </div>
+
               <div>
-                <h3 className="font-semibold">Server State:</h3>
-                <div className="bg-muted p-2 rounded-md text-sm">
-                  {debugInfo.state || 'Unknown'}
+                <h3 className="font-semibold mb-2">Metrics Data</h3>
+                <div className="bg-muted p-4 rounded-lg">
+                  <dl className="space-y-2">
+                    <div>
+                      <dt className="text-sm font-medium">Player Count:</dt>
+                      <dd className="text-sm">{debugInfo.metrics.playerCount} / {debugInfo.metrics.maxPlayers}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium">Raw Data:</dt>
+                      <dd>
+                        <pre className="text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                          {JSON.stringify(debugInfo.metrics.raw, null, 2)}
+                        </pre>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">User List</h3>
+                <div className="bg-muted p-4 rounded-lg">
+                  <dl className="space-y-2">
+                    <div>
+                      <dt className="text-sm font-medium">Connected Users:</dt>
+                      <dd className="text-sm">{debugInfo.userList.count}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium">Raw Data:</dt>
+                      <dd>
+                        <pre className="text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                          {JSON.stringify(debugInfo.userList.raw, null, 2)}
+                        </pre>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Server State</h3>
+                <div className="bg-muted p-4 rounded-lg">
+                  <dl className="space-y-2">
+                    <div>
+                      <dt className="text-sm font-medium">Current State:</dt>
+                      <dd className="text-sm">{debugInfo.state || 'Unknown'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium">Active Users:</dt>
+                      <dd className="text-sm">{debugInfo.activeUsers || 0}</dd>
+                    </div>
+                  </dl>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center text-muted-foreground">
+            <div className="text-center text-muted-foreground p-4">
               No debug information available
             </div>
           )}
