@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [isServersExpanded, setIsServersExpanded] = useState(false);
+  const [isServicesExpanded, setIsServicesExpanded] = useState(true);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -102,19 +103,43 @@ export default function Dashboard() {
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Services</h2>
+            <div 
+              className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+              onClick={() => setIsServicesExpanded(!isServicesExpanded)}
+              role="button"
+              aria-expanded={isServicesExpanded}
+              aria-controls="services-section"
+            >
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold">Services</h2>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isServicesExpanded ? "transform rotate-180" : ""
+                  )}
+                />
+              </div>
               {isAdmin && <AddServiceDialog />}
             </div>
-            {servicesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <ServiceList services={services} />
-            )}
+            <div
+              id="services-section"
+              className={cn(
+                "transition-all duration-300 ease-in-out",
+                isServicesExpanded 
+                  ? "max-h-[2000px] opacity-100" 
+                  : "max-h-0 opacity-0 overflow-hidden"
+              )}
+            >
+              {servicesLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <ServiceList services={services} />
+              )}
+            </div>
           </section>
         </div>
       </div>
