@@ -6,6 +6,7 @@ import { Copy, PlayCircle, StopCircle, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { EditGameServerDisplay } from "./edit-game-server-display";
 
 interface Settings {
   onlineColor?: string;
@@ -14,9 +15,10 @@ interface Settings {
 
 interface GameServerCardProps {
   server: GameServer;
+  isAdmin?: boolean;
 }
 
-export function GameServerCard({ server }: GameServerCardProps) {
+export function GameServerCard({ server, isAdmin = false }: GameServerCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,19 +109,25 @@ export function GameServerCard({ server }: GameServerCardProps) {
     },
   });
 
+  // Display name logic - use custom values if available
+  const displayName = server.customName || server.displayName || server.name;
+  const displayType = server.customType || server.type;
+  const displayIcon = server.customIcon || server.icon;
+
   return (
-    <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
+    <Card className={`backdrop-blur-sm bg-background/95 relative ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
+      {isAdmin && <EditGameServerDisplay server={server} isAdmin={isAdmin} />}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          {server.icon ? (
-            <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+          {displayIcon ? (
+            <img src={displayIcon} alt={`${displayName} icon`} className="w-6 h-6 object-contain" />
           ) : (
             <span className="text-xl">🎮</span>
           )}
           <CardTitle className="text-sm font-medium">
-            {server.displayName || server.name}
+            {displayName}
             <span className="text-xs text-muted-foreground ml-2">
-              {capitalizeGameType(server.type)}
+              {capitalizeGameType(displayType)}
             </span>
           </CardTitle>
         </div>
@@ -169,7 +177,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => startMutation.mutate()}
-                disabled={startMutation.isPending || server.status}
+                disabled={startMutation.isPending || !!server.status}
               >
                 <PlayCircle className="h-4 w-4" />
               </Button>
@@ -197,7 +205,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
                 variant="ghost"
                 size="sm"
                 className="text-xs"
-                onClick={() => copyServerAddress(server.port)}
+                onClick={() => copyServerAddress(server.port!)}
               >
                 <span className="mr-2">game.stylus.services:{server.port}</span>
                 <Copy className="h-3 w-3" />

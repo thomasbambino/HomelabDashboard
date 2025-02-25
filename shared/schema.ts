@@ -85,6 +85,13 @@ export const gameServers = pgTable("gameServers", {
   autoStart: boolean("autoStart").default(false),
   lastStatusCheck: timestamp("lastStatusCheck"),
   refreshInterval: integer("refreshInterval").default(30),
+  customName: text("customName"),  // Custom display name override
+  customType: text("customType"),  // Custom game type override
+  customIcon: text("customIcon"),  // Custom icon URL/path
+  port: text("port"),  // Server port
+  cpuUsage: integer("cpuUsage"),  // CPU usage percentage
+  memoryUsage: integer("memoryUsage"),  // Memory usage in MB
+  maxMemory: integer("maxMemory"),  // Maximum memory in MB
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
