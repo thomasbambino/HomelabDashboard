@@ -60,8 +60,20 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
       const { url } = await response.json();
 
+      // Find the server in storage first to get its database ID
+      const serversResponse = await fetch('/api/game-servers');
+      if (!serversResponse.ok) {
+        throw new Error('Failed to fetch server details');
+      }
+      const servers = await serversResponse.json();
+      const storedServer = servers.find((s: GameServer) => s.instanceId === server.instanceId);
+
+      if (!storedServer?.id) {
+        throw new Error('Server not found in database');
+      }
+
       // Update the game server with the new icon URL
-      await apiRequest('PUT', `/api/game-servers/${server.id}`, {
+      await apiRequest('PUT', `/api/game-servers/${storedServer.id}`, {
         icon: url,
       });
 
