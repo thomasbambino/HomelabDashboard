@@ -40,18 +40,22 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: z.infer<typeof updateGameServerSchema>) => {
+    mutationFn: async (data: z.infer<typeof updateGameServerSchema>) => {
+      console.log("Submitting data:", data); // Debug log
       const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, {
         id: server.id,
-        customDisplayName: values.customDisplayName,
-        customGameType: values.customGameType,
-        customIconUrl: values.customIconUrl,
+        customDisplayName: data.customDisplayName,
+        customGameType: data.customGameType,
+        customIconUrl: data.customIconUrl,
       });
       if (!res.ok) {
         const errorText = await res.text();
+        console.error("Server response:", errorText); // Debug log
         throw new Error(`Failed to update server display settings: ${errorText}`);
       }
-      return res.json();
+      const responseData = await res.json();
+      console.log("Server response:", responseData); // Debug log
+      return responseData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
@@ -61,6 +65,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
       });
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error); // Debug log
       toast({
         title: "Failed to update display",
         description: error.message,
@@ -86,7 +91,13 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           <DialogTitle>Customize Server Display</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+          <form 
+            onSubmit={form.handleSubmit((data) => {
+              console.log("Form data:", data); // Debug log
+              mutation.mutate(data);
+            })} 
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="customDisplayName"
