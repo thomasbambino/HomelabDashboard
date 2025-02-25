@@ -982,6 +982,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new debug endpoint for game server player count
+  app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Debug request received for instance ${instanceId}`);
+
+      // Get all instance information first
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+
+      if (!instance) {
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      // Get debug information using our new debug method
+      await ampService.debugPlayerCount(instanceId);
+
+      // Get data from all possible sources
+      const metrics = await ampService.getMetrics(instanceId);
+      const userList = await ampService.getUserList(instanceId);
+      const status = await ampService.getInstanceStatus(instanceId);
+
+      // Return all debug information
+      res.json({
+        instanceInfo: instance,
+        metrics: {
+          raw: metrics,
+          playerCount: parseInt(metrics.Users[0]) || 0,
+          maxPlayers: parseInt(metrics.Users[1]) || 0
+        },
+        userList: {
+          raw: userList,
+          count: userList.length
+        },
+        status: status,
+        activeUsers: status?.Metrics?.['Active Users']?.RawValue,
+        state: status?.State
+      });
+
+    } catch (error) {
+      console.error('Debug endpoint error:', error);
+      res.status(500).json({ 
+        message: "Debug operation failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   console.log('Chat server initialized successfully');
 
