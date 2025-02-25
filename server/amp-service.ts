@@ -45,10 +45,11 @@ export class AMPService {
   }
 
   private async callAPI(endpoint: string, parameters: any = {}) {
-    if (this.sessionId) {
-      parameters.SESSIONID = this.sessionId;
+    if (!this.sessionId) {
+      await this.login();
     }
 
+    parameters.SESSIONID = this.sessionId;
     console.log(`Calling API endpoint: ${endpoint} with parameters:`, {...parameters, password: '[REDACTED]'});
 
     try {
@@ -57,7 +58,7 @@ export class AMPService {
         parameters,
         {
           headers: {
-            'Accept': 'text/javascript',
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
           }
         }
@@ -67,6 +68,10 @@ export class AMPService {
       return response.data;
     } catch (error) {
       console.error(`API call failed for ${endpoint}:`, error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response:', error.response.data);
+        throw new Error(`API call failed: ${error.response.data.message || error.message}`);
+      }
       throw error;
     }
   }
@@ -125,8 +130,16 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log(`Starting instance ${instanceId}`);
+      // The correct endpoint format is Core/Start
       await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
-      console.log(`Successfully started instance ${instanceId}`);
+      console.log(`Successfully sent start command to instance ${instanceId}`);
+
+      // Wait briefly to allow the command to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check the instance status
+      const status = await this.getInstanceStatus(instanceId);
+      console.log(`Status after start command for ${instanceId}:`, status);
     } catch (error) {
       console.error(`Failed to start instance ${instanceId}:`, error);
       throw error;
@@ -137,8 +150,16 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log(`Stopping instance ${instanceId}`);
+      // The correct endpoint format is Core/Stop
       await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
-      console.log(`Successfully stopped instance ${instanceId}`);
+      console.log(`Successfully sent stop command to instance ${instanceId}`);
+
+      // Wait briefly to allow the command to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check the instance status
+      const status = await this.getInstanceStatus(instanceId);
+      console.log(`Status after stop command for ${instanceId}:`, status);
     } catch (error) {
       console.error(`Failed to stop instance ${instanceId}:`, error);
       throw error;
@@ -149,8 +170,16 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log(`Restarting instance ${instanceId}`);
+      // The correct endpoint format is Core/Restart
       await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
-      console.log(`Successfully restarted instance ${instanceId}`);
+      console.log(`Successfully sent restart command to instance ${instanceId}`);
+
+      // Wait briefly to allow the command to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check the instance status
+      const status = await this.getInstanceStatus(instanceId);
+      console.log(`Status after restart command for ${instanceId}:`, status);
     } catch (error) {
       console.error(`Failed to restart instance ${instanceId}:`, error);
       throw error;
@@ -161,8 +190,16 @@ export class AMPService {
     await this.ensureAuthenticated();
     try {
       console.log(`Killing instance ${instanceId}`);
+      // The correct endpoint format is Core/Kill
       await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
-      console.log(`Successfully killed instance ${instanceId}`);
+      console.log(`Successfully sent kill command to instance ${instanceId}`);
+
+      // Wait briefly to allow the command to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check the instance status
+      const status = await this.getInstanceStatus(instanceId);
+      console.log(`Status after kill command for ${instanceId}:`, status);
     } catch (error) {
       console.error(`Failed to kill instance ${instanceId}:`, error);
       throw error;

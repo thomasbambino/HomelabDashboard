@@ -337,11 +337,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { instanceId } = req.params;
+      console.log(`Start request received for instance ${instanceId}`);
+
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      // Attempt to start the instance
       await ampService.startInstance(instanceId);
-      res.json({ message: "Server starting" });
+      console.log(`Start command successful for instance ${instanceId}`);
+
+      // Get updated status
+      const status = await ampService.getInstanceStatus(instanceId);
+      console.log(`Updated status for instance ${instanceId}:`, status);
+
+      res.json({ 
+        message: "Server starting",
+        status: status?.State || "Unknown"
+      });
     } catch (error) {
       console.error('Error starting game server:', error);
-      res.status(500).json({ message: "Failed to start game server" });
+      res.status(500).json({ 
+        message: "Failed to start game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -349,14 +372,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { instanceId } = req.params;
+      console.log(`Stop request received for instance ${instanceId}`);
+
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      // Attempt to stop the instance
       await ampService.stopInstance(instanceId);
-      res.json({ message: "Server stopping" });
+      console.log(`Stop command successful for instance ${instanceId}`);
+
+      // Get updated status
+      const status = await ampService.getInstanceStatus(instanceId);
+      console.log(`Updated status for instance ${instanceId}:`, status);
+
+      res.json({ 
+        message: "Server stopping",
+        status: status?.State || "Unknown"
+      });
     } catch (error) {
       console.error('Error stopping game server:', error);
-      res.status(500).json({ message: "Failed to stop game server" });
+      res.status(500).json({ 
+        message: "Failed to stop game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
+  app.post("/api/game-servers/:instanceId/restart", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Restart request received for instance ${instanceId}`);
+
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      // Attempt to restart the instance
+      await ampService.restartInstance(instanceId);
+      console.log(`Restart command successful for instance ${instanceId}`);
+
+      // Get updated status
+      const status = await ampService.getInstanceStatus(instanceId);
+      console.log(`Updated status for instance ${instanceId}:`, status);
+
+      res.json({ 
+        message: "Server restarting",
+        status: status?.State || "Unknown"
+      });
+    } catch (error) {
+      console.error('Error restarting game server:', error);
+      res.status(500).json({ 
+        message: "Failed to restart game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/game-servers/:instanceId/kill", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Kill request received for instance ${instanceId}`);
+
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      // Attempt to kill the instance
+      await ampService.killInstance(instanceId);
+      console.log(`Kill command successful for instance ${instanceId}`);
+
+      // Get updated status
+      const status = await ampService.getInstanceStatus(instanceId);
+      console.log(`Updated status for instance ${instanceId}:`, status);
+
+      res.json({ 
+        message: "Server killed",
+        status: status?.State || "Unknown"
+      });
+    } catch (error) {
+      console.error('Error killing game server:', error);
+      res.status(500).json({ 
+        message: "Failed to kill game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   app.post("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -739,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const logs = await storage.getServiceStatusLogs(filters);
 
-      // Fetch service details for each log
+      //      // Fetch service details for each log
       const logsWithServiceDetails = await Promise.all(
         logs.map(async (log) => {
           const service = await storage.getService(log.serviceId);
