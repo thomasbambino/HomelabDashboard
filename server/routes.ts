@@ -135,6 +135,12 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     let inputBuffer: Buffer;
     let filename: string;
 
+    // Get instanceId from the request
+    const { instanceId } = req.body;
+    if (!instanceId && type === 'game') {
+      return res.status(400).json({ message: "Instance ID is required for game server icons" });
+    }
+
     if (req.file) {
       // Handle direct file upload
       inputBuffer = fs.readFileSync(req.file.path);
@@ -156,6 +162,34 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     }
 
     const result = await resizeAndSaveImage(inputBuffer, uploadDir, filename, type);
+
+    // If this is a game server icon, ensure the server exists in database
+    if (type === 'game' && instanceId) {
+      // Find or create server record
+      let server = await storage.getGameServerByInstanceId(instanceId);
+      if (!server) {
+        // Get instance details from AMP
+        const instances = await ampService.getInstances();
+        const instance = instances.find(i => i.InstanceID === instanceId);
+        if (!instance) {
+          return res.status(404).json({ message: "Game server not found" });
+        }
+
+        // Create new server record
+        server = await storage.createGameServer({
+          instanceId,
+          name: instance.FriendlyName,
+          type: instance.FriendlyName.toLowerCase().split(' ')[0],
+          icon: typeof result === 'string' ? result : result.url,
+        });
+      } else {
+        // Update existing server with new icon
+        server = await storage.updateGameServer({
+          ...server,
+          icon: typeof result === 'string' ? result : result.url,
+        });
+      }
+    }
 
     // For site uploads, handle both URLs
     if (typeof result === 'object' && 'largeUrl' in result) {
@@ -803,7 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.listUsers();
       // Filter out the current user and only return necessary fields
       const filteredUsers = users
-        .filter(user => user.id !== currentUser.id)
+        .filter(user => user.id !==currentUser.id)
         .map(({ id, username, isOnline, lastSeen }) => ({
           id,
           username,
