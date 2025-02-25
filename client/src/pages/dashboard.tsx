@@ -7,14 +7,17 @@ import { RequestServerDialog } from "@/components/request-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ServerCog, Users, LogOut } from "lucide-react";
+import { ServerCog, Users, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+  const [isServersExpanded, setIsServersExpanded] = useState(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -65,13 +68,35 @@ export default function Dashboard() {
 
         <div className="grid gap-8">
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Game Servers</h2>
+            <div 
+              className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+              onClick={() => setIsServersExpanded(!isServersExpanded)}
+              role="button"
+              aria-expanded={isServersExpanded}
+              aria-controls="game-servers-section"
+            >
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold">Game Servers</h2>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isServersExpanded ? "transform rotate-180" : ""
+                  )}
+                />
+              </div>
               <div className="flex gap-2">
                 <RequestServerDialog />
               </div>
             </div>
-            <GameServerList />
+            <div
+              id="game-servers-section"
+              className={cn(
+                "transition-all duration-200",
+                isServersExpanded ? "opacity-100" : "h-0 opacity-0 overflow-hidden"
+              )}
+            >
+              <GameServerList />
+            </div>
           </section>
 
           <section>
