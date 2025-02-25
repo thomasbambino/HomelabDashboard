@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2 } from "lucide-react";
+import { ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Settings as SettingsType } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription as DialogDescriptionType,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+
+// Add email schema for validation
+const plexAccountSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+type PlexAccountFormData = z.infer<typeof plexAccountSchema>;
 
 interface ServiceCardProps {
   service: Service;
@@ -29,9 +51,47 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, isDragging }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showPlexDialog, setShowPlexDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
+
+  const form = useForm<PlexAccountFormData>({
+    resolver: zodResolver(plexAccountSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const createPlexAccountMutation = useMutation({
+    mutationFn: async (data: PlexAccountFormData) => {
+      const response = await apiRequest("POST", `/api/services/plex/account`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create Plex account");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Plex account invitation sent successfully",
+      });
+      setShowPlexDialog(false);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: PlexAccountFormData) => {
+    createPlexAccountMutation.mutate(data);
+  };
 
   // Hide NSFW content from users without permission
   if (service.isNSFW && !user?.can_view_nsfw && !isAdmin) {
@@ -123,6 +183,48 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
             >
               NSFW
             </Badge>
+          )}
+          {service.name.toLowerCase().includes('plex') && (
+            <Dialog open={showPlexDialog} onOpenChange={setShowPlexDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Join Plex
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Join Plex Server</DialogTitle>
+                  <DialogDescriptionType>
+                    Enter your email address to receive an invitation to join the Plex server.
+                  </DialogDescriptionType>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      {...form.register("email")}
+                      placeholder="your@email.com"
+                    />
+                    {form.formState.errors.email && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="submit"
+                      disabled={createPlexAccountMutation.isPending}
+                    >
+                      {createPlexAccountMutation.isPending ? "Sending..." : "Send Invitation"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           )}
           {isAdmin && (
             <>

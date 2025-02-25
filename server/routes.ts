@@ -17,6 +17,12 @@ import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email'; // Import sendEmail function
 import { ampService } from './amp-service';
+import { z } from "zod";
+
+// Add this near other schema definitions
+const plexInviteSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
 
 // Configure multer for image upload
 const upload = multer({
@@ -423,13 +429,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
-      res.json({ 
+      res.json({
         message: "Server starting",
         status: status?.State || "Unknown"
       });
     } catch (error) {
       console.error('Error starting game server:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to start game server",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -458,13 +464,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
-      res.json({ 
+      res.json({
         message: "Server stopping",
         status: status?.State || "Unknown"
       });
     } catch (error) {
       console.error('Error stopping game server:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to stop game server",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -493,13 +499,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
-      res.json({ 
+      res.json({
         message: "Server restarting",
         status: status?.State || "Unknown"
       });
     } catch (error) {
       console.error('Error restarting game server:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to restart game server",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -528,13 +534,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
-      res.json({ 
+      res.json({
         message: "Server killed",
         status: status?.State || "Unknown"
       });
     } catch (error) {
       console.error('Error killing game server:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to kill game server",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -834,8 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'message',
           roomId,
           data: messageWithSender,
-        });
-      } else {
+        });      } else {
         console.warn('Chat server not found for broadcasting');
       }
 
@@ -854,7 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const users = await storage.listUsers();
       // Filter out the current user and only return necessary fields
       const filteredUsers = users
-        .filter(user => user.id !==currentUser.id)
+        .filter(user => user.id !== currentUser.id)
         .map(({ id, username, isOnline, lastSeen }) => ({
           id,
           username,
@@ -868,10 +873,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new route for service status logswith filtering
+  // Add new route for service status logs with filtering
   app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);    
-    try {      
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
       const filters: {
         serviceId?: number;
         startDate?: Date;
@@ -909,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const logs = await storage.getServiceStatusLogs(filters);
 
-      //      // Fetch service details for each log
+      // Fetch service details for each log
       const logsWithServiceDetails = await Promise.all(
         logs.map(async (log) => {
           const service = await storage.getService(log.serviceId);
@@ -992,7 +997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorMessage = error.message;
         }
 
-        res.status(400).json({ 
+        res.status(400).json({
           message: "Failed to connect with new credentials",
           error: errorMessage
         });
@@ -1030,7 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(metrics);
     } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch instance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -1099,9 +1104,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('Debug endpoint error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Debug operation failed",
         error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Add Plex account invitation endpoint
+  app.post("/api/services/plex/account", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { email } = plexInviteSchema.parse(req.body);
+
+      // Get Plex credentials from environment variables
+      const plexToken = process.env.PLEX_TOKEN;
+      if (!plexToken) {
+        throw new Error("Plex token not configured");
+      }
+
+      // Make request to Plex API to send invitation
+      const plexResponse = await fetch('https://plex.tv/api/v2/shared_servers/invite', {
+        method: 'POST',
+        headers: {
+          'X-Plex-Token': plexToken,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          invitedEmail: email,
+          settings: {
+            allowSync: true,
+            allowCameraUpload: false,
+            filterMovies: "",
+            filterTelevision: "",
+            filterMusic: ""
+          }
+        })
+      });
+
+      if (!plexResponse.ok) {
+        const errorData = await plexResponse.json();
+        throw new Error(errorData.errors?.[0] || "Failed to send Plex invitation");
+      }
+
+      res.json({ message: "Invitation sent successfully" });
+    } catch (error) {
+      console.error('Error sending Plex invitation:', error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Failed to send invitation"
       });
     }
   });
