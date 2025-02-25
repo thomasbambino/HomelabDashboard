@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Play, PowerOff, RefreshCw, Activity, Cpu, HardDrive } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,14 +18,6 @@ interface GameServerCardProps {
   server: GameServer;
 }
 
-interface MetricsData {
-  TPS: string;
-  Users: [string, string];
-  CPU: string;
-  Memory: [string, string];
-  Uptime: string;
-}
-
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -35,56 +26,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
-  });
-
-  // Query for real-time metrics
-  const { data: metrics } = useQuery<MetricsData>({
-    queryKey: ["/api/game-servers", server.instanceId, "metrics"],
-    enabled: !!server.instanceId && server.status,
-    refetchInterval: server.refreshInterval || 30000,
-  });
-
-  // Mutations for server control
-  const startServerMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/start`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
-      toast({
-        title: "Server starting",
-        description: "The game server is starting up",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to start server",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const stopServerMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/game-servers/${server.instanceId}/stop`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
-      toast({
-        title: "Server stopping",
-        description: "The game server is shutting down",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to stop server",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   const toggleVisibilityMutation = useMutation({
@@ -102,13 +43,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
       });
     },
   });
-
-  // Safe access to metrics with defaults
-  const playerCount = metrics?.Users?.[0] ? Number(metrics.Users[0]) : 0;
-  const maxPlayers = metrics?.Users?.[1] ? Number(metrics.Users[1]) : (server.maxPlayers || 0);
-  const tps = metrics?.TPS ? Number(metrics.TPS).toFixed(1) : '0.0';
-  const cpu = metrics?.CPU ? Number(metrics.CPU).toFixed(1) : '0.0';
-  const memoryGB = metrics?.Memory?.[0] ? (Number(metrics.Memory[0]) / 1024).toFixed(1) : '0.0';
 
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
@@ -141,32 +75,18 @@ export function GameServerCard({ server }: GameServerCardProps) {
             </Badge>
           )}
           {isAdmin && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleVisibilityMutation.mutate()}
-                disabled={toggleVisibilityMutation.isPending}
-              >
-                {server.hidden ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => server.status ? stopServerMutation.mutate() : startServerMutation.mutate()}
-                disabled={startServerMutation.isPending || stopServerMutation.isPending}
-              >
-                {server.status ? (
-                  <PowerOff className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleVisibilityMutation.mutate()}
+              disabled={toggleVisibilityMutation.isPending}
+            >
+              {server.hidden ? (
+                <Eye className="h-4 w-4" />
+              ) : (
+                <EyeOff className="h-4 w-4" />
+              )}
+            </Button>
           )}
         </div>
       </CardHeader>
@@ -176,29 +96,12 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Players</span>
-                <span>{playerCount}/{maxPlayers}</span>
+                <span>{server.playerCount ?? 0}/{server.maxPlayers ?? 0}</span>
               </div>
               <Progress
-                value={(playerCount / (maxPlayers || 1)) * 100}
+                value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
                 className="h-2"
               />
-            </div>
-          )}
-
-          {server.status && metrics && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Activity className="h-4 w-4" />
-                <span>TPS: {tps}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Cpu className="h-4 w-4" />
-                <span>CPU: {cpu}%</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <HardDrive className="h-4 w-4" />
-                <span>RAM: {memoryGB}GB</span>
-              </div>
             </div>
           )}
         </div>
