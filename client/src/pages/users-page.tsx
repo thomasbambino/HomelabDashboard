@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Link } from "wouter";
-import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save, Shield } from "lucide-react";
+import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -18,15 +18,6 @@ export default function UsersPage() {
   const { user } = useAuth();
   const [tempPasswords, setTempPasswords] = useState<Record<number, string>>({});
   const [editingEmails, setEditingEmails] = useState<Record<number, string>>({});
-
-  // Render loading state while auth context is initializing
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
-      </div>
-    );
-  }
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -123,8 +114,6 @@ export default function UsersPage() {
     return <Redirect to="/" />;
   }
 
-  const isSuperAdmin = (userId: number) => userId === 4; // tommyshorez is super admin
-
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -174,12 +163,7 @@ export default function UsersPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{u.username}</p>
-                      {isSuperAdmin(u.id) && (
-                        <Shield className="h-4 w-4 text-primary" title="Super Admin" />
-                      )}
-                    </div>
+                    <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
@@ -221,7 +205,7 @@ export default function UsersPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {!isSuperAdmin(u.id) && (
+                    {u.role !== 'admin' && (
                       <>
                         <div className="flex items-center gap-2">
                           <Switch
@@ -258,11 +242,8 @@ export default function UsersPage() {
                         </Select>
                       </>
                     )}
-                    {isSuperAdmin(u.id) && (
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Super Administrator
-                      </p>
+                    {u.role === 'admin' && (
+                      <p className="text-sm font-medium">Administrator</p>
                     )}
                   </div>
                 </div>
