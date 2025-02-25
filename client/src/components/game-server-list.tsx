@@ -12,11 +12,10 @@ interface GameServerListProps {
 export function GameServerList({ className }: GameServerListProps) {
   const { data: servers, error, isLoading } = useQuery<GameServer[]>({
     queryKey: ["/api/game-servers"],
+    refetchInterval: 10000, // Refetch every 10 seconds
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    retry: 3, // Retry failed requests up to 3 times
   });
-
-  if (isLoading) {
-    return <div>Loading game servers...</div>;
-  }
 
   if (error) {
     return (
@@ -32,6 +31,11 @@ export function GameServerList({ className }: GameServerListProps) {
       {servers?.map((server) => (
         <GameServerCard key={server.instanceId} server={server} />
       ))}
+      {!servers && isLoading && (
+        <div className="col-span-full flex items-center justify-center text-muted-foreground">
+          <div className="animate-pulse">Loading game servers...</div>
+        </div>
+      )}
       {servers?.length === 0 && (
         <div className="col-span-full text-center text-muted-foreground">
           No game servers found
