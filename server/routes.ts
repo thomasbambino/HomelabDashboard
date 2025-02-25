@@ -18,21 +18,6 @@ import cookieParser from 'cookie-parser';
 import { sendEmail } from './email'; // Import sendEmail function
 import { ampService } from './amp-service';
 import { z } from "zod";
-import { rateLimit } from 'express-rate-limit';
-import NodeCache from 'node-cache';
-
-// Cache for storing service and game server status
-const statusCache = new NodeCache({
-  stdTTL: 30, // Cache for 30 seconds
-  checkperiod: 60,
-  useClones: false,
-});
-
-// Add rate limiting for API endpoints
-const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60, // Limit each IP to 60 requests per minute
-});
 
 // Add this near other schema definitions
 const plexInviteSchema = z.object({
@@ -249,9 +234,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Apply rate limiting to all routes
-  app.use('/api/', apiLimiter);
-
   // Initialize chat server
   const chatServer = new ChatServer();
   app.set('chatServer', chatServer);
@@ -336,68 +318,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Optimize game servers endpoint with caching
   app.get("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      // Check cache first
-      const cacheKey = 'game-servers';
-      let servers = statusCache.get(cacheKey);
+      // Get all AMP instances
+      const ampInstances = await ampService.getInstances();
+      console.log('Raw AMP instances:', ampInstances);
 
-      if (!servers) {
-        // Get all AMP instances
-        const ampInstances = await ampService.getInstances();
-        console.log('Fetching fresh AMP instances');
+      // Get all stored game servers (for hidden status and customizations)
+      const storedServers = await storage.getAllGameServers();
 
-        // Get all stored game servers (for hidden status and customizations)
-        const storedServers = await storage.getAllGameServers();
+      // Map AMP instances to our game server format
+      const servers = ampInstances.map(instance => {
+        // Find existing stored server or create new one
+        const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
+          instanceId: instance.InstanceID,
+          hidden: false,
+          show_player_count: true,
+          show_status_badge: true,
+          autoStart: false,
+          refreshInterval: 30
+        };
 
-        // Process and cache the results
-        servers = ampInstances.map(instance => {
-          // Find existing stored server or create new one
-          const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
-            instanceId: instance.InstanceID,
-            hidden: false,
-            show_player_count: true,
-            show_status_badge: true,
-            autoStart: false,
-            refreshInterval: 30
-          };
+        // Get port from ApplicationEndpoints
+        let port = '';
+        if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
+          const endpoint = instance.ApplicationEndpoints[0].Endpoint;
+          port = endpoint.split(':')[1];
+        }
 
-          // Get port from ApplicationEndpoints
-          let port = '';
-          if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
-            const endpoint = instance.ApplicationEndpoints[0].Endpoint;
-            port = endpoint.split(':')[1];
-          }
+        // Create response object with metrics data directly from instance
+        const serverData = {
+          ...storedServer,
+          name: instance.FriendlyName,
+          type: instance.FriendlyName.toLowerCase().split(' ')[0],
+          status: instance.Running,
+          playerCount: instance.Metrics?.['Active Users']?.RawValue || 0,
+          maxPlayers: instance.Metrics?.['Active Users']?.MaxValue || 0,
+          cpuUsage: instance.Metrics?.['CPU Usage']?.RawValue || 0,
+          memoryUsage: instance.Metrics?.['Memory Usage']?.RawValue || 0,
+          maxMemory: instance.Metrics?.['Memory Usage']?.MaxValue || 0,
+          port,
+          lastStatusCheck: new Date()
+        };
 
-          // Create response object with metrics data directly from instance
-          const serverData = {
-            ...storedServer,
-            name: instance.FriendlyName,
-            type: instance.FriendlyName.toLowerCase().split(' ')[0],
-            status: instance.Running,
-            playerCount: instance.Metrics?.['Active Users']?.RawValue || 0,
-            maxPlayers: instance.Metrics?.['Active Users']?.MaxValue || 0,
-            cpuUsage: instance.Metrics?.['CPU Usage']?.RawValue || 0,
-            memoryUsage: instance.Metrics?.['Memory Usage']?.RawValue || 0,
-            maxMemory: instance.Metrics?.['Memory Usage']?.MaxValue || 0,
-            port,
-            lastStatusCheck: new Date()
-          };
-
-          console.log('Processed server data:', serverData);
-          return serverData;
-        });
-
-        // Cache the results
-        statusCache.set(cacheKey, servers);
-      }
+        console.log('Processed server data:', serverData);
+        return serverData;
+      });
 
       // Only return non-hidden servers unless specifically requested
       const showHidden = req.query.showHidden === 'true';
       const filteredServers = showHidden ? servers : servers.filter(s => !s.hidden);
 
+      console.log('Sending filtered servers:', filteredServers);
       res.json(filteredServers);
     } catch (error) {
       console.error('Error fetching game servers:', error);
@@ -900,30 +873,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Optimize service status logs endpoint
+  // Add new route for service status logs with filtering
   app.get("/api/services/status-logs", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const cacheKey = `status-logs-${JSON.stringify(req.query)}`;
-      let logs = statusCache.get(cacheKey);
+      const filters: {
+        serviceId?: number;
+        startDate?: Date;
+        endDate?: Date;
+        status?: boolean;
+      } = {};
 
-      if (!logs) {
-        const filters = {
-          serviceId: req.query.serviceId ? parseInt(req.query.serviceId as string) : undefined,
-          status: req.query.status === 'true',
-          startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
-          endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
-        };
+      console.log('Raw query params:', req.query);
 
-        logs = await storage.getServiceStatusLogs(filters);
-
-        // Cache the results for 30 seconds
-        statusCache.set(cacheKey, logs);
+      // Parse serviceId
+      if (req.query.serviceId) {
+        const serviceId = parseInt(req.query.serviceId as string);
+        if (!isNaN(serviceId)) {
+          filters.serviceId = serviceId;
+          console.log('Parsed serviceId:', filters.serviceId);
+        }
       }
 
-      res.json(logs);
+      // Parse status
+      if (req.query.status) {
+        filters.status = req.query.status === 'true';
+        console.log('Parsed status:', filters.status);
+      }
+
+      // Parse dates
+      if (req.query.startDate) {
+        filters.startDate = new Date(req.query.startDate as string);
+      }
+
+      if (req.query.endDate) {
+        filters.endDate = new Date(req.query.endDate as string);
+      }
+
+      console.log('Final filters:', filters);
+
+      const logs = await storage.getServiceStatusLogs(filters);
+
+      // Fetch service details for each log
+      const logsWithServiceDetails = await Promise.all(
+        logs.map(async (log) => {
+          const service = await storage.getService(log.serviceId);
+          return { ...log, service };
+        })
+      );
+
+      console.log('Returning logs count:', logsWithServiceDetails.length);
+      res.json(logsWithServiceDetails);
     } catch (error) {
-      console.error('Error fetching status logs:', error);
+      console.error('Error fetching statuslogs:', error);
       res.status(500).json({ message: "Failed to fetch status logs" });
     }
   });

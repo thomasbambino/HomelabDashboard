@@ -1,44 +1,35 @@
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { createContext, ReactNode, useContext } from "react";
+import {
+  useQuery,
+  useMutation,
+  UseMutationResult,
+} from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
-type LoginData = Pick<InsertUser, "username" | "password">;
-
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: ReturnType<typeof useMutation>;
-  logoutMutation: ReturnType<typeof useMutation>;
-  registerMutation: ReturnType<typeof useMutation>;
+  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  logoutMutation: UseMutationResult<void, Error, void>;
+  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-// Create a default context
-const defaultContext: AuthContextType = {
-  user: null,
-  isLoading: true,
-  error: null,
-  loginMutation: null!,
-  logoutMutation: null!,
-  registerMutation: null!,
-};
+type LoginData = Pick<InsertUser, "username" | "password">;
 
-// Create the context with the default value
-const AuthContext = createContext<AuthContextType>(defaultContext);
-
+export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | null>({
+  } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
@@ -48,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(data.message);
       }
       return data;
     },
@@ -60,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login failed",
         description: error.message,
         variant: "destructive",
+        action: (
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90"
+              onClick={() => setLocation("/auth?tab=reset")}
+            >
+              Reset Password
+            </button>
+          </div>
+        ),
       });
     },
   });
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(data.message);
       }
       return data;
     },
@@ -102,27 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  useEffect(() => {
-    if (!isLoading) {
-      setIsInitialized(true);
-    }
-  }, [isLoading]);
-
-  if (!isInitialized) {
-    return null;
-  }
-
-  const contextValue: AuthContextType = {
-    user: user ?? null,
-    isLoading,
-    error,
-    loginMutation,
-    logoutMutation,
-    registerMutation,
-  };
-
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider
+      value={{
+        user: user ?? null,
+        isLoading,
+        error,
+        loginMutation,
+        logoutMutation,
+        registerMutation,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
