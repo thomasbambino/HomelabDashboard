@@ -10,36 +10,28 @@ import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ChatProvider } from "./lib/chat-context";
 
-// Separate the routes to ensure they're only rendered after providers are ready
-function Router() {
-  return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/users" component={UsersPage} />
-      <Route path="/pending" component={PendingPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+const AppRoutes = () => (
+  <Switch>
+    <Route path="/auth" component={AuthPage} />
+    <ProtectedRoute path="/" component={Dashboard} />
+    <ProtectedRoute path="/users" component={UsersPage} />
+    <Route path="/pending" component={PendingPage} />
+    <Route component={NotFound} />
+  </Switch>
+);
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-          <ChatProvider>
-            <div className="min-h-screen bg-background text-foreground">
-              <Router />
-              <Toaster />
-            </div>
-          </ChatProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="system" attribute="class">
+          <div className="min-h-screen bg-background text-foreground">
+            <AppRoutes />
+            <Toaster />
+          </div>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
