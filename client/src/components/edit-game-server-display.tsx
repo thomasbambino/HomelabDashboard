@@ -6,8 +6,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GameServer, updateGameServerSchema } from "@shared/schema";
@@ -33,29 +33,29 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
     resolver: zodResolver(updateGameServerSchema),
     defaultValues: {
       id: server.id,
-      customDisplayName: server.customDisplayName || "",
-      customGameType: server.customGameType || "",
-      customIconUrl: server.customIconUrl || "",
+      displayName: server.displayName || "",
+      type: server.type || "",
+      icon: server.icon || "",
+      instanceId: server.instanceId,
+      name: server.name,
+      status: server.status,
+      playerCount: server.playerCount,
+      maxPlayers: server.maxPlayers,
+      hidden: server.hidden,
+      show_player_count: server.show_player_count,
+      show_status_badge: server.show_status_badge,
+      autoStart: server.autoStart,
+      refreshInterval: server.refreshInterval,
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: z.infer<typeof updateGameServerSchema>) => {
-      console.log("Submitting data:", data); // Debug log
-      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, {
-        id: server.id,
-        customDisplayName: data.customDisplayName,
-        customGameType: data.customGameType,
-        customIconUrl: data.customIconUrl,
-      });
+    mutationFn: async (values: z.infer<typeof updateGameServerSchema>) => {
+      const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, values);
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Server response:", errorText); // Debug log
-        throw new Error(`Failed to update server display settings: ${errorText}`);
+        throw new Error('Failed to update server display settings');
       }
-      const responseData = await res.json();
-      console.log("Server response:", responseData); // Debug log
-      return responseData;
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/game-servers"] });
@@ -65,7 +65,6 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
       });
     },
     onError: (error: Error) => {
-      console.error("Mutation error:", error); // Debug log
       toast({
         title: "Failed to update display",
         description: error.message,
@@ -91,19 +90,13 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           <DialogTitle>Customize Server Display</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit((data) => {
-              console.log("Form data:", data); // Debug log
-              mutation.mutate(data);
-            })} 
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
             <FormField
               control={form.control}
-              name="customDisplayName"
+              name="displayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Display Name</FormLabel>
+                  <FormLabel>Display Name (Optional)</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder={server.name} 
@@ -115,10 +108,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="customGameType"
+              name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Game Type</FormLabel>
+                  <FormLabel>Game Type (Optional)</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder={server.type} 
@@ -130,10 +123,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="customIconUrl"
+              name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Server Icon</FormLabel>
+                  <FormLabel>Icon Image</FormLabel>
                   <FormControl>
                     <ImageUpload
                       value={field.value}

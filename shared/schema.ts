@@ -85,10 +85,6 @@ export const gameServers = pgTable("gameServers", {
   autoStart: boolean("autoStart").default(false),
   lastStatusCheck: timestamp("lastStatusCheck"),
   refreshInterval: integer("refreshInterval").default(30),
-  // Add custom display fields
-  customDisplayName: text("customDisplayName"),
-  customGameType: text("customGameType"),
-  customIconUrl: text("customIconUrl"),
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
@@ -201,9 +197,6 @@ export const updateServiceSchema = insertServiceSchema.extend({
 
 export const updateGameServerSchema = insertGameServerSchema.extend({
   id: z.number(),
-  customDisplayName: z.string().optional(),
-  customGameType: z.string().optional(),
-  customIconUrl: z.string().optional(),
 }).partial().required({ id: true });
 
 export const updateUserSchema = insertUserSchema.extend({
