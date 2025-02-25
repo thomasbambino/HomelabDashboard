@@ -13,7 +13,6 @@ import { apiRequest } from "@/lib/queryClient";
 interface Settings {
   onlineColor?: string;
   offlineColor?: string;
-  beta_features?: boolean;
 }
 
 interface GameServerCardProps {
@@ -41,9 +40,16 @@ export function GameServerCard({ server }: GameServerCardProps) {
   // Query for real-time metrics
   const { data: metrics } = useQuery<MetricsData>({
     queryKey: ["/api/game-servers", server.instanceId, "metrics"],
-    enabled: !!server.instanceId && server.status && settings?.beta_features,
+    enabled: !!server.instanceId && server.status && user?.beta_features,
     refetchInterval: server.refreshInterval || 30000,
   });
+
+  // Safe access to metrics with defaults
+  const playerCount = metrics?.Users?.[0] ? Number(metrics.Users[0]) : 0;
+  const maxPlayers = metrics?.Users?.[1] ? Number(metrics.Users[1]) : (server.maxPlayers || 0);
+  const tps = metrics?.TPS ? Number(metrics.TPS).toFixed(1) : '0.0';
+  const cpu = metrics?.CPU ? Number(metrics.CPU).toFixed(1) : '0.0';
+  const memoryGB = metrics?.Memory?.[0] ? (Number(metrics.Memory[0]) / 1024).toFixed(1) : '0.0';
 
   // Mutations for server control
   const startServerMutation = useMutation({
@@ -104,13 +110,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
     },
   });
 
-  // Safe access to metrics with defaults
-  const playerCount = metrics?.Users?.[0] ? Number(metrics.Users[0]) : 0;
-  const maxPlayers = metrics?.Users?.[1] ? Number(metrics.Users[1]) : (server.maxPlayers || 0);
-  const tps = metrics?.TPS ? Number(metrics.TPS).toFixed(1) : '0.0';
-  const cpu = metrics?.CPU ? Number(metrics.CPU).toFixed(1) : '0.0';
-  const memoryGB = metrics?.Memory?.[0] ? (Number(metrics.Memory[0]) / 1024).toFixed(1) : '0.0';
-
   return (
     <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -141,7 +140,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
               {server.status ? "Online" : "Offline"}
             </Badge>
           )}
-          {isAdmin && settings?.beta_features && (
+          {isAdmin && user?.beta_features && (
             <>
               <Button
                 variant="ghost"
@@ -173,7 +172,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {settings?.beta_features && (server.show_player_count ?? true) && (
+          {user?.beta_features && (server.show_player_count ?? true) && (
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Players</span>
@@ -186,7 +185,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
             </div>
           )}
 
-          {settings?.beta_features && server.status && metrics && (
+          {user?.beta_features && server.status && metrics && (
             <div className="grid grid-cols-3 gap-2 mt-2">
               <div className="flex items-center gap-2 text-sm">
                 <Activity className="h-4 w-4" />
