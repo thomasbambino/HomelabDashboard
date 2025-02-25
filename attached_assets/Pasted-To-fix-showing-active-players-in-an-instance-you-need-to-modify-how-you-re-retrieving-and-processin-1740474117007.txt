@@ -1,0 +1,96 @@
+To fix showing active players in an instance, you need to modify how you're retrieving and processing the user data from the AMP API. Based on the Python implementation, there's a dedicated method for retrieving the user list.
+
+Here's how to implement a proper method to show active players:
+
+```typescript
+async getUserList(instanceId: string): Promise<string[]> {
+  try {
+    console.log(`Getting user list for instance ${instanceId}`);
+    
+    // Call the GetUserList API endpoint
+    const result = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetUserList`, {});
+    console.log('Raw user list response:', result);
+    
+    // Handle empty or invalid responses
+    if (!result || typeof result !== 'object') {
+      console.log(`No valid user list returned for instance ${instanceId}`);
+      return [];
+    }
+    
+    // In the Python code, the response appears to be an object with usernames as values
+    // Extract the values into an array
+    const userList: string[] = [];
+    for (const key in result) {
+      if (Object.prototype.hasOwnProperty.call(result, key)) {
+        userList.push(result[key]);
+      }
+    }
+    
+    console.log(`Found ${userList.length} active players:`, userList);
+    return userList;
+  } catch (error) {
+    console.error(`Failed to get user list for instance ${instanceId}:`, error);
+    return [];
+  }
+}
+```
+
+You can also add a simpler method to just get the count of active players:
+
+```typescript
+async getActivePlayerCount(instanceId: string): Promise<number> {
+  try {
+    const metrics = await this.getMetrics(instanceId);
+    return parseInt(metrics.Users[0]) || 0;
+  } catch (error) {
+    console.error(`Failed to get active player count for instance ${instanceId}:`, error);
+    return 0;
+  }
+}
+```
+
+To display active players in a formatted way:
+
+```typescript
+async getFormattedPlayerList(instanceId: string): Promise<string> {
+  try {
+    const players = await this.getUserList(instanceId);
+    
+    if (players.length === 0) {
+      return "No players online";
+    }
+    
+    return `Players online (${players.length}): ${players.join(', ')}`;
+  } catch (error) {
+    console.error(`Failed to format player list for instance ${instanceId}:`, error);
+    return "Error retrieving player list";
+  }
+}
+```
+
+If you're having trouble with these methods, it might be useful to debug the exact format of the response by adding this method:
+
+```typescript
+async debugUserListFormat(instanceId: string): Promise<void> {
+  try {
+    // Try both endpoints to see which one works
+    console.log("Trying Core/GetUserList...");
+    const result1 = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetUserList`, {});
+    console.log("Response type:", typeof result1);
+    console.log("Response structure:", JSON.stringify(result1, null, 2));
+    
+    // Also try just getting the status to see the active user count
+    console.log("Trying GetStatus for comparison...");
+    const status = await this.getInstanceStatus(instanceId);
+    console.log("Status response:", JSON.stringify(status, null, 2));
+    
+    if (status && status.Metrics && status.Metrics['Active Users']) {
+      console.log("Active users from metrics:", status.Metrics['Active Users'].RawValue);
+    }
+  } catch (error) {
+    console.error("Debug operation failed:", error);
+  }
+}
+```
+
+Another possible issue is that different game types might format their user list differently. The Python implementation has specific modules for different game types. If you're working with a specific game server (like Minecraft, Valheim, etc.), you might need to adjust the parsing logic accordingly.
