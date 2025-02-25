@@ -30,8 +30,8 @@ export function GameServerCard({ server, isAdmin = false }: GameServerCardProps)
   const mbToGb = (mb: number) => (mb / 1024).toFixed(2);
 
   // Capitalize first letter of game type
-  const capitalizeGameType = (type: string) => 
-    type.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const capitalizeGameType = (type: string) =>
+    type.split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 
   const copyServerAddress = async (port: string) => {
     const serverAddress = `https://game.stylus.services:${port}`;
@@ -109,7 +109,7 @@ export function GameServerCard({ server, isAdmin = false }: GameServerCardProps)
     },
   });
 
-  // Display name logic - use custom values if available
+  // Display name logic - use custom values if available, fallback to AMP values
   const displayName = server.customName || server.displayName || server.name;
   const displayType = server.customType || server.type;
   const displayIcon = server.customIcon || server.icon;
@@ -136,10 +136,8 @@ export function GameServerCard({ server, isAdmin = false }: GameServerCardProps)
             <Badge
               variant="default"
               style={{
-                backgroundColor: server.status ?
-                  settings?.onlineColor || "#22c55e" :
-                  settings?.offlineColor || "#ef4444",
-                color: "white"
+                backgroundColor: server.status ? settings?.onlineColor || "#22c55e" : settings?.offlineColor || "#ef4444",
+                color: "white",
               }}
             >
               {server.status ? "Online" : "Offline"}
