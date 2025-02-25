@@ -38,7 +38,7 @@ export default function App() {
           <ChatProvider>
             <ChartContext.Provider value={{ config: {} }}>
               <CarouselContext.Provider value={{}}>
-                <SidebarContext.Provider value={{}}>
+                <SidebarContext.Provider value={{ isCollapsed: false, setIsCollapsed: () => {} }}>
                   <Router />
                   <Toaster />
                   <ChatButton />
