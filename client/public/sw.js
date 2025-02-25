@@ -158,7 +158,9 @@ self.addEventListener('fetch', (event) => {
             event.request.url.includes('.js') ||
             event.request.url.includes('.css') ||
             event.request.url.includes('.png') ||
-            event.request.url.includes('.svg')
+            event.request.url.includes('.svg') ||
+            event.request.url.includes('fonts') ||  // Cache font files
+            event.request.url.includes('icons')     // Cache icon files
           )) {
             const responseToCache = response.clone();
             caches.open(CACHE_NAME).then((cache) => {

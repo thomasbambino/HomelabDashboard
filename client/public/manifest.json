@@ -1,0 +1,25 @@
+{
+  "short_name": "Game Dashboard",
+  "name": "Game Server Management Dashboard",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "categories": ["games", "utilities"],
+  "description": "A comprehensive homelab monitoring dashboard for game server management"
+}

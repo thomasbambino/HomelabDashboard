@@ -2,7 +2,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { ServiceStatusLog } from "@shared/schema";
 import { format, subHours, subDays, subMonths, addSeconds, isBefore } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface ServiceHealthChartProps {
   serviceId: number;
@@ -18,14 +18,33 @@ interface ChartDataPoint {
 
 export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeScale }: ServiceHealthChartProps) {
   const [tooltipTime, setTooltipTime] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Only fetch data when component is visible
   const { data: healthHistory } = useQuery<ServiceStatusLog[]>({
     queryKey: [`/api/services/${serviceId}/health-history`, timeScale],
+    enabled: isVisible, // Only fetch when visible
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
+
+  // Intersection Observer for visibility detection
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!healthHistory?.length) {
     return (
-      <div className="h-6 flex items-center justify-center text-muted-foreground text-sm">
+      <div ref={containerRef} className="h-6 flex items-center justify-center text-muted-foreground text-sm">
         No health history available
       </div>
     );
@@ -42,6 +61,12 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
     case '1m': startTime = subMonths(now, 1); break;
   }
 
+  // Optimize data aggregation based on time scale
+  const aggregationSeconds = timeScale === '1m' ? 300 : // 5 minutes for month view
+                           timeScale === '1w' ? 120 : // 2 minutes for week view
+                           timeScale === '24h' ? 60 : // 1 minute for day view
+                           5; // 5 seconds for shorter periods
+
   const sortedHistory = [...healthHistory]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     .filter(record => new Date(record.timestamp) >= startTime);
@@ -54,7 +79,7 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
   while (isBefore(currentTime, now)) {
     const recordsInSlot = sortedHistory.filter(record => {
       const recordTime = new Date(record.timestamp);
-      return recordTime >= currentTime && recordTime < addSeconds(currentTime, 5);
+      return recordTime >= currentTime && recordTime < addSeconds(currentTime, aggregationSeconds);
     });
 
     if (recordsInSlot.length > 0) {
@@ -68,11 +93,11 @@ export function ServiceHealthChart({ serviceId, onlineColor, offlineColor, timeS
       status: hasDataForPeriod ? (lastStatus ? 100 : 0) : -1,
     });
 
-    currentTime = addSeconds(currentTime, 5);
+    currentTime = addSeconds(currentTime, aggregationSeconds);
   }
 
   return (
-    <div className="relative h-6 w-full rounded-md overflow-hidden group">
+    <div ref={containerRef} className="relative h-6 w-full rounded-md overflow-hidden group">
       {tooltipTime && (
         <div 
           className="absolute top-0 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md z-10 pointer-events-none transition-opacity"
