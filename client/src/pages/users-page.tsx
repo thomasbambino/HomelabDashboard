@@ -19,6 +19,15 @@ export default function UsersPage() {
   const [tempPasswords, setTempPasswords] = useState<Record<number, string>>({});
   const [editingEmails, setEditingEmails] = useState<Record<number, string>>({});
 
+  // Render loading state while auth context is initializing
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
