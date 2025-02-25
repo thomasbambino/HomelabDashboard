@@ -91,8 +91,10 @@ export default function Dashboard() {
             <div
               id="game-servers-section"
               className={cn(
-                "transition-all duration-200",
-                isServersExpanded ? "opacity-100" : "h-0 opacity-0 overflow-hidden"
+                "transition-all duration-300 ease-in-out",
+                isServersExpanded 
+                  ? "max-h-[2000px] opacity-100" 
+                  : "max-h-0 opacity-0 overflow-hidden"
               )}
             >
               <GameServerList />
