@@ -127,19 +127,21 @@ export class AMPService {
       // Get details for each instance
       const instances = [];
       for (const instanceData of result) {
-        if (instanceData.InstanceID) {
-          try {
-            const status = await this.getInstanceStatus(instanceData.InstanceID);
-            instances.push({
-              InstanceID: instanceData.InstanceID,
-              FriendlyName: instanceData.FriendlyName || 'Unknown',
-              Running: status?.State === 'Running',
-              Status: status?.State || 'Unknown',
-              ActiveUsers: status?.Metrics?.['Active Users']?.RawValue || 0,
-              MaxUsers: status?.Metrics?.['Active Users']?.MaxValue || 0
-            });
-          } catch (error) {
-            console.error(`Error getting status for instance ${instanceData.InstanceID}:`, error);
+        if (instanceData.AvailableInstances && Array.isArray(instanceData.AvailableInstances)) {
+          for (const instance of instanceData.AvailableInstances) {
+            try {
+              const status = await this.getInstanceStatus(instance.InstanceID);
+              instances.push({
+                InstanceID: instance.InstanceID,
+                FriendlyName: instance.FriendlyName || 'Unknown',
+                Running: status?.State === 'Running',
+                Status: status?.State || 'Unknown',
+                ActiveUsers: status?.Metrics?.['Active Users']?.RawValue || 0,
+                MaxUsers: status?.Metrics?.['Active Users']?.MaxValue || 0
+              });
+            } catch (error) {
+              console.error(`Error getting status for instance ${instance.InstanceID}:`, error);
+            }
           }
         }
       }
