@@ -1118,72 +1118,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email } = plexInviteSchema.parse(req.body);
 
-      // Get Plex credentials from environment variables
+      // Get Plex token from environment variables
       const plexToken = process.env.PLEX_TOKEN;
       if (!plexToken) {
         throw new Error("Plex token not configured");
       }
 
-      // First, get the Plex server ID
-      const serversResponse = await fetch('https://plex.tv/api/v2/resources', {
-        headers: {
-          'X-Plex-Token': plexToken,
-          'X-Plex-Client-Identifier': 'homelab-dashboard',
-          'X-Plex-Product': 'Homelab Dashboard',
-          'X-Plex-Version': '1.0',
-          'Accept': 'application/json'
-        }
+      // Use Python child process to handle Plex invitation
+      const pythonScript = `
+from plexapi.myplex import MyPlexAccount
+try:
+    account = MyPlexAccount(token='${plexToken}')
+    # Get the first server (assuming single server setup)
+    server = account.resources()[0]
+    # Send the invitation
+    server.inviteFriend(email, plex_api.library.sections())
+    print('{"success": true}')
+except Exception as e:
+    print('{"success": false, "error": "' + str(e) + '"}')
+`;
+
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['-c', pythonScript]);
+
+      let result = '';
+      let error = '';
+
+      python.stdout.on('data', (data) => {
+        result += data.toString();
       });
 
-      if (!serversResponse.ok) {
-        throw new Error("Failed to fetch Plex servers");
-      }
+      python.stderr.on('data', (data) => {
+        error += data.toString();
+      });
 
-      const servers = await serversResponse.json();
-      const server = servers.find((s: any) => s.product === 'Plex Media Server');
-
-      if (!server) {
-        throw new Error("No Plex server found");
-      }
-
-      // Make request to Plex API to send invitation
-      const plexResponse = await fetch('https://plex.tv/api/v2/shared_servers', {
-        method: 'POST',
-        headers: {
-          'X-Plex-Token': plexToken,
-          'X-Plex-Client-Identifier': 'homelab-dashboard',
-          'X-Plex-Product': 'Homelab Dashboard',
-          'X-Plex-Version': '1.0',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          machineIdentifier: server.clientIdentifier,
-          invitedEmail: email,
-          librarySections: [], // Grant access to all libraries
-          settings: {
-            allowSync: true,
-            allowCameraUpload: false,
-            allowChannels: true,
-            filterMovies: "",
-            filterTelevision: "",
-            filterMusic: ""
+      await new Promise((resolve, reject) => {
+        python.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(error || 'Failed to send Plex invitation'));
+          } else {
+            resolve(result);
           }
-        })
+        });
       });
 
-      if (!plexResponse.ok) {
-        const errorText = await plexResponse.text();
-        let errorMessage = "Failed to send Plex invitation";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.errors?.[0]?.message || errorData.message || errorMessage;
-          console.error('Plex API error:', errorData);
-        } catch (e) {
-          console.error('Plex API error (raw):', errorText);
-          errorMessage = errorText || errorMessage;
+      try {
+        const response = JSON.parse(result);
+        if (!response.success) {
+          throw new Error(response.error);
         }
-        throw new Error(errorMessage);
+      } catch (e) {
+        throw new Error('Invalid response from Plex API');
       }
 
       res.json({ message: "Invitation sent successfully" });
