@@ -6,8 +6,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GameServer, updateGameServerSchema } from "@shared/schema";
@@ -33,19 +33,9 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
     resolver: zodResolver(updateGameServerSchema),
     defaultValues: {
       id: server.id,
-      displayName: server.displayName || "",
-      type: server.type || "",
-      icon: server.icon || "",
-      instanceId: server.instanceId,
-      name: server.name,
-      status: server.status,
-      playerCount: server.playerCount,
-      maxPlayers: server.maxPlayers,
-      hidden: server.hidden,
-      show_player_count: server.show_player_count,
-      show_status_badge: server.show_status_badge,
-      autoStart: server.autoStart,
-      refreshInterval: server.refreshInterval,
+      customDisplayName: server.customDisplayName || "",
+      customGameType: server.customGameType || "",
+      customIconUrl: server.customIconUrl || "",
     },
   });
 
@@ -93,10 +83,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
             <FormField
               control={form.control}
-              name="displayName"
+              name="customDisplayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Display Name (Optional)</FormLabel>
+                  <FormLabel>Display Name</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder={server.name} 
@@ -108,10 +98,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="type"
+              name="customGameType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Game Type (Optional)</FormLabel>
+                  <FormLabel>Game Type</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder={server.type} 
@@ -123,10 +113,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="icon"
+              name="customIconUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon Image</FormLabel>
+                  <FormLabel>Server Icon</FormLabel>
                   <FormControl>
                     <ImageUpload
                       value={field.value}

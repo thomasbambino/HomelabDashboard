@@ -104,20 +104,25 @@ export function GameServerCard({ server, isAdmin = false }: GameServerCardProps)
     },
   });
 
+  // Get display values, falling back to AMP values if custom ones aren't set
+  const displayName = server.customDisplayName || server.displayName || server.name;
+  const displayType = server.customGameType || server.type;
+  const displayIcon = server.customIconUrl || server.icon;
+
   return (
     <Card className={`backdrop-blur-sm bg-background/95 relative ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       {isAdmin && <EditGameServerDisplay server={server} isAdmin={isAdmin} />}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          {server.icon ? (
-            <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+          {displayIcon ? (
+            <img src={displayIcon} alt={`${displayName} icon`} className="w-6 h-6 object-contain" />
           ) : (
             <span className="text-xl">🎮</span>
           )}
           <CardTitle className="text-sm font-medium">
-            {server.displayName || server.name}
+            {displayName}
             <span className="text-xs text-muted-foreground ml-2">
-              {capitalizeGameType(server.type)}
+              {capitalizeGameType(displayType)}
             </span>
           </CardTitle>
         </div>
