@@ -6,17 +6,14 @@ import { Copy, PlayCircle, StopCircle, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-
-interface Settings {
-  onlineColor?: string;
-  offlineColor?: string;
-}
+import { EditGameServerDisplay } from "./edit-game-server-display";
 
 interface GameServerCardProps {
   server: GameServer;
+  isAdmin?: boolean;
 }
 
-export function GameServerCard({ server }: GameServerCardProps) {
+export function GameServerCard({ server, isAdmin = false }: GameServerCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -108,7 +105,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
   });
 
   return (
-    <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
+    <Card className={`backdrop-blur-sm bg-background/95 relative ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
+      {isAdmin && <EditGameServerDisplay server={server} isAdmin={isAdmin} />}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {server.icon ? (
@@ -206,4 +204,9 @@ export function GameServerCard({ server }: GameServerCardProps) {
       </CardContent>
     </Card>
   );
+}
+
+interface Settings {
+  onlineColor?: string;
+  offlineColor?: string;
 }

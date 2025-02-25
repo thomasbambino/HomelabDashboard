@@ -15,37 +15,30 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Settings2 } from "lucide-react";
-import * as z from 'zod';
 
 interface EditGameServerDisplayProps {
   server: GameServer;
   isAdmin: boolean;
 }
 
-const displaySchema = updateGameServerSchema.extend({
-  customName: z.string().optional(),
-  customType: z.string().optional(),
-  customIcon: z.string().optional(),
-});
-
 export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplayProps) {
   const { toast } = useToast();
-  
+
   // Only render for admins
   if (!isAdmin) return null;
 
   const form = useForm({
-    resolver: zodResolver(displaySchema),
+    resolver: zodResolver(updateGameServerSchema),
     defaultValues: {
       id: server.id,
-      customName: server.customName || "",
-      customType: server.customType || "",
-      customIcon: server.customIcon || "",
+      displayName: server.displayName || "",
+      type: server.type || "",
+      icon: server.icon || "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: z.infer<typeof displaySchema>) => {
+    mutationFn: async (data: typeof form.getValues) => {
       const res = await apiRequest("PUT", `/api/game-servers/${server.id}`, data);
       return res.json();
     },
@@ -85,7 +78,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
           <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
             <FormField
               control={form.control}
-              name="customName"
+              name="displayName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Display Name (Optional)</FormLabel>
@@ -100,7 +93,7 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="customType"
+              name="type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Game Type (Optional)</FormLabel>
@@ -115,10 +108,10 @@ export function EditGameServerDisplay({ server, isAdmin }: EditGameServerDisplay
             />
             <FormField
               control={form.control}
-              name="customIcon"
+              name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Custom Icon URL (Optional)</FormLabel>
+                  <FormLabel>Icon URL (Optional)</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="https://example.com/icon.png" 
