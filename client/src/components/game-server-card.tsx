@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Play, PowerOff } from "lucide-react";
+import { Eye, EyeOff, Play, PowerOff, RefreshCw, Activity, Cpu, HardDrive } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +19,14 @@ interface GameServerCardProps {
   server: GameServer;
 }
 
+interface MetricsData {
+  TPS: string;
+  Users: [string, string];
+  CPU: string;
+  Memory: [string, string];
+  Uptime: string;
+}
+
 export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -27,6 +35,13 @@ export function GameServerCard({ server }: GameServerCardProps) {
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
+  });
+
+  // Query for real-time metrics
+  const { data: metrics } = useQuery<MetricsData>({
+    queryKey: ["/api/game-servers", server.instanceId, "metrics"],
+    enabled: !!server.instanceId && server.status,
+    refetchInterval: server.refreshInterval || 30000,
   });
 
   // Mutations for server control
@@ -154,12 +169,29 @@ export function GameServerCard({ server }: GameServerCardProps) {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Players</span>
-                <span>{server.playerCount ?? 0}/{server.maxPlayers ?? 0}</span>
+                <span>{metrics?.Users?.[0] || 0}/{metrics?.Users?.[1] || server.maxPlayers || 0}</span>
               </div>
               <Progress
-                value={((server.playerCount ?? 0) / (server.maxPlayers ?? 1)) * 100}
+                value={((Number(metrics?.Users?.[0]) || 0) / (Number(metrics?.Users?.[1]) || server.maxPlayers || 1)) * 100}
                 className="h-2"
               />
+            </div>
+          )}
+
+          {server.status && metrics && (
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Activity className="h-4 w-4" />
+                <span>TPS: {Number(metrics.TPS).toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Cpu className="h-4 w-4" />
+                <span>CPU: {Number(metrics.CPU).toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <HardDrive className="h-4 w-4" />
+                <span>RAM: {(Number(metrics.Memory[0]) / 1024).toFixed(1)}GB</span>
+              </div>
             </div>
           )}
         </div>

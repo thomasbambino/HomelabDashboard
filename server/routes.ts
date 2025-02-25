@@ -948,6 +948,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/game-servers/:instanceId/metrics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Fetching metrics for instance ${instanceId}`);
+
+      // Get instance status first to verify it exists and is running
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+
+      if (!instance.Running) {
+        console.log(`Instance ${instanceId} is not running, returning null metrics`);
+        return res.json(null);
+      }
+
+      // Get metrics
+      const metrics = await ampService.getMetrics(instanceId);
+      console.log(`Metrics for instance ${instanceId}:`, metrics);
+
+      res.json(metrics);
+    } catch (error) {
+      console.error(`Error fetching metrics for instance ${instanceId}:`, error);
+      res.status(500).json({ 
+        message: "Failed to fetch instance metrics",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   console.log('Chat server initialized successfully');
 
