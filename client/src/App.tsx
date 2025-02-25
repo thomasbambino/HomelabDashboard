@@ -36,16 +36,10 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <ChatProvider>
-            <ChartContext.Provider value={{ config: {} }}>
-              <CarouselContext.Provider value={{}}>
-                <SidebarContext.Provider value={{ isCollapsed: false, setIsCollapsed: () => {} }}>
-                  <Router />
-                  <Toaster />
-                  <ChatButton />
-                  <FaviconUpdater />
-                </SidebarContext.Provider>
-              </CarouselContext.Provider>
-            </ChartContext.Provider>
+            <Router />
+            <Toaster />
+            <ChatButton />
+            <FaviconUpdater />
           </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
