@@ -216,37 +216,52 @@ export class AMPService {
     Memory: [string, string];
     Uptime: string;
   }> {
-    const result = await this.getInstanceStatus(instanceId);
-    console.log('Raw metrics result:', result);
+    try {
+      console.log(`Getting metrics for instance ${instanceId}`);
+      const result = await this.getInstanceStatus(instanceId);
+      console.log('Raw metrics result:', result);
 
-    if (!result || !result.Metrics) {
-      console.log(`No metrics available for instance ${instanceId}`);
+      // Handle case where result is false or no metrics available
+      if (!result || typeof result === 'boolean' || !result.Metrics) {
+        console.log(`No metrics available for instance ${instanceId}`);
+        return {
+          TPS: '0',
+          Users: ['0', '0'],
+          CPU: '0',
+          Memory: ['0', '0'],
+          Uptime: '00:00:00'
+        };
+      }
+
+      // Extract metrics with proper null/undefined checking
+      // This matches the Python implementation in how it extracts metrics
+      const metrics = {
+        TPS: String(result.State || '0'),
+        Users: [
+          String(result.Metrics['Active Users']?.RawValue || '0'),
+          String(result.Metrics['Active Users']?.MaxValue || '0')
+        ],
+        CPU: String(result.Metrics['CPU Usage']?.RawValue || '0'),
+        Memory: [
+          String(result.Metrics['Memory Usage']?.RawValue || '0'),
+          String(result.Metrics['Memory Usage']?.MaxValue || '0')
+        ],
+        Uptime: String(result.Uptime || '00:00:00')
+      };
+
+      console.log('Formatted metrics:', metrics);
+      return metrics;
+    } catch (error) {
+      console.error(`Failed to get metrics for instance ${instanceId}:`, error);
+      // Return default values in case of error
       return {
         TPS: '0',
         Users: ['0', '0'],
         CPU: '0',
         Memory: ['0', '0'],
-        Uptime: '0'
+        Uptime: '00:00:00'
       };
     }
-
-    // Extract metrics with proper type conversion
-    const metrics = {
-      TPS: result.State?.toString() || '0',
-      Users: [
-        result.Metrics['Active Users']?.RawValue?.toString() || '0',
-        result.Metrics['Active Users']?.MaxValue?.toString() || '0'
-      ],
-      CPU: result.Metrics['CPU Usage']?.RawValue?.toString() || '0',
-      Memory: [
-        result.Metrics['Memory Usage']?.RawValue?.toString() || '0',
-        result.Metrics['Memory Usage']?.MaxValue?.toString() || '0'
-      ],
-      Uptime: result.Uptime?.toString() || '0'
-    };
-
-    console.log('Formatted metrics:', metrics);
-    return metrics;
   }
 
   async getSystemInfo(): Promise<any> {
