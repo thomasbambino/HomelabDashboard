@@ -85,10 +85,6 @@ export const gameServers = pgTable("gameServers", {
   autoStart: boolean("autoStart").default(false),
   lastStatusCheck: timestamp("lastStatusCheck"),
   refreshInterval: integer("refreshInterval").default(30),
-  // Custom display fields
-  customName: text("customName"),  // Optional custom display name override
-  customType: text("customType"),  // Optional custom game type override
-  customIcon: text("customIcon"),  // Optional custom icon URL
 });
 
 export const serviceStatusLogs = pgTable("serviceStatusLogs", {
