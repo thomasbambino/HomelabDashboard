@@ -62,22 +62,14 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      // Log the values being sent to the API
-      console.log('Updating settings with:', {
+      const res = await apiRequest("PATCH", "/api/settings", {
+        id: data.id,
         admin_show_uptime_log: data.admin_show_uptime_log,
         show_uptime_log: data.show_uptime_log
       });
-
-      const res = await apiRequest("PATCH", "/api/settings", {
-        id: data.id,
-        admin_show_uptime_log: Boolean(data.admin_show_uptime_log),
-        show_uptime_log: Boolean(data.show_uptime_log)
-      });
       return res.json();
     },
-    onSuccess: (data) => {
-      // Log the response from the API
-      console.log('Settings updated successfully:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
         title: "Settings updated",
@@ -86,7 +78,6 @@ export function SettingsDialog() {
       setOpen(false);
     },
     onError: (error: Error) => {
-      console.error('Settings update failed:', error);
       toast({
         title: "Failed to update settings",
         description: error.message,
@@ -394,14 +385,7 @@ export function SettingsDialog() {
                               <Switch
                                 id="admin_show_uptime_log"
                                 checked={field.value}
-                                onCheckedChange={(checked) => {
-                                  const updatedData = {
-                                    id: form.getValues('id'),
-                                    admin_show_uptime_log: checked,
-                                    show_uptime_log: form.getValues('show_uptime_log')
-                                  };
-                                  updateSettingsMutation.mutate(updatedData);
-                                }}
+                                onCheckedChange={field.onChange}
                               />
                             </div>
                           </FormItem>
@@ -486,14 +470,7 @@ export function SettingsDialog() {
                               <Switch
                                 id="show_uptime_log"
                                 checked={field.value}
-                                onCheckedChange={(checked) => {
-                                  const updatedData = {
-                                    id: form.getValues('id'),
-                                    show_uptime_log: checked,
-                                    admin_show_uptime_log: form.getValues('admin_show_uptime_log')
-                                  };
-                                  updateSettingsMutation.mutate(updatedData);
-                                }}
+                                onCheckedChange={field.onChange}
                               />
                             </div>
                           </FormItem>
