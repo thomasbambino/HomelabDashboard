@@ -609,37 +609,38 @@ export function SettingsDialog() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Customize email templates for system notifications, alerts, and user communications.
-                    Each template supports variables like {{appName}}, {{logoUrl}}, and specific fields for different types of notifications.
+                    Each template supports variables such as &#123;&#123;appName&#125;&#125;, &#123;&#123;logoUrl&#125;&#125;, and specific fields for different types of notifications.
                   </p>
-                </div>
-                <EmailTemplateDialog
-                  open={showEmailTemplates}
-                  onOpenChange={setShowEmailTemplates}
-                  onTestEmail={async (templateId: number, email: string) => {
-                    try {
-                      const res = await apiRequest(
-                        "POST",
-                        `/api/email-templates/${templateId}/test`,
-                        { email }
-                      );
+                  <EmailTemplateDialog
+                    open={showEmailTemplates}
+                    onOpenChange={setShowEmailTemplates}
+                    onTestEmail={async (templateId: number, email: string) => {
+                      try {
+                        const res = await apiRequest(
+                          "POST",
+                          `/api/email-templates/${templateId}/test`,
+                          { email }
+                        );
 
-                      if (!res.ok) {
-                        throw new Error("Failed to send test email");
+                        if (!res.ok) {
+                          throw new Error("Failed to send test email");
+                        }
+
+                        toast({
+                          title: "Test Email Sent",
+                          description: "Check your inbox for the test email.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Failed to Send Test Email",
+                          description: error instanceof Error ? error.message : "An error occurred",
+                          variant: "destructive",
+                        });
                       }
+                    }}
+                  />
+                </div>
 
-                      toast({
-                        title: "Test Email Sent",
-                        description: "Check your inbox for the test email.",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Failed to Send Test Email",
-                        description: error instanceof Error ? error.message : "An error occurred",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                />
               </TabsContent>
             </>
           )}
