@@ -274,6 +274,6 @@ export type ChatMember = typeof chatMembers.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type ChatAttachment = typeof chatAttachments.$inferSelect;
 
-export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
+// Remove duplicate schema definition and keep only one
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
