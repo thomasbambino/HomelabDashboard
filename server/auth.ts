@@ -96,35 +96,47 @@ function canModifyUser(requestingUser: any, targetUserId: number) {
   return requestingUser.id === targetUserId;
 }
 
-async function getClientIp(req: Request) {
-  // Check for forwarded IP first (for proxied requests)
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    // Get the first IP if multiple are present
-    const ip = Array.isArray(forwardedFor)
-      ? forwardedFor[0].split(',')[0].trim()
-      : forwardedFor.split(',')[0].trim();
-    console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
-    return ip;
-  }
-
-  // Check other common proxy headers
-  const proxyHeaders = [
-    'x-real-ip',
-    'cf-connecting-ip', // Cloudflare
-    'true-client-ip'
-  ];
-
-  for (const header of proxyHeaders) {
-    const proxyIp = req.headers[header];
-    if (proxyIp) {
-      console.log(`Found IP in ${header}:`, proxyIp);
-      return Array.isArray(proxyIp) ? proxyIp[0] : proxyIp;
+async function getClientIp(req: Request): Promise<string> {
+  try {
+    // Check for forwarded IP first (for proxied requests)
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      // Get the first IP if multiple are present
+      const ip = Array.isArray(forwardedFor)
+        ? forwardedFor[0].split(',')[0].trim()
+        : forwardedFor.split(',')[0].trim();
+      console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
+      return ip;
     }
-  }
 
-  console.log('Using direct IP:', req.ip);
-  return req.ip;
+    // Check other common proxy headers
+    const proxyHeaders = [
+      'x-real-ip',
+      'cf-connecting-ip', // Cloudflare
+      'true-client-ip'
+    ];
+
+    for (const header of proxyHeaders) {
+      const proxyIp = req.headers[header];
+      if (proxyIp) {
+        console.log(`Found IP in ${header}:`, proxyIp);
+        return Array.isArray(proxyIp) ? proxyIp[0] : proxyIp;
+      }
+    }
+
+    // Get IP from request object as fallback
+    if (req.ip) {
+      console.log('Using req.ip:', req.ip);
+      return req.ip;
+    }
+
+    // Ultimate fallback
+    console.log('No IP found, using fallback');
+    return '0.0.0.0';
+  } catch (error) {
+    console.error('Error getting client IP:', error);
+    return '0.0.0.0';
+  }
 }
 
 export function setupAuth(app: Express) {
