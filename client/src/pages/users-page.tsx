@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Link } from "wouter";
-import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save } from "lucide-react";
+import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save, Shield } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -73,27 +73,6 @@ export default function UsersPage() {
     },
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { defaultRole: string }) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({
-        title: "Settings updated",
-        description: "Default role settings have been updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update settings",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleEmailChange = (userId: number, email: string) => {
     setEditingEmails(prev => ({ ...prev, [userId]: email }));
   };
@@ -114,7 +93,7 @@ export default function UsersPage() {
     return <Redirect to="/" />;
   }
 
-  // Add this helper function
+  // Update canModifyUser to prevent admins from modifying other admins
   const canModifyUser = (targetUser: User) => {
     if (!user) return false;
     if (user.role === 'superadmin') {
@@ -124,7 +103,13 @@ export default function UsersPage() {
       }
       return true;
     }
-    if (user.role === 'admin' && targetUser.role !== 'superadmin') return true;
+    if (user.role === 'admin') {
+      // Admins can't modify superadmins or other admins
+      if (targetUser.role === 'superadmin' || (targetUser.role === 'admin' && targetUser.id !== user.id)) {
+        return false;
+      }
+      return true;
+    }
     return false;
   };
 
@@ -143,33 +128,6 @@ export default function UsersPage() {
             </Button>
           </Link>
         </header>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
-              Registration Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <Label>Default role for new users:</Label>
-              <Select
-                value={settings?.default_role}
-                onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
 
         <div className="grid gap-4">
           {users.map((u) => (
@@ -223,19 +181,22 @@ export default function UsersPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     {u.role === 'superadmin' ? (
-                      <p className="text-sm font-medium text-primary">Superadmin</p>
+                      <p className="text-sm font-medium text-primary flex items-center gap-1">
+                        <Shield className="h-4 w-4 text-blue-500" />
+                        Superadmin
+                      </p>
                     ) : (
                       canModifyUser(u) && (
                         <>
                           <div className="flex items-center gap-2">
                             <Switch
-                              checked={u.approved}
+                              checked={!u.approved}
                               onCheckedChange={(checked) =>
-                                updateUserMutation.mutate({ id: u.id, approved: checked })
+                                updateUserMutation.mutate({ id: u.id, approved: !checked })
                               }
                               disabled={!canModifyUser(u)}
                             />
-                            <Label>Account Enabled</Label>
+                            <Label>Account Disabled</Label>
                           </div>
                           <div className="flex items-center gap-2">
                             <Switch
@@ -259,7 +220,12 @@ export default function UsersPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {user?.role === 'superadmin' && (
-                                <SelectItem value="superadmin">Superadmin</SelectItem>
+                                <SelectItem value="superadmin">
+                                  <span className="flex items-center gap-1">
+                                    <Shield className="h-4 w-4 text-blue-500" />
+                                    Superadmin
+                                  </span>
+                                </SelectItem>
                               )}
                               <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="user">User</SelectItem>
