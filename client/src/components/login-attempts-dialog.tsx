@@ -6,7 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
 import { Shield, CheckCircle2, XCircle } from "lucide-react";
-import { AttIcon, GoogleIcon, ComcastIcon, NetworkIcon } from "./isp-icons";
+import { 
+  AttIcon, GoogleIcon, ComcastIcon, NetworkIcon, 
+  VerizonIcon, TmobileIcon, FrontierIcon, SpectrumIcon, CoxIcon 
+} from "./isp-icons";
 
 // Map common ISP names to their icon components
 const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -14,6 +17,11 @@ const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'Google': GoogleIcon,
   'Comcast': ComcastIcon,
   'Xfinity': ComcastIcon,
+  'Verizon': VerizonIcon,
+  'T-Mobile': TmobileIcon,
+  'Frontier': FrontierIcon,
+  'Spectrum': SpectrumIcon,
+  'Cox': CoxIcon
 };
 
 function getISPIcon(ispName: string): React.ComponentType<{ className?: string }> {
@@ -82,7 +90,7 @@ export function LoginAttemptsDialog() {
                       <p className="text-sm flex items-center gap-2">
                         <span className="text-muted-foreground">ISP:</span>
                         {React.createElement(getISPIcon(attempt.isp), {
-                          className: "h-4 w-4 text-blue-500"
+                          className: "h-4 w-4"
                         })}
                         <span>{attempt.isp}</span>
                       </p>
