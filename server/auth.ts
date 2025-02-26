@@ -217,12 +217,81 @@ export function setupAuth(app: Express) {
 
           console.log(`Successfully updated IP for user ${user.username}`);
 
-          res.json(user);
+          // Include temp_password status in response
+          res.json({
+            ...user,
+            requires_password_change: user.temp_password
+          });
         });
       })(req, res, next);
     } catch (error) {
       console.error('Login error:', error);
       next(error);
+    }
+  });
+
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { newPassword } = req.body;
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    try {
+      await storage.updateUser({
+        id: req.user.id,
+        password: await hashPassword(newPassword),
+        temp_password: false
+      });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
+  app.post("/api/request-reset", checkRateLimit, async (req, res) => {
+    const { identifier } = req.body;
+
+    try {
+      await storage.addLoginAttempt({
+        identifier,
+        ip: req.ip,
+        type: 'reset',
+        timestamp: new Date()
+      });
+
+      let user = await storage.getUserByUsername(identifier);
+      if (!user) {
+        user = await storage.getUserByEmail(identifier);
+      }
+
+      if (user && user.email) {
+        const tempPassword = randomBytes(8).toString('hex');
+
+        await storage.updateUser({
+          id: user.id,
+          password: await hashPassword(tempPassword),
+          temp_password: true // Set temp_password flag
+        });
+
+        await sendEmail({
+          to: user.email,
+          subject: "Password Reset",
+          html: `
+            <p>Your password has been reset as requested.</p>
+            <p>Your new temporary password is: ${tempPassword}</p>
+            <p>Please log in with this password. You will be required to change your password upon login.</p>
+          `
+        });
+      }
+
+      res.json({ message: "If an account exists with this identifier, a password reset email has been sent." });
+    } catch (error) {
+      console.error('Reset request error:', error);
+      res.status(500).json({ message: "An error occurred processing your request" });
     }
   });
 
@@ -238,52 +307,39 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  app.post("/api/request-reset", checkRateLimit, async (req, res) => {
-    const { identifier } = req.body;
 
-    try {
-      // Log reset attempt
-      await storage.addLoginAttempt({
-        identifier,
-        ip: req.ip,
-        type: 'reset',
-        timestamp: new Date()
-      });
+  app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
+    const { userId } = req.body;
+    const user = await storage.getUser(userId);
 
-      // Find user by username or email
-      let user = await storage.getUserByUsername(identifier);
-      if (!user) {
-        user = await storage.getUserByEmail(identifier);
-      }
-
-      if (user && user.email) {
-        // Generate temporary password
-        const tempPassword = randomBytes(8).toString('hex');
-
-        // Update user's password
-        await storage.updateUser({
-          id: user.id,
-          password: await hashPassword(tempPassword),
-        });
-
-        // Send email to user
-        await sendEmail({
-          to: user.email,
-          subject: "Password Reset",
-          html: `
-            <p>Your password has been reset as requested.</p>
-            <p>Your new temporary password is: ${tempPassword}</p>
-            <p>Please log in with this password and change it at your earliest convenience.</p>
-          `
-        });
-      }
-
-      // Always return success to prevent user enumeration
-      res.json({ message: "If an account exists with this identifier, a password reset email has been sent." });
-    } catch (error) {
-      console.error('Reset request error:', error);
-      res.status(500).json({ message: "An error occurred processing your request" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const tempPassword = randomBytes(8).toString('hex');
+
+    await storage.updateUser({
+      id: user.id,
+      password: await hashPassword(tempPassword),
+      temp_password: true // Set temp_password flag
+    });
+
+    if (user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Password Reset",
+        html: `
+          <p>Your password has been reset by an administrator.</p>
+          <p>Your new temporary password is: ${tempPassword}</p>
+          <p>Please log in with this password. You will be required to change your password upon login.</p>
+        `
+      });
+    }
+
+    res.json({
+      message: "Password reset successful",
+      tempPassword: user.email ? undefined : tempPassword
+    });
   });
 
   app.get("/api/users", isAdmin, async (req, res) => {
@@ -349,37 +405,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
-    const { userId } = req.body;
-    const user = await storage.getUser(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const tempPassword = randomBytes(8).toString('hex');
-
-    await storage.updateUser({
-      id: user.id,
-      password: await hashPassword(tempPassword),
-    });
-
-    if (user.email) {
-      await sendEmail({
-        to: user.email,
-        subject: "Password Reset",
-        html: `
-          <p>Your password has been reset by an administrator.</p>
-          <p>Your new password is: ${tempPassword}</p>
-          <p>Please log in with this password and change it at your earliest convenience.</p>
-        `
-      });
-    }
-
-    res.json({
-      message: "Password reset successful",
-      tempPassword: user.email ? undefined : tempPassword 
-    });
+  app.get("/api/users", isAdmin, async (req, res) => {
+    const users = await storage.getAllUsers();
+    res.json(users);
   });
 
   app.get("/api/settings", async (req, res) => {

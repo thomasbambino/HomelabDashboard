@@ -29,7 +29,8 @@ export const users = pgTable("users", {
   service_order: integer("service_order").array().default([]),
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen").defaultNow(),
-  last_ip: text("last_ip"), // Added IP address field
+  last_ip: text("last_ip"),
+  temp_password: boolean("temp_password").notNull().default(false), // Added temp_password field
 });
 
 export const settings = pgTable("settings", {
