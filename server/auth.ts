@@ -7,7 +7,6 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
-import Handlebars from "handlebars";
 
 const scryptAsync = promisify(scrypt);
 
@@ -482,24 +481,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.get("/api/email-templates", isAdmin, async (req, res) => {
-    const templates = await storage.getAllEmailTemplates();
-    res.json(templates);
-  });
-
-  app.post("/api/email-templates", isAdmin, async (req, res) => {
-    const template = await storage.createEmailTemplate(req.body);
-    res.json(template);
-  });
-
-  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
-    const template = await storage.updateEmailTemplate({
-      id: parseInt(req.params.id),
-      ...req.body
-    });
-    if (!template) return res.status(404).json({ message: "Template not found" });
-    res.json(template);
-  });
 
   app.post("/api/test-notification", isAdmin, async (req, res) => {
     const { templateId, email } = req.body;
@@ -514,12 +495,10 @@ export function setupAuth(app: Express) {
       duration: "5 minutes"
     };
 
-    const html = await compileTemplate(template.template, testData);
-
     const success = await sendEmail({
       to: email,
       subject: template.subject,
-      html
+      html: `<p>Service: ${testData.serviceName}</p><p>Status: ${testData.status}</p><p>Last Update: ${testData.timestamp}</p><p>Downtime: ${testData.duration}</p>`
     });
 
     if (success) {
@@ -584,23 +563,4 @@ async function createAdminUser(username: string, password: string, email: string
   const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'superadmin', approved: true });
   console.log("Admin user created:", newUser);
   return newUser;
-}
-
-// Replace the existing compileTemplate function
-async function compileTemplate(template: string, data: any): Promise<string> {
-  try {
-    const settings = await storage.getSettings();
-    const templateData = {
-      ...data,
-      site_title: settings.site_title,
-      logo_url: settings.logo_url,
-      favicon_url: settings.favicon_url,
-    };
-
-    const compiledTemplate = Handlebars.compile(template);
-    return compiledTemplate(templateData);
-  } catch (error) {
-    console.error('Error compiling template:', error);
-    return template; // Fallback to raw template if compilation fails
-  }
 }
