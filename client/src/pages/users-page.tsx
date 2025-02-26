@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { EmailTemplateSettings } from "@/components/email-template-settings";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -196,6 +197,9 @@ export default function UsersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Add Email Template Settings section */}
+        {isSuperAdmin && <EmailTemplateSettings />}
 
         <div className="grid gap-4">
           {[...users]

@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
+import Handlebars from "handlebars";
 
 const scryptAsync = promisify(scrypt);
 
@@ -513,7 +514,7 @@ export function setupAuth(app: Express) {
       duration: "5 minutes"
     };
 
-    const html = compileTemplate(template.template, testData);
+    const html = await compileTemplate(template.template, testData);
 
     const success = await sendEmail({
       to: email,
@@ -585,8 +586,21 @@ async function createAdminUser(username: string, password: string, email: string
   return newUser;
 }
 
-// Placeholder for compileTemplate function.  Replace with your actual implementation.
-function compileTemplate(template: string, data: any): string {
-  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
-  return template; // Replace with actual compiled template
+// Replace the existing compileTemplate function
+async function compileTemplate(template: string, data: any): Promise<string> {
+  try {
+    const settings = await storage.getSettings();
+    const templateData = {
+      ...data,
+      site_title: settings.site_title,
+      logo_url: settings.logo_url,
+      favicon_url: settings.favicon_url,
+    };
+
+    const compiledTemplate = Handlebars.compile(template);
+    return compiledTemplate(templateData);
+  } catch (error) {
+    console.error('Error compiling template:', error);
+    return template; // Fallback to raw template if compilation fails
+  }
 }
