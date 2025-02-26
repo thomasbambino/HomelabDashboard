@@ -1,11 +1,8 @@
 async function getIpInfo(ip: string) {
   console.log('Getting IP info for:', ip);
   try {
-    // Use the IP-API Pro endpoint with authentication
-    const API_KEY = process.env.IP_API_KEY || '';
-    console.log('Making request to ip-api.com for IP:', ip);
-
-    const response = await fetch(`http://pro.ip-api.com/json/${ip}?key=${API_KEY}`);
+    // Use the free IP-API endpoint
+    const response = await fetch(`http://ip-api.com/json/${ip}`);
     const data = await response.json();
 
     console.log('Received IP info:', data);
@@ -15,29 +12,28 @@ async function getIpInfo(ip: string) {
       console.error('ip-api.com error:', data.message);
       return {
         ip,
-        isp: 'AT&T Services, Inc.',
-        city: 'San Diego',
-        region: 'California',
-        country: 'United States',
+        isp: null,
+        city: null,
+        region: null,
+        country: null,
       };
     }
 
     return {
       ip,
-      isp: data.isp || data.org || 'AT&T Services, Inc.',
-      city: data.city || 'San Diego',
-      region: data.regionName || 'California',
-      country: data.country || 'United States',
+      isp: data.isp || data.org || null,
+      city: data.city || null,
+      region: data.regionName || null,
+      country: data.country || null,
     };
   } catch (error) {
     console.error('Failed to get IP info:', error);
-    // Return hardcoded values as fallback
     return {
       ip,
-      isp: 'AT&T Services, Inc.',
-      city: 'San Diego',
-      region: 'California',
-      country: 'United States',
+      isp: null,
+      city: null,
+      region: null,
+      country: null,
     };
   }
 }
