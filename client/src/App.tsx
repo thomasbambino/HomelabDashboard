@@ -16,10 +16,10 @@ import { FaviconUpdater } from "@/components/favicon-updater";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/users" component={UsersPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/pending" component={PendingPage} />
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/users" component={UsersPage} />
       <Route component={NotFound} />
     </Switch>
   );
