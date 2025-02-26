@@ -629,28 +629,41 @@ async function generateHashForTest() {
   return hashedPassword;
 }
 
-// Generate a hash and update admin user
-(async () => {
-  try {
-    const hashedPassword = await generateHashForTest();
-    console.log("Generated hash for admin user:", hashedPassword);
-    // Also create the admin user directly
-    const adminUser = await createAdminUser("admin", "admin123", "admin@example.com");
-    console.log("Admin user created:", adminUser);
-  } catch (error) {
-    console.error("Error generating hash:", error);
-  }
-})();
-
-// Update createAdminUser function to create a superadmin
+// Update createAdminUser function to check for existing superadmins
 async function createAdminUser(username: string, password: string, email: string) {
-  const hashedPassword = await hashPassword(password);
-  const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'superadmin', approved: true });
-  console.log("Admin user created:", newUser);
-  return newUser;
+  try {
+    // First check if any superadmin exists in the system
+    const users = await storage.getAllUsers();
+    const hasSuperAdmin = users.some(user => user.role === 'superadmin');
+
+    if (hasSuperAdmin) {
+      console.log("A superadmin already exists in the system, skipping admin creation");
+      return null;
+    }
+
+    // If no superadmin exists, check if this specific user exists
+    const existingUser = await storage.getUserByUsername(username);
+    if (existingUser) {
+      console.log("Admin user already exists, skipping creation");
+      return existingUser;
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const newUser = await storage.createUser({ 
+      username, 
+      password: hashedPassword, 
+      email, 
+      role: 'superadmin', 
+      approved: true 
+    });
+    console.log("New admin user created:", newUser);
+    return newUser;
+  } catch (error) {
+    console.error("Error in createAdminUser:", error);
+    return null;
+  }
 }
 
-// Placeholder for compileTemplate function.  Replace with your actual implementation.
 function compileTemplate(template: string, data: any): string {
   // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
   return template; // Replace with actual compiled template
