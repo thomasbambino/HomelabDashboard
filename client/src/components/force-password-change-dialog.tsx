@@ -50,7 +50,8 @@ export function ForcePasswordChangeDialog() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to change password");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to change password");
       }
 
       // Update the user data in the cache to reflect the password change
@@ -66,7 +67,7 @@ export function ForcePasswordChangeDialog() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update password. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -75,8 +76,8 @@ export function ForcePasswordChangeDialog() {
   };
 
   return (
-    <Dialog open={true} onOpenChange={() => {}}>
-      <DialogContent>
+    <Dialog open modal defaultOpen>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Change Your Password</DialogTitle>
           <DialogDescription>
