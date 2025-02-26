@@ -5,13 +5,9 @@ import { z } from "zod";
 
 // Update the role enum to include superadmin
 export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('superadmin', 'admin', 'user', 'pending')`;
-export const chatRoomTypeEnum = sql`CREATE TYPE "chat_room_type" AS ENUM ('public', 'private', 'group')`;
-export const messageTypeEnum = sql`CREATE TYPE "message_type" AS ENUM ('text', 'image', 'file')`;
 
 // Create enum columns
 const role = sql`"role"`;
-const chatRoomType = sql`"chat_room_type"`;
-const messageType = sql`"message_type"`;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -30,7 +26,7 @@ export const users = pgTable("users", {
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen").defaultNow(),
   last_ip: text("last_ip"),
-  temp_password: boolean("temp_password").notNull().default(false), // Added temp_password field
+  temp_password: boolean("temp_password").notNull().default(false),
 });
 
 export const settings = pgTable("settings", {
@@ -42,7 +38,7 @@ export const settings = pgTable("settings", {
   logo_url_large: text("logo_url_large"),
   favicon_url: text("favicon_url"),
   favicon_label: text("favicon_label"),
-  tracking_code: text("tracking_code"),  // Added tracking code field
+  tracking_code: text("tracking_code"),
   login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard."),
   online_color: text("online_color").default("#22c55e"),
   offline_color: text("offline_color").default("#ef4444"),
@@ -129,49 +125,6 @@ export const sentNotifications = pgTable("sentNotifications", {
   sentAt: timestamp("sentAt").notNull().defaultNow(),
 });
 
-export const chatRooms = pgTable("chat_rooms", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  type: text("type", { enum: ['public', 'private', 'group'] }).notNull(),
-  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  lastMessageAt: timestamp("last_message_at"),
-  isArchived: boolean("is_archived").notNull().default(false),
-});
-
-export const chatMembers = pgTable("chat_members", {
-  id: serial("id").primaryKey(),
-  roomId: integer("room_id").notNull().references(() => chatRooms.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  joinedAt: timestamp("joined_at").notNull().defaultNow(),
-  lastRead: timestamp("last_read").notNull().defaultNow(),
-  isAdmin: boolean("is_admin").notNull().default(false),
-});
-
-export const chatMessages = pgTable("chat_messages", {
-  id: serial("id").primaryKey(),
-  roomId: integer("room_id").notNull().references(() => chatRooms.id, { onDelete: 'cascade' }),
-  senderId: integer("sender_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text("type", { enum: ['text', 'image', 'file'] }).notNull().default('text'),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  isEdited: boolean("is_edited").notNull().default(false),
-  replyTo: integer("reply_to").references(() => chatMessages.id, { onDelete: 'set null' }),
-});
-
-export const chatAttachments = pgTable("chat_attachments", {
-  id: serial("id").primaryKey(),
-  messageId: integer("message_id").notNull().references(() => chatMessages.id, { onDelete: 'cascade' }),
-  fileName: text("file_name").notNull(),
-  fileSize: integer("file_size").notNull(),
-  mimeType: text("mime_type").notNull(),
-  path: text("path").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// Update the loginAttempts table definition
 export const loginAttempts = pgTable("loginAttempts", {
   id: serial("id").primaryKey(),
   identifier: text("identifier").notNull(), // username or email used
@@ -192,12 +145,6 @@ export const insertServiceStatusLogSchema = createInsertSchema(serviceStatusLogs
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertSentNotificationSchema = createInsertSchema(sentNotifications);
-export const insertChatRoomSchema = createInsertSchema(chatRooms);
-export const insertChatMemberSchema = createInsertSchema(chatMembers);
-export const insertChatMessageSchema = createInsertSchema(chatMessages);
-export const insertChatAttachmentSchema = createInsertSchema(chatAttachments);
-
-// Update the insert schema for login attempts
 export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
 
 export const updateServiceSchema = insertServiceSchema.extend({
@@ -224,21 +171,10 @@ export const updateEmailTemplateSchema = insertEmailTemplateSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
 
-export const updateChatRoomSchema = insertChatRoomSchema.extend({
+export const updateLoginAttemptSchema = insertLoginAttemptSchema.extend({
   id: z.number(),
-}).partial().required({ id: true });
+}).partial().required({id: true});
 
-export const updateChatMemberSchema = insertChatMemberSchema.extend({
-  id: z.number(),
-}).partial().required({ id: true });
-
-export const updateChatMessageSchema = insertChatMessageSchema.extend({
-  id: z.number(),
-}).partial().required({ id: true });
-
-export const updateChatAttachmentSchema = insertChatAttachmentSchema.extend({
-  id: z.number(),
-}).partial().required({ id: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
@@ -261,19 +197,5 @@ export type ServiceStatusLog = typeof serviceStatusLogs.$inferSelect;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type SentNotification = typeof sentNotifications.$inferSelect;
-export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
-export type InsertChatMember = z.infer<typeof insertChatMemberSchema>;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type InsertChatAttachment = z.infer<typeof insertChatAttachmentSchema>;
-export type UpdateChatRoom = z.infer<typeof updateChatRoomSchema>;
-export type UpdateChatMember = z.infer<typeof updateChatMemberSchema>;
-export type UpdateChatMessage = z.infer<typeof updateChatMessageSchema>;
-export type UpdateChatAttachment = z.infer<typeof updateChatAttachmentSchema>;
-export type ChatRoom = typeof chatRooms.$inferSelect;
-export type ChatMember = typeof chatMembers.$inferSelect;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type ChatAttachment = typeof chatAttachments.$inferSelect;
-
-// Remove duplicate schema definition and keep only one
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
