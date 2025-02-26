@@ -2,13 +2,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, TestTube2, Eye } from "lucide-react";
+import { Plus, TestTube2, Eye, Save, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { EmailTemplate } from "@shared/schema";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+const emailTemplateSchema = z.object({
+  name: z.string().min(1, "Template name is required"),
+  subject: z.string().min(1, "Subject line is required"),
+  template: z.string().min(1, "Template content is required"),
+});
+
+type EmailTemplateForm = z.infer<typeof emailTemplateSchema>;
 
 interface EmailTemplateDialogProps {
   open: boolean;
@@ -64,18 +76,28 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
   const [testEmail, setTestEmail] = useState("");
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
-  const { data: templates = [] } = useQuery<EmailTemplate[]>({
+  const form = useForm<EmailTemplateForm>({
+    resolver: zodResolver(emailTemplateSchema),
+    defaultValues: {
+      name: "",
+      subject: "",
+      template: defaultTemplate,
+    },
+  });
+
+  const { data: templates = [], isLoading } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/email-templates"],
   });
 
   const createTemplateMutation = useMutation({
-    mutationFn: async (template: Partial<EmailTemplate>) => {
+    mutationFn: async (template: EmailTemplateForm) => {
       const res = await apiRequest("POST", "/api/email-templates", template);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
       setEditingTemplate(null);
+      form.reset();
       toast({
         title: "Template created",
         description: "The email template has been created successfully.",
@@ -91,13 +113,14 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
   });
 
   const updateTemplateMutation = useMutation({
-    mutationFn: async (template: Partial<EmailTemplate>) => {
-      const res = await apiRequest("PATCH", `/api/email-templates/${template.id}`, template);
+    mutationFn: async (data: EmailTemplate) => {
+      const res = await apiRequest("PATCH", `/api/email-templates/${data.id}`, data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
       setEditingTemplate(null);
+      form.reset();
       toast({
         title: "Template updated",
         description: "The email template has been updated successfully.",
@@ -112,36 +135,24 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
     },
   });
 
-  const handleCreateOrUpdate = () => {
-    if (!editingTemplate?.name || !editingTemplate?.subject || !editingTemplate?.template) {
-      toast({
-        title: "Validation error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (editingTemplate.id) {
-      updateTemplateMutation.mutate(editingTemplate);
+  const handleSubmit = (data: EmailTemplateForm) => {
+    if (editingTemplate?.id) {
+      updateTemplateMutation.mutate({ ...data, id: editingTemplate.id });
     } else {
-      createTemplateMutation.mutate(editingTemplate);
+      createTemplateMutation.mutate(data);
     }
   };
 
-  const handleTest = (templateId: number) => {
-    if (!testEmail) {
-      toast({
-        title: "Validation error",
-        description: "Please enter a test email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-    onTestEmail(templateId, testEmail);
+  const handleEdit = (template: EmailTemplate) => {
+    setEditingTemplate(template);
+    form.reset({
+      name: template.name,
+      subject: template.subject,
+      template: template.template,
+    });
   };
 
-  const handlePreview = (template: EmailTemplate) => {
+  const handlePreview = () => {
     const sampleData = {
       logoUrl: "/logo.png",
       appName: "Homelab Monitor",
@@ -151,7 +162,7 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
       duration: "5 minutes"
     };
 
-    let preview = template.template;
+    let preview = form.getValues("template");
     Object.entries(sampleData).forEach(([key, value]) => {
       preview = preview.replace(new RegExp(`{{${key}}}`, 'g'), value);
     });
@@ -159,28 +170,40 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
     setPreviewHtml(preview);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Email Templates</DialogTitle>
         </DialogHeader>
+
         <div className="space-y-4">
           {!editingTemplate && !previewHtml ? (
             <>
               <div className="flex justify-end">
                 <Button
-                  onClick={() => setEditingTemplate({
-                    name: "",
-                    subject: "",
-                    template: defaultTemplate,
-                    defaultTemplate: false
-                  })}
+                  onClick={() => {
+                    setEditingTemplate({});
+                    form.reset({
+                      name: "",
+                      subject: "",
+                      template: defaultTemplate,
+                    });
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Template
                 </Button>
               </div>
+
               <div className="space-y-4">
                 {templates.map((template) => (
                   <Card key={template.id}>
@@ -192,23 +215,18 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                         Subject: {template.subject}
                       </p>
                       <div className="text-sm border rounded-md p-2 max-h-32 overflow-y-auto">
-                        {template.template}
+                        <pre className="whitespace-pre-wrap font-mono text-xs">
+                          {template.template}
+                        </pre>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => setEditingTemplate(template)}
+                          onClick={() => handleEdit(template)}
                         >
                           Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePreview(template)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Preview
                         </Button>
                       </div>
                       <div className="flex items-center gap-2">
@@ -221,7 +239,7 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                         />
                         <Button
                           variant="secondary"
-                          onClick={() => handleTest(template.id)}
+                          onClick={() => onTestEmail(template.id, testEmail)}
                         >
                           <TestTube2 className="h-4 w-4 mr-2" />
                           Test
@@ -245,32 +263,72 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
               />
             </div>
           ) : (
-            <div className="space-y-4">
-              <Input
-                placeholder="Template name"
-                value={editingTemplate.name || ""}
-                onChange={(e) => setEditingTemplate(prev => ({ ...prev, name: e.target.value }))}
-              />
-              <Input
-                placeholder="Email subject"
-                value={editingTemplate.subject || ""}
-                onChange={(e) => setEditingTemplate(prev => ({ ...prev, subject: e.target.value }))}
-              />
-              <Textarea
-                placeholder="HTML template content"
-                value={editingTemplate.template || ""}
-                onChange={(e) => setEditingTemplate(prev => ({ ...prev, template: e.target.value }))}
-                className="min-h-[400px] font-mono"
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditingTemplate(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateOrUpdate}>
-                  {editingTemplate.id ? "Update" : "Create"}
-                </Button>
-              </div>
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Template Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter template name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Subject</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter email subject" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="template"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Template Content (HTML)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter HTML template content"
+                          className="min-h-[400px] font-mono"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setPreviewHtml(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={handlePreview}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                  <Button type="submit" disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}>
+                    {(createTemplateMutation.isPending || updateTemplateMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="h-4 w-4 mr-2" />
+                    {editingTemplate?.id ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           )}
         </div>
       </DialogContent>
