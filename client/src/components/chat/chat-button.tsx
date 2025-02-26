@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
-import { ChatRoom } from "./chat-room";
+import { ChatPanel } from "./ChatPanel";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -25,7 +25,9 @@ export function ChatButton() {
         <DialogHeader>
           <DialogTitle>Chat</DialogTitle>
         </DialogHeader>
-        <ChatRoom />
+        <div className="flex-1 overflow-hidden">
+          <ChatPanel onClose={() => setOpen(false)} />
+        </div>
       </DialogContent>
     </Dialog>
   );
