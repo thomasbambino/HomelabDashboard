@@ -175,7 +175,6 @@ export const updateLoginAttemptSchema = insertLoginAttemptSchema.extend({
   id: z.number(),
 }).partial().required({id: true});
 
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
