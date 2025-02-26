@@ -29,14 +29,6 @@ export default function UsersPage() {
 
   const updateUserMutation = useMutation({
     mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean; email?: string; enabled?: boolean }) => {
-      // Prevent admins from modifying other admins' roles
-      if (user?.role === 'admin') {
-        const targetUser = users.find(u => u.id === data.id);
-        if (targetUser?.role === 'admin' && data.role && data.role !== 'admin') {
-          throw new Error('Admins cannot modify other admins\' roles');
-        }
-      }
-
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -125,14 +117,12 @@ export default function UsersPage() {
   // Add this helper function
   const canModifyUser = (targetUser: User) => {
     if (!user) return false;
-    if (user.role === 'superadmin') {
-      // Superadmins can't modify other superadmins unless it's themselves
-      if (targetUser.role === 'superadmin' && targetUser.id !== user.id) {
-        return false;
-      }
+    if (user.role === 'superadmin') return true;
+    if (user.role === 'admin') {
+      // Admins can't modify other admins
+      if (targetUser.role === 'admin' || targetUser.role === 'superadmin') return false;
       return true;
     }
-    if (user.role === 'admin' && targetUser.role !== 'superadmin') return true;
     return false;
   };
 
@@ -266,11 +256,9 @@ export default function UsersPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {/* Only show superadmin option to superadmins */}
-                              {user?.role === 'superadmin' && u.id === user.id && (
-                                <SelectItem value="superadmin">Superadmin</SelectItem>
+                              {user?.role === 'superadmin' && (
+                                <SelectItem value="admin">Admin</SelectItem>
                               )}
-                              <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="user">User</SelectItem>
                               <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
