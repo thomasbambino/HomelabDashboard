@@ -110,17 +110,23 @@ export default function UsersPage() {
     }
   };
 
+  if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+    return <Redirect to="/" />;
+  }
+
   // Add this helper function
   const canModifyUser = (targetUser: User) => {
     if (!user) return false;
-    if (user.role === 'superadmin') return true;
+    if (user.role === 'superadmin') {
+      // Superadmins can't modify other superadmins unless it's themselves
+      if (targetUser.role === 'superadmin' && targetUser.id !== user.id) {
+        return false;
+      }
+      return true;
+    }
     if (user.role === 'admin' && targetUser.role !== 'superadmin') return true;
     return false;
   };
-
-  if (user?.role !== 'admin') {
-    return <Redirect to="/" />;
-  }
 
   return (
     <div className="min-h-screen bg-background p-8">

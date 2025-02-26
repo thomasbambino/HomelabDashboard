@@ -53,7 +53,14 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
 // Middleware to check if user is admin
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) return res.sendStatus(401);
-  if (req.user.role !== 'admin') return res.sendStatus(403);
+  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') return res.sendStatus(403);
+  next();
+}
+
+// Add a new middleware for superadmin-only routes
+export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  if (req.user.role !== 'superadmin') return res.sendStatus(403);
   next();
 }
 
@@ -66,8 +73,15 @@ export function isApproved(req: Request, res: Response, next: NextFunction) {
 
 // Add this helper function at the top
 function canModifyUser(requestingUser: any, targetUserId: number) {
-  // Superadmins can modify anyone
-  if (requestingUser.role === 'superadmin') return true;
+  // Superadmins can modify anyone except other superadmins
+  if (requestingUser.role === 'superadmin') {
+    const targetUser = storage.getUser(targetUserId);
+    // Only allow superadmin to modify other superadmins
+    if (targetUser && targetUser.role === 'superadmin' && requestingUser.id !== targetUserId) {
+      return false;
+    }
+    return true;
+  }
 
   // Regular admins cannot modify superadmins
   if (requestingUser.role === 'admin') {
@@ -104,7 +118,7 @@ export function setupAuth(app: Express) {
 
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
-        } 
+        }
 
         // Check if the user account is approved (enabled)
         if (!user.approved) {
@@ -259,15 +273,15 @@ export function setupAuth(app: Express) {
 
     // Check if the requesting admin can modify this user
     if (!canModifyUser(req.user, targetUserId)) {
-      return res.status(403).json({ 
-        message: "Regular admins cannot modify superadmin users" 
+      return res.status(403).json({
+        message: "Regular admins cannot modify superadmin users"
       });
     }
 
     // Check if trying to set role to superadmin
     if (req.body.role === 'superadmin' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ 
-        message: "Only superadmins can grant superadmin privileges" 
+      return res.status(403).json({
+        message: "Only superadmins can grant superadmin privileges"
       });
     }
 
@@ -307,7 +321,7 @@ export function setupAuth(app: Express) {
       });
     }
 
-    res.json({ 
+    res.json({
       message: "Password reset successful",
       tempPassword: user.email ? undefined : tempPassword // Only send temp password in response if user has no email
     });
