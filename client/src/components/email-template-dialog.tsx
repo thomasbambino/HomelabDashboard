@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, TestTube2, Eye, Save, Loader2 } from "lucide-react";
+import { Plus, TestTube2, Eye, Save, Loader2, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { EmailTemplate } from "@shared/schema";
 import { useState } from "react";
@@ -75,6 +75,8 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
   const [editingTemplate, setEditingTemplate] = useState<Partial<EmailTemplate> | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("/logo.png"); 
 
   const form = useForm<EmailTemplateForm>({
     resolver: zodResolver(emailTemplateSchema),
@@ -152,9 +154,44 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
     });
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/upload/site', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      setLogoUrl(data.url);
+      toast({
+        title: "Image Uploaded",
+        description: "Logo has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handlePreview = () => {
     const sampleData = {
-      logoUrl: "/logo.png",
+      logoUrl: logoUrl,
       appName: "Homelab Monitor",
       serviceName: "Example Service",
       status: "UP",
@@ -257,7 +294,7 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                   Close Preview
                 </Button>
               </div>
-              <div 
+              <div
                 className="border rounded-lg p-4"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
@@ -265,6 +302,28 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
           ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Template Logo</label>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={logoUrl}
+                      alt="Template Logo"
+                      className="w-12 h-12 object-contain rounded border"
+                    />
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        onChange={handleImageUpload}
+                        disabled={uploading}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload a logo to use in your email templates (PNG or JPEG, max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -319,8 +378,11 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                     <Eye className="h-4 w-4 mr-2" />
                     Preview
                   </Button>
-                  <Button type="submit" disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}>
-                    {(createTemplateMutation.isPending || updateTemplateMutation.isPending) && (
+                  <Button
+                    type="submit"
+                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending || uploading}
+                  >
+                    {(createTemplateMutation.isPending || updateTemplateMutation.isPending || uploading) && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     <Save className="h-4 w-4 mr-2" />
