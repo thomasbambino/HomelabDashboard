@@ -29,9 +29,7 @@ export const users = pgTable("users", {
   service_order: integer("service_order").array().default([]),
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen").defaultNow(),
-  last_ip: text("last_ip"),
-  reset_token: text("reset_token"),
-  reset_token_expires: timestamp("reset_token_expires"),
+  last_ip: text("last_ip"), // Added IP address field
 });
 
 export const settings = pgTable("settings", {
@@ -42,7 +40,7 @@ export const settings = pgTable("settings", {
   logo_url: text("logo_url"),
   logo_url_large: text("logo_url_large"),
   favicon_url: text("favicon_url"),
-  favicon_label: text("favicon_label"),
+  favicon_label: text("favicon_label"),  // Added favicon_label field
   login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard."),
   online_color: text("online_color").default("#22c55e"),
   offline_color: text("offline_color").default("#ef4444"),
@@ -75,14 +73,14 @@ export const services = pgTable("services", {
 
 export const gameServers = pgTable("gameServers", {
   id: serial("id").primaryKey(),
-  instanceId: text("instanceId").notNull(),
+  instanceId: text("instanceId").notNull(),  // AMP Instance ID
   name: text("name").notNull(),
-  displayName: text("displayName"),
+  displayName: text("displayName"),  // Optional custom name
   type: text("type").notNull(),
   status: boolean("status").default(false),
   playerCount: integer("playerCount").default(0),
   maxPlayers: integer("maxPlayers").default(0),
-  hidden: boolean("hidden").default(false),
+  hidden: boolean("hidden").default(false),  // Whether to hide this instance
   icon: text("icon"),
   background: text("background"),
   show_player_count: boolean("show_player_count").default(true),
@@ -174,10 +172,10 @@ export const chatAttachments = pgTable("chat_attachments", {
 // Add new table for tracking login attempts
 export const loginAttempts = pgTable("login_attempts", {
   id: serial("id").primaryKey(),
-  identifier: text("identifier").notNull(),
+  identifier: text("identifier").notNull(), // username or email used
   ip: text("ip").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  type: text("type").notNull(),
+  type: text("type").notNull(), // 'login' or 'reset'
 });
 
 export const insertUserSchema = createInsertSchema(users);

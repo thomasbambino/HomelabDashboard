@@ -67,7 +67,7 @@ export default function AuthPage() {
       await fetch('/api/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email })
+        body: JSON.stringify({ identifier: data.email })
       });
       toast({
         title: "Reset Request Sent",
@@ -129,7 +129,7 @@ export default function AuthPage() {
                     </Button>
 
                     <div className="space-y-2 text-center">
-                      <button
+                      <button 
                         type="button"
                         onClick={() => handleFormTypeChange('reset')}
                         className="text-sm text-muted-foreground hover:text-primary transition-colors"
