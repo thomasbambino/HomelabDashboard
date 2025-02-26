@@ -13,6 +13,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/gamelab
       - MAILGUN_API_KEY=${MAILGUN_API_KEY}
       - MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
+      - MAILGUN_FROM_EMAIL=${MAILGUN_FROM_EMAIL}
       - AMP_API_URL=${AMP_API_URL}
       - AMP_API_USERNAME=${AMP_API_USERNAME}
       - AMP_API_PASSWORD=${AMP_API_PASSWORD}
