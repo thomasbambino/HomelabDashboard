@@ -25,7 +25,6 @@ type EmailTemplateForm = z.infer<typeof emailTemplateSchema>;
 interface EmailTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTestEmail: (templateId: number, email: string) => void;
 }
 
 const defaultTemplate = `
@@ -70,13 +69,13 @@ const defaultTemplate = `
 </body>
 </html>`;
 
-export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTemplateDialogProps) {
+export function EmailTemplateDialog({ open, onOpenChange }: EmailTemplateDialogProps) {
   const { toast } = useToast();
   const [editingTemplate, setEditingTemplate] = useState<Partial<EmailTemplate> | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/logo.png"); 
+  const [logoUrl, setLogoUrl] = useState("/logo.png");
 
   const form = useForm<EmailTemplateForm>({
     resolver: zodResolver(emailTemplateSchema),
@@ -207,6 +206,35 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
     setPreviewHtml(preview);
   };
 
+  const handleTestEmail = async (templateId: number, email: string) => {
+    try {
+      const res = await apiRequest(
+        "POST",
+        `/api/email-templates/${templateId}/test`,
+        {
+          email,
+          logoUrl: logoUrl // Pass the current logo URL to the test endpoint
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to send test email");
+      }
+
+      toast({
+        title: "Test Email Sent",
+        description: "Check your inbox for the test email.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to Send Test Email",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -276,7 +304,7 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                         />
                         <Button
                           variant="secondary"
-                          onClick={() => onTestEmail(template.id, testEmail)}
+                          onClick={() => handleTestEmail(template.id, testEmail)}
                         >
                           <TestTube2 className="h-4 w-4 mr-2" />
                           Test

@@ -824,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Creating message in database`);
-      const message = await storage.createChatMessage({
+            const message = await storage.createChatMessage({
         roomId,
         senderId: user.id,
         type: 'text',
@@ -1227,7 +1227,7 @@ except Exception as e:
 
   app.post("/api/email-templates/:id/test", isAdmin, async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, logoUrl } = req.body;
       if (!email) {
         return res.status(400).json({ message: "Email address is required" });
       }
@@ -1241,7 +1241,8 @@ except Exception as e:
         serviceName: "Test Service",
         status: "offline",
         timestamp: new Date().toISOString(),
-        duration: "5 minutes"
+        duration: "5 minutes",
+        logoUrl: logoUrl || '/logo.png'  // Accept custom logo URL from request
       };
 
       const success = await sendEmail({

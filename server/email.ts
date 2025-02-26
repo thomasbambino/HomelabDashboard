@@ -29,6 +29,15 @@ interface EmailParams {
   templateData?: Record<string, any>;
 }
 
+// Helper function to convert relative URLs to absolute URLs
+function getAbsoluteUrl(path: string): string {
+  const baseUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     let html = params.html;
@@ -42,11 +51,15 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       }
 
       subject = template.subject;
-      html = compileTemplate(template.template, {
+
+      // Ensure logo URL is absolute
+      const templateData = {
         ...params.templateData,
         appName: process.env.APP_NAME || 'Homelab Monitor',
-        logoUrl: process.env.APP_LOGO_URL || '/logo.png'
-      });
+        logoUrl: getAbsoluteUrl(params.templateData?.logoUrl || '/logo.png')
+      };
+
+      html = compileTemplate(template.template, templateData);
     }
 
     await client.messages.create(process.env.MAILGUN_DOMAIN!, {
@@ -83,11 +96,14 @@ export async function getCompiledTemplate(templateId: number, data: Record<strin
       return null;
     }
 
-    const compiledHtml = compileTemplate(template.template, {
+    // Ensure logo URL is absolute
+    const templateData = {
       ...data,
       appName: process.env.APP_NAME || 'Homelab Monitor',
-      logoUrl: process.env.APP_LOGO_URL || '/logo.png'
-    });
+      logoUrl: getAbsoluteUrl(data.logoUrl || '/logo.png')
+    };
+
+    const compiledHtml = compileTemplate(template.template, templateData);
 
     return {
       subject: template.subject,
