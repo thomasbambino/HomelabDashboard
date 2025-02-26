@@ -34,11 +34,11 @@ function App() {
           <AuthProvider>
             <ChatProvider>
               <FaviconUpdater />
-              <div className="fixed bottom-4 right-4 z-50 flex flex-row items-center gap-2">
-                <ChatButton />
-              </div>
               <Router />
               <Toaster />
+              <div className="fixed bottom-4 right-4 z-[100]">
+                <ChatButton />
+              </div>
             </ChatProvider>
           </AuthProvider>
         </QueryClientProvider>
