@@ -14,7 +14,6 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  google_id: text("google_id"),
   role: text("role", { enum: ['superadmin', 'admin', 'user', 'pending'] }).notNull().default('pending'),
   enabled: boolean("enabled").notNull().default(true),
   approved: boolean("approved").notNull().default(false),

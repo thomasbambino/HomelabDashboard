@@ -10,6 +10,7 @@ import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
+import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
 
 function Router() {
@@ -33,6 +34,9 @@ export default function App() {
             <FaviconUpdater />
             <Router />
             <Toaster />
+            <div className="fixed bottom-4 right-4 z-50">
+              <DiscordButton />
+            </div>
           </AuthProvider>
         </QueryClientProvider>
       </div>

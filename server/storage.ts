@@ -9,9 +9,6 @@ import {
   UpdateGameServer,
   UpdateUser,
   users,
-  type User,
-  type InsertUser,
-  type UpdateUser,
   services,
   gameServers,
   settings as settingsTable,
@@ -32,8 +29,8 @@ import {
   UpdateNotificationPreference,
   UpdateEmailTemplate,
   loginAttempts,
-  type LoginAttempt,
-  type InsertLoginAttempt,
+  LoginAttempt,
+  InsertLoginAttempt,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, or, asc } from "drizzle-orm";
@@ -457,10 +454,7 @@ export class DatabaseStorage implements IStorage {
   async addLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
     const [newAttempt] = await db
       .insert(loginAttempts)
-      .values({
-        ...attempt,
-        timestamp: new Date(),
-      })
+      .values(attempt)
       .returning();
     return newAttempt;
   }

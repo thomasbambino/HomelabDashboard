@@ -1,14 +1,13 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage.js";
+import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { sendEmail } from "./email.js";
-import { getIpInfo } from './utils/ip.js';
+import { sendEmail } from "./email";
+import { getIpInfo } from './utils/ip';
 
 const scryptAsync = promisify(scrypt);
 
@@ -96,174 +95,49 @@ function canModifyUser(requestingUser: any, targetUserId: number) {
   return requestingUser.id === targetUserId;
 }
 
-async function getClientIp(req: Request): Promise<string> {
-  try {
-    // Check for forwarded IP first (for proxied requests)
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      // Get the first IP if multiple are present
-      const ip = Array.isArray(forwardedFor)
-        ? forwardedFor[0].split(',')[0].trim()
-        : forwardedFor.split(',')[0].trim();
-      console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
-      return ip;
-    }
-
-    // Check other common proxy headers
-    const proxyHeaders = [
-      'x-real-ip',
-      'cf-connecting-ip', // Cloudflare
-      'true-client-ip'
-    ];
-
-    for (const header of proxyHeaders) {
-      const proxyIp = req.headers[header];
-      if (proxyIp) {
-        console.log(`Found IP in ${header}:`, proxyIp);
-        return Array.isArray(proxyIp) ? proxyIp[0] : proxyIp;
-      }
-    }
-
-    // Get IP from request object as fallback
-    if (req.ip) {
-      console.log('Using req.ip:', req.ip);
-      return req.ip;
-    }
-
-    // Ultimate fallback
-    console.log('No IP found, using fallback');
-    return '0.0.0.0';
-  } catch (error) {
-    console.error('Error getting client IP:', error);
-    return '0.0.0.0';
+async function getClientIp(req: Request) {
+  // Check for forwarded IP first (for proxied requests)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // Get the first IP if multiple are present
+    const ip = Array.isArray(forwardedFor)
+      ? forwardedFor[0].split(',')[0].trim()
+      : forwardedFor.split(',')[0].trim();
+    console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
+    return ip;
   }
+
+  // Check other common proxy headers
+  const proxyHeaders = [
+    'x-real-ip',
+    'cf-connecting-ip', // Cloudflare
+    'true-client-ip'
+  ];
+
+  for (const header of proxyHeaders) {
+    const proxyIp = req.headers[header];
+    if (proxyIp) {
+      console.log(`Found IP in ${header}:`, proxyIp);
+      return Array.isArray(proxyIp) ? proxyIp[0] : proxyIp;
+    }
+  }
+
+  console.log('Using direct IP:', req.ip);
+  return req.ip;
 }
 
 export function setupAuth(app: Express) {
-  // Configure secure session settings
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    cookie: {
-      secure: true, // Ensure cookies only sent over HTTPS
-      sameSite: 'lax', // Protection against CSRF
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
   };
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
-
-  // Google OAuth Routes
-  app.get('/oauth/google',
-    (req, res, next) => {
-      console.log('Starting Google OAuth flow at:', new Date().toISOString());
-      console.log('Session ID:', req.sessionID);
-      next();
-    },
-    passport.authenticate('google', {
-      scope: ['profile', 'email']
-    })
-  );
-
-  app.get('/oauth/google/callback',
-    (req, res, next) => {
-      console.log('Google OAuth callback received at:', new Date().toISOString());
-      console.log('Query parameters:', req.query);
-      console.log('Session ID:', req.sessionID);
-      next();
-    },
-    passport.authenticate('google', {
-      failureRedirect: '/auth',
-      failureMessage: true
-    }),
-    async (req, res) => {
-      console.log('Google authentication successful');
-      console.log('Authenticated user:', req.user);
-
-      try {
-        if (req.user) {
-          const clientIp = await getClientIp(req);
-          const ipInfo = await getIpInfo(clientIp);
-
-          // Record successful login
-          await storage.addLoginAttempt({
-            identifier: req.user.email || 'google-auth',
-            ip: ipInfo.ip || clientIp,
-            type: 'success',
-            timestamp: new Date(),
-            isp: ipInfo.isp || null,
-            city: ipInfo.city || null,
-            region: ipInfo.region || null,
-            country: ipInfo.country || null
-          });
-
-          console.log('Login attempt recorded successfully');
-        }
-
-        console.log('Redirecting to homepage');
-        res.redirect('/');
-      } catch (error) {
-        console.error('Error in callback handler:', error);
-        res.redirect('/auth');
-      }
-    }
-  );
-
-  // Configure Google Strategy with exact callback URL
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID!,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "/oauth/google/callback", // Use relative URL instead of hardcoded domain
-    proxy: true // Enable proxy support for correct protocol detection
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      console.log("Google OAuth callback received for profile:", profile.id);
-      console.log("Profile data:", JSON.stringify(profile, null, 2));
-
-      const email = profile.emails?.[0]?.value;
-      if (!email) {
-        console.error('No email found in Google profile');
-        return done(new Error('No email found in Google profile'));
-      }
-
-      // Check if user exists with this email
-      let user = await storage.getUserByEmail(email);
-
-      if (user) {
-        console.log('Existing user found:', user.username);
-        // Update user's Google ID if not set
-        if (!user.google_id) {
-          user = await storage.updateUser({
-            id: user.id,
-            google_id: profile.id
-          });
-          console.log('Updated user with Google ID');
-        }
-      } else {
-        console.log('Creating new user for email:', email);
-        // Create new user with Google profile
-        user = await storage.createUser({
-          username: email.split('@')[0], // Use email prefix as username
-          email: email,
-          password: await hashPassword(randomBytes(32).toString('hex')), // Random password
-          google_id: profile.id,
-          approved: true // Auto-approve Google users
-        });
-        console.log('New user created:', user.username);
-      }
-
-      console.log("Successfully authenticated Google user:", user.email);
-      return done(null, user);
-    } catch (error) {
-      console.error("Error in Google OAuth callback:", error);
-      return done(error);
-    }
-  }));
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -718,80 +592,79 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+}
 
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 32)) as Buffer;
+  const hashedPassword = `${buf.toString("hex")}.${salt}`;
+  console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
+  return hashedPassword;
+}
 
-  async function hashPassword(password: string) {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 32)) as Buffer;
-    const hashedPassword = `${buf.toString("hex")}.${salt}`;
-    console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
-    return hashedPassword;
-  }
-
-  async function comparePasswords(supplied: string, stored: string) {
-    try {
-      const [hash, salt] = stored.split(".");
-      if (!hash || !salt) {
-        console.error('Invalid stored password format:', stored);
-        return false;
-      }
-      const hashedBuf = Buffer.from(hash, "hex");
-      const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
-      console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
-      console.log("Stored hash:", hash);
-      console.log("Supplied hash:", suppliedBuf.toString("hex"));
-      return timingSafeEqual(hashedBuf, suppliedBuf);
-    } catch (error) {
-      console.error('Password comparison error:', error);
+async function comparePasswords(supplied: string, stored: string) {
+  try {
+    const [hash, salt] = stored.split(".");
+    if (!hash || !salt) {
+      console.error('Invalid stored password format:', stored);
       return false;
     }
+    const hashedBuf = Buffer.from(hash, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
+    console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
+    console.log("Stored hash:", hash);
+    console.log("Supplied hash:", suppliedBuf.toString("hex"));
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error('Password comparison error:', error);
+    return false;
   }
+}
 
-  // Update the generateHashForTest and IIFE to be more detailed
-  async function generateHashForTest() {
-    const password = "admin123";
-    const hashedPassword = await hashPassword(password);
-    console.log("Test hash generated for 'admin123':", hashedPassword);
-    return hashedPassword;
-  }
+// Update the generateHashForTest and IIFE to be more detailed
+async function generateHashForTest() {
+  const password = "admin123";
+  const hashedPassword = await hashPassword(password);
+  console.log("Test hash generated for 'admin123':", hashedPassword);
+  return hashedPassword;
+}
 
-  // Update createAdminUser function to check for existing superadmins
-  async function createAdminUser(username: string, password: string, email: string) {
-    try {
-      // First check if any superadmin exists in the system
-      const users = await storage.getAllUsers();
-      const hasSuperAdmin = users.some(user => user.role === 'superadmin');
+// Update createAdminUser function to check for existing superadmins
+async function createAdminUser(username: string, password: string, email: string) {
+  try {
+    // First check if any superadmin exists in the system
+    const users = await storage.getAllUsers();
+    const hasSuperAdmin = users.some(user => user.role === 'superadmin');
 
-      if (hasSuperAdmin) {
-        console.log("A superadmin already exists in the system, skipping admin creation");
-        return null;
-      }
-
-      // If no superadmin exists, check if this specific user exists
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        console.log("Admin user already exists, skipping creation");
-        return existingUser;
-      }
-
-      const hashedPassword = await hashPassword(password);
-      const newUser = await storage.createUser({
-        username,
-        password: hashedPassword,
-        email,
-        role: 'superadmin',
-        approved: true
-      });
-      console.log("New admin user created:", newUser);
-      return newUser;
-    } catch (error) {
-      console.error("Error in createAdminUser:", error);
+    if (hasSuperAdmin) {
+      console.log("A superadmin already exists in the system, skipping admin creation");
       return null;
     }
-  }
 
-  function compileTemplate(template: string, data: any): string {
-    // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
-    return template; // Replace with actual compiled template
+    // If no superadmin exists, check if this specific user exists
+    const existingUser = await storage.getUserByUsername(username);
+    if (existingUser) {
+      console.log("Admin user already exists, skipping creation");
+      return existingUser;
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const newUser = await storage.createUser({ 
+      username, 
+      password: hashedPassword, 
+      email, 
+      role: 'superadmin', 
+      approved: true 
+    });
+    console.log("New admin user created:", newUser);
+    return newUser;
+  } catch (error) {
+    console.error("Error in createAdminUser:", error);
+    return null;
   }
+}
+
+function compileTemplate(template: string, data: any): string {
+  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
+  return template; // Replace with actual compiled template
 }

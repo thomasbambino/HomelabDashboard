@@ -13,7 +13,6 @@ import { Settings } from "@shared/schema";
 import * as z from 'zod';
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { SiGoogle } from 'react-icons/si';
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -142,11 +141,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log('Initiating Google OAuth login flow');
-    window.location.href = '/oauth/google';
-  };
-
   if (user && !user.requires_password_change) {
     return <Redirect to="/" />;
   }
@@ -192,27 +186,6 @@ export default function AuthPage() {
                     <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                       {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Login
-                    </Button>
-
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or continue with
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={handleGoogleLogin}
-                    >
-                      <SiGoogle className="mr-2 h-4 w-4" />
-                      Sign in with Google
                     </Button>
 
                     <div className="space-y-2 text-center">
@@ -319,27 +292,6 @@ export default function AuthPage() {
                     <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                       {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Register
-                    </Button>
-
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or continue with
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={handleGoogleLogin}
-                    >
-                      <SiGoogle className="mr-2 h-4 w-4" />
-                      Sign up with Google
                     </Button>
 
                     <div className="text-center">
