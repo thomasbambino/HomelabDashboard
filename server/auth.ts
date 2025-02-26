@@ -50,7 +50,7 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// Middleware to check if user is admin
+// Middleware updates for role checks
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   if (req.user.role !== 'admin' && req.user.role !== 'superadmin') return res.sendStatus(403);
@@ -247,7 +247,7 @@ export function setupAuth(app: Express) {
       // Get all admin users
       const admins = await storage.getAllUsers();
       const adminEmails = admins
-        .filter(admin => admin.role === 'admin' && admin.email)
+        .filter(admin => admin.role === 'admin' || admin.role === 'superadmin' && admin.email)
         .map(admin => admin.email);
 
       if (user && adminEmails.length > 0) {
@@ -280,7 +280,7 @@ export function setupAuth(app: Express) {
     res.json(users);
   });
 
-  app.patch("/api/users/:id", isAdmin, async (req, res) => {
+  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { // Updated to require superadmin
     const targetUserId = parseInt(req.params.id);
 
     // Check if the requesting admin can modify this user
@@ -504,19 +504,14 @@ async function generateHashForTest() {
   }
 })();
 
-// Add this function to create the admin user.  This assumes storage.createUser
-// accepts a similar object as in the /api/register route.  Adjust as needed
-// based on the actual structure of your storage.createUser function.
+// Update createAdminUser function to create a superadmin
 async function createAdminUser(username: string, password: string, email: string) {
   const hashedPassword = await hashPassword(password);
-  const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'admin', approved: true });
+  const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'superadmin', approved: true });
   console.log("Admin user created:", newUser);
   return newUser;
 }
 
-// Example usage:  Call this function at the app startup or a suitable place.
-// Replace "adminuser" and "password123" with desired credentials.
-// createAdminUser("adminuser", "password123", "admin@example.com").catch(console.error)
 
 // Placeholder for compileTemplate function.  Replace with your actual implementation.
 function compileTemplate(template: string, data: any): string {
