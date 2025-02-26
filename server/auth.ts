@@ -332,11 +332,21 @@ export function setupAuth(app: Express) {
     }
 
     try {
-      await storage.deleteUser(targetUserId);
-      res.sendStatus(200);
+      const deletedUser = await storage.deleteUser(targetUserId);
+      if (deletedUser) {
+        return res.status(200).json({ 
+          message: "User deleted successfully",
+          user: deletedUser
+        });
+      } else {
+        return res.status(500).json({ message: "Failed to delete user" });
+      }
     } catch (error) {
       console.error('Error deleting user:', error);
-      res.status(500).json({ message: "Failed to delete user" });
+      return res.status(500).json({ 
+        message: "Failed to delete user",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
