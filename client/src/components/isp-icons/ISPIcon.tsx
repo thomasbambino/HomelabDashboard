@@ -1,11 +1,11 @@
 import React from 'react';
-import { ISPIconProps } from './types';
-import { findISPConfig } from './constants';
-import { NetworkIcon } from './NetworkIcon';
+import { ISPIconProps } from './types.js';
+import { findISPConfig } from './constants.js';
+import { NetworkIcon } from './NetworkIcon.js';
 
 export function ISPIcon({ className = "", size = 16, ispName }: ISPIconProps & { ispName: string }) {
   const config = findISPConfig(ispName);
-  
+
   if (!config) {
     return <NetworkIcon className={className} size={size} />;
   }

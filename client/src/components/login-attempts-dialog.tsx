@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
 import { Shield, CheckCircle2, XCircle } from "lucide-react";
-import { ISPIcon } from "./isp-icons/index.js";
+import { ISPIcon } from "@/components/isp-icons/ISPIcon.js";
 
 export function LoginAttemptsDialog() {
   const { data: loginAttempts = [] } = useQuery<LoginAttempt[]>({
