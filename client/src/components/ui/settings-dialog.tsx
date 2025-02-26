@@ -12,14 +12,8 @@ import { Settings as SettingsIcon, Loader2, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
-
-// Add explicit type for role-based visibility
-type VisibilitySettings = {
-  show_uptime_log: boolean;
-  admin_show_uptime_log: boolean;
-};
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -58,9 +52,23 @@ export function SettingsDialog() {
     },
   });
 
+  // Update browser title when favicon label changes
+  useEffect(() => {
+    const faviconLabel = form.watch("favicon_label");
+    if (faviconLabel) {
+      document.title = faviconLabel;
+    }
+  }, [form.watch("favicon_label")]);
+
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
+      const res = await apiRequest("PATCH", "/api/settings", {
+        ...data,
+        logo_url: data.logo_url,
+        logo_url_large: data.logo_url_large,
+        favicon_url: data.favicon_url,
+        favicon_label: data.favicon_label
+      });
       return res.json();
     },
     onSuccess: () => {
