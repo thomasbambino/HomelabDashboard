@@ -152,7 +152,36 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Add Google OAuth Strategy
+  // Update the Google Strategy configuration and route handlers
+  app.get('/api/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
+  app.get('/api/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/auth' }),
+    async (req, res) => {
+      // Record successful login
+      try {
+        const clientIp = await getClientIp(req);
+        const ipInfo = await getIpInfo(clientIp);
+        await storage.addLoginAttempt({
+          identifier: req.user?.email || 'google-auth',
+          ip: ipInfo.ip || clientIp,
+          type: 'success',
+          timestamp: new Date(),
+          isp: ipInfo.isp || null,
+          city: ipInfo.city || null,
+          region: ipInfo.region || null,
+          country: ipInfo.country || null
+        });
+      } catch (error) {
+        console.error('Failed to record Google login attempt:', error);
+      }
+      res.redirect('/');
+    }
+  );
+
+  // Update the Google Strategy configuration
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -160,6 +189,7 @@ export function setupAuth(app: Express) {
     scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log("Google OAuth callback received for profile:", profile.id);
       const email = profile.emails?.[0]?.value;
       if (!email) {
         return done(new Error('No email found in Google profile'));
@@ -189,6 +219,7 @@ export function setupAuth(app: Express) {
 
       return done(null, user);
     } catch (error) {
+      console.error("Error in Google OAuth callback:", error);
       return done(error);
     }
   }));
@@ -647,6 +678,8 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+
+  //Google auth routes remain the same
 
   // Add Google auth routes
   app.get('/api/auth/google',
