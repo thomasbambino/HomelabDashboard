@@ -114,17 +114,6 @@ export default function UsersPage() {
     return <Redirect to="/" />;
   }
 
-  // Add this helper function
-  const canModifyUser = (targetUser: User) => {
-    if (!user) return false;
-    if (user.role === 'superadmin') return true;
-    if (user.role === 'admin') {
-      // Admins can't modify other admins
-      if (targetUser.role === 'admin' || targetUser.role === 'superadmin') return false;
-      return true;
-    }
-    return false;
-  };
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -185,9 +174,9 @@ export default function UsersPage() {
                           value={editingEmails[u.id] ?? u.email ?? ''}
                           onChange={(e) => handleEmailChange(u.id, e.target.value)}
                           className="w-64"
-                          disabled={!canModifyUser(u)}
+                          
                         />
-                        {editingEmails[u.id] !== undefined && canModifyUser(u) && (
+                        {editingEmails[u.id] !== undefined && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -202,16 +191,14 @@ export default function UsersPage() {
                           </Button>
                         )}
                       </div>
-                      {canModifyUser(u) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => resetPasswordMutation.mutate(u.id)}
-                        >
-                          <KeyRound className="h-4 w-4 mr-2" />
-                          Reset Password
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => resetPasswordMutation.mutate(u.id)}
+                      >
+                        <KeyRound className="h-4 w-4 mr-2" />
+                        Reset Password
+                      </Button>
                     </div>
                     {tempPasswords[u.id] && (
                       <p className="text-sm text-muted-foreground">
@@ -223,7 +210,6 @@ export default function UsersPage() {
                     {u.role === 'superadmin' ? (
                       <p className="text-sm font-medium text-primary">Superadmin</p>
                     ) : (
-                      canModifyUser(u) && (
                         <>
                           <div className="flex items-center gap-2">
                             <Switch
@@ -231,7 +217,7 @@ export default function UsersPage() {
                               onCheckedChange={(checked) =>
                                 updateUserMutation.mutate({ id: u.id, approved: checked })
                               }
-                              disabled={!canModifyUser(u)}
+                              
                             />
                             <Label>Account Enabled</Label>
                           </div>
@@ -241,7 +227,7 @@ export default function UsersPage() {
                               onCheckedChange={(checked) =>
                                 updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
                               }
-                              disabled={!canModifyUser(u)}
+                              
                             />
                             <Label>NSFW Access</Label>
                           </div>
@@ -250,21 +236,18 @@ export default function UsersPage() {
                             onValueChange={(value) =>
                               updateUserMutation.mutate({ id: u.id, role: value })
                             }
-                            disabled={!canModifyUser(u)}
+                            
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {user?.role === 'superadmin' && (
-                                <SelectItem value="admin">Admin</SelectItem>
-                              )}
+                              <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="user">User</SelectItem>
                               <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
                           </Select>
                         </>
-                      )
                     )}
                   </div>
                 </div>
