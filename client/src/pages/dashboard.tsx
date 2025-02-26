@@ -46,6 +46,11 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperAdmin = user?.role === 'superadmin';
 
+  // Check if uptime log should be shown based on role and settings
+  const showUptimeLog = isAdmin 
+    ? settings?.admin_show_uptime_log 
+    : settings?.show_uptime_log;
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -66,7 +71,7 @@ export default function Dashboard() {
             <ThemeToggle />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
-            <UptimeLogDialog />
+            {showUptimeLog && <UptimeLogDialog />}
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
                 <Button variant="outline">
@@ -109,7 +114,7 @@ export default function Dashboard() {
               className={cn(
                 "transition-all duration-300 ease-in-out",
                 isServersExpanded 
-                  ? "max-h-[2000px] opacity-100" 
+                  ? "max-h-[200px] opacity-100" 
                   : "max-h-0 opacity-0 overflow-hidden"
               )}
             >
