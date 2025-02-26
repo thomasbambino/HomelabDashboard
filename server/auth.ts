@@ -256,31 +256,30 @@ export function setupAuth(app: Express) {
         user = await storage.getUserByEmail(identifier);
       }
 
-      // Get all admin users
-      const admins = await storage.getAllUsers();
-      const adminEmails = admins
-        .filter(admin => admin.role === 'admin' || admin.role === 'superadmin' && admin.email)
-        .map(admin => admin.email);
+      if (user && user.email) {
+        // Generate temporary password
+        const tempPassword = randomBytes(8).toString('hex');
 
-      if (user && adminEmails.length > 0) {
-        // Send email to all admins
-        for (const adminEmail of adminEmails) {
-          if (adminEmail) {
-            await sendEmail({
-              to: adminEmail,
-              subject: "Password Reset Request",
-              html: `
-                <p>A password reset has been requested for user: ${user.username}</p>
-                <p>User Email: ${user.email || 'No email provided'}</p>
-                <p>Please log in to the admin panel to reset their password.</p>
-              `
-            });
-          }
-        }
+        // Update user's password
+        await storage.updateUser({
+          id: user.id,
+          password: await hashPassword(tempPassword),
+        });
+
+        // Send email to user
+        await sendEmail({
+          to: user.email,
+          subject: "Password Reset",
+          html: `
+            <p>Your password has been reset as requested.</p>
+            <p>Your new temporary password is: ${tempPassword}</p>
+            <p>Please log in with this password and change it at your earliest convenience.</p>
+          `
+        });
       }
 
       // Always return success to prevent user enumeration
-      res.json({ message: "If the account exists, admins have been notified of your password reset request." });
+      res.json({ message: "If an account exists with this identifier, a password reset email has been sent." });
     } catch (error) {
       console.error('Reset request error:', error);
       res.status(500).json({ message: "An error occurred processing your request" });
@@ -292,7 +291,7 @@ export function setupAuth(app: Express) {
     res.json(users);
   });
 
-  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { // Updated to require superadmin
+  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { 
     const targetUserId = parseInt(req.params.id);
 
     // Check if the requesting admin can modify this user
@@ -379,7 +378,7 @@ export function setupAuth(app: Express) {
 
     res.json({
       message: "Password reset successful",
-      tempPassword: user.email ? undefined : tempPassword // Only send temp password in response if user has no email
+      tempPassword: user.email ? undefined : tempPassword 
     });
   });
 
