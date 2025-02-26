@@ -48,9 +48,13 @@ export default function Dashboard() {
 
   // For admins, only check admin_show_uptime_log
   // For regular users, only check show_uptime_log
-  const showUptimeLog = isAdmin 
-    ? Boolean(settings?.admin_show_uptime_log)
-    : Boolean(settings?.show_uptime_log);
+  // Make sure to handle each case independently
+  const showUptimeLog = (() => {
+    if (isAdmin) {
+      return Boolean(settings?.admin_show_uptime_log);
+    }
+    return Boolean(settings?.show_uptime_log);
+  })();
 
   return (
     <div className="min-h-screen bg-background p-8">
