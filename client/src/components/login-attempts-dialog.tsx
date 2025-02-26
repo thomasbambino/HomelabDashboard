@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { Shield, CheckCircle2, XCircle, Network } from "lucide-react";
 import { 
   SiAmazon, SiGoogle, SiMicrosoft, SiXfinity, SiBox, SiTmobile,
-  SiVerizon, SiSpectrum, SiLinode, SiDigitalocean, SiAzure, 
+  SiSpectrum, SiDigitalocean, 
   SiCloudflare, SiAkamai
 } from "react-icons/si";
 
@@ -16,14 +16,11 @@ const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'Amazon': SiAmazon,
   'Google': SiGoogle,
   'Microsoft': SiMicrosoft,
-  'Azure': SiAzure,
   'Comcast': SiXfinity,
   'Xfinity': SiXfinity,
   'T-Mobile': SiTmobile,
-  'Verizon': SiVerizon,
   'Spectrum': SiSpectrum,
   'DigitalOcean': SiDigitalocean,
-  'Linode': SiLinode,
   'Cloudflare': SiCloudflare,
   'Akamai': SiAkamai,
   'Cox': SiBox
