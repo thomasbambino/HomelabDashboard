@@ -123,7 +123,7 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-900">
+      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800">
         {settings?.logo_url_large ? (
           <img
             src={settings.logo_url_large}
