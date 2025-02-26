@@ -205,6 +205,11 @@ export default function UsersPage() {
                   <div className="space-y-2">
                     <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
+                    {isSuperAdmin && u.last_ip && (
+                      <p className="text-sm text-muted-foreground">
+                        Last IP: {u.last_ip}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
                         <Input
@@ -256,7 +261,7 @@ export default function UsersPage() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
+                              <AlertDialogAction
                                 onClick={() => deleteUserMutation.mutate(u.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
