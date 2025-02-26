@@ -143,7 +143,7 @@ export default function AuthPage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
+    window.location.href = '/oauth/google';
   };
 
   if (user && !user.requires_password_change) {

@@ -157,7 +157,7 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   // Configure Google OAuth routes
-  app.get('/api/auth/google',
+  app.get('/oauth/google',
     passport.authenticate('google', {
       scope: ['profile', 'email']
     })
@@ -166,9 +166,36 @@ export function setupAuth(app: Express) {
   app.get('/oauth/google/callback',
     passport.authenticate('google', {
       failureRedirect: '/auth',
-      successRedirect: '/',
       failureMessage: true
-    })
+    }),
+    async (req, res) => {
+      // Log successful authentication
+      console.log('Google auth callback reached, user:', req.user);
+
+      try {
+        if (req.user) {
+          const clientIp = await getClientIp(req);
+          const ipInfo = await getIpInfo(clientIp);
+
+          // Record successful login
+          await storage.addLoginAttempt({
+            identifier: req.user.email || 'google-auth',
+            ip: ipInfo.ip || clientIp,
+            type: 'success',
+            timestamp: new Date(),
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+        }
+      } catch (error) {
+        console.error('Failed to record login attempt:', error);
+      }
+
+      // Redirect to home page
+      res.redirect('/');
+    }
   );
 
   // Configure Google Strategy
