@@ -61,8 +61,8 @@ export function LoginAttemptsDialog() {
                         <span className="text-muted-foreground">ISP:</span>
                         <ISPIcon 
                           ispName={attempt.isp} 
-                          className="h-7 w-7"
-                          size={28}
+                          className="h-8 w-8"
+                          size={34}
                         />
                         <span>{attempt.isp}</span>
                       </p>
