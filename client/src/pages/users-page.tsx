@@ -48,6 +48,27 @@ export default function UsersPage() {
     },
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: { defaultRole: string }) => {
+      const res = await apiRequest("PATCH", "/api/settings", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings updated",
+        description: "Default role settings have been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("POST", "/api/admin/reset-user-password", { userId });
@@ -93,18 +114,15 @@ export default function UsersPage() {
     return <Redirect to="/" />;
   }
 
-  // Update canModifyUser to prevent admins from modifying other admins
   const canModifyUser = (targetUser: User) => {
     if (!user) return false;
     if (user.role === 'superadmin') {
-      // Superadmins can't modify other superadmins unless it's themselves
       if (targetUser.role === 'superadmin' && targetUser.id !== user.id) {
         return false;
       }
       return true;
     }
     if (user.role === 'admin') {
-      // Admins can't modify superadmins or other admins
       if (targetUser.role === 'superadmin' || (targetUser.role === 'admin' && targetUser.id !== user.id)) {
         return false;
       }
@@ -128,6 +146,33 @@ export default function UsersPage() {
             </Button>
           </Link>
         </header>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              Registration Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Label>Default role for new users:</Label>
+              <Select
+                value={settings?.default_role}
+                onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4">
           {users.map((u) => (
@@ -219,14 +264,6 @@ export default function UsersPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {user?.role === 'superadmin' && (
-                                <SelectItem value="superadmin">
-                                  <span className="flex items-center gap-1">
-                                    <Shield className="h-4 w-4 text-blue-500" />
-                                    Superadmin
-                                  </span>
-                                </SelectItem>
-                              )}
                               <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="user">User</SelectItem>
                               <SelectItem value="pending">Pending</SelectItem>
