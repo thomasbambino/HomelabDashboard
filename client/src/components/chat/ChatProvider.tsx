@@ -26,11 +26,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
   }, [user, isInitialized]);
 
   if (!user || !isInitialized) {
-    return <div>Loading chat...</div>;
+    return <div className="flex items-center justify-center h-full">Loading chat...</div>;
   }
 
   return (
-    <Chat client={chatClient}>
+    <Chat client={chatClient} theme="str-chat__theme-light">
       {children}
     </Chat>
   );
