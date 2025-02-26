@@ -4,7 +4,44 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
-import { Shield, CheckCircle2, XCircle } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Network } from "lucide-react";
+import { 
+  SiAmazon, SiGoogle, SiMicrosoft, SiXfinity, SiBox, SiTmobile,
+  SiVerizon, SiSpectrum, SiLinode, SiDigitalocean, SiAzure, 
+  SiCloudflare, SiAkamai
+} from "react-icons/si";
+
+// Map common ISP names to their icons
+const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  'Amazon': SiAmazon,
+  'Google': SiGoogle,
+  'Microsoft': SiMicrosoft,
+  'Azure': SiAzure,
+  'Comcast': SiXfinity,
+  'Xfinity': SiXfinity,
+  'T-Mobile': SiTmobile,
+  'Verizon': SiVerizon,
+  'Spectrum': SiSpectrum,
+  'DigitalOcean': SiDigitalocean,
+  'Linode': SiLinode,
+  'Cloudflare': SiCloudflare,
+  'Akamai': SiAkamai,
+  'Cox': SiBox
+};
+
+function getISPIcon(ispName: string): React.ComponentType<{ className?: string }> {
+  // Check for exact matches
+  if (ispName in ispIcons) return ispIcons[ispName];
+
+  // Check for partial matches
+  const lowercaseIsp = ispName.toLowerCase();
+  for (const [key, icon] of Object.entries(ispIcons)) {
+    if (lowercaseIsp.includes(key.toLowerCase())) return icon;
+  }
+
+  // Return default network icon if no match found
+  return Network;
+}
 
 export function LoginAttemptsDialog() {
   const { data: loginAttempts = [] } = useQuery<LoginAttempt[]>({
@@ -55,8 +92,12 @@ export function LoginAttemptsDialog() {
                   <p className="font-medium">IP: {attempt.ip}</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
                     {attempt.isp && (
-                      <p className="text-sm">
-                        <span className="text-muted-foreground">ISP:</span> {attempt.isp}
+                      <p className="text-sm flex items-center gap-2">
+                        <span className="text-muted-foreground">ISP:</span>
+                        {React.createElement(getISPIcon(attempt.isp), {
+                          className: "h-4 w-4 text-blue-500"
+                        })}
+                        <span>{attempt.isp}</span>
                       </p>
                     )}
                     {attempt.city && (
