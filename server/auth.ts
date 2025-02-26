@@ -64,6 +64,22 @@ export function isApproved(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Add this helper function at the top
+function canModifyUser(requestingUser: any, targetUserId: number) {
+  // Superadmins can modify anyone
+  if (requestingUser.role === 'superadmin') return true;
+
+  // Regular admins cannot modify superadmins
+  if (requestingUser.role === 'admin') {
+    const targetUser = storage.getUser(targetUserId);
+    if (targetUser && targetUser.role === 'superadmin') return false;
+    return true;
+  }
+
+  // Regular users can only modify themselves
+  return requestingUser.id === targetUserId;
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
@@ -239,10 +255,27 @@ export function setupAuth(app: Express) {
   });
 
   app.patch("/api/users/:id", isAdmin, async (req, res) => {
+    const targetUserId = parseInt(req.params.id);
+
+    // Check if the requesting admin can modify this user
+    if (!canModifyUser(req.user, targetUserId)) {
+      return res.status(403).json({ 
+        message: "Regular admins cannot modify superadmin users" 
+      });
+    }
+
+    // Check if trying to set role to superadmin
+    if (req.body.role === 'superadmin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ 
+        message: "Only superadmins can grant superadmin privileges" 
+      });
+    }
+
     const user = await storage.updateUser({
-      id: parseInt(req.params.id),
+      id: targetUserId,
       ...req.body,
     });
+
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   });
