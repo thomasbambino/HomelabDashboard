@@ -481,6 +481,24 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.get("/api/email-templates", isAdmin, async (req, res) => {
+    const templates = await storage.getAllEmailTemplates();
+    res.json(templates);
+  });
+
+  app.post("/api/email-templates", isAdmin, async (req, res) => {
+    const template = await storage.createEmailTemplate(req.body);
+    res.json(template);
+  });
+
+  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
+    const template = await storage.updateEmailTemplate({
+      id: parseInt(req.params.id),
+      ...req.body
+    });
+    if (!template) return res.status(404).json({ message: "Template not found" });
+    res.json(template);
+  });
 
   app.post("/api/test-notification", isAdmin, async (req, res) => {
     const { templateId, email } = req.body;
@@ -495,10 +513,12 @@ export function setupAuth(app: Express) {
       duration: "5 minutes"
     };
 
+    const html = compileTemplate(template.template, testData);
+
     const success = await sendEmail({
       to: email,
       subject: template.subject,
-      html: `<p>Service: ${testData.serviceName}</p><p>Status: ${testData.status}</p><p>Last Update: ${testData.timestamp}</p><p>Downtime: ${testData.duration}</p>`
+      html
     });
 
     if (success) {
@@ -563,4 +583,10 @@ async function createAdminUser(username: string, password: string, email: string
   const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'superadmin', approved: true });
   console.log("Admin user created:", newUser);
   return newUser;
+}
+
+// Placeholder for compileTemplate function.  Replace with your actual implementation.
+function compileTemplate(template: string, data: any): string {
+  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
+  return template; // Replace with actual compiled template
 }
