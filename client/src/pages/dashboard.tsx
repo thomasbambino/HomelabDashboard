@@ -46,19 +46,6 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
-  // Simplified logic: if admin/superadmin, only check admin setting
-  const showUptimeLog = (isAdmin || isSuperAdmin) 
-    ? Boolean(settings?.admin_show_uptime_log)
-    : Boolean(settings?.show_uptime_log);
-
-  // Debug logging
-  console.log('User Role:', user?.role);
-  console.log('Settings:', {
-    admin_show_uptime_log: settings?.admin_show_uptime_log,
-    show_uptime_log: settings?.show_uptime_log
-  });
-  console.log('Show Uptime Log:', showUptimeLog);
-
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -79,7 +66,8 @@ export default function Dashboard() {
             <ThemeToggle />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
-            {showUptimeLog && <UptimeLogDialog />}
+            {/* Only show UptimeLogDialog for admins and superadmins */}
+            {(isAdmin || isSuperAdmin) && <UptimeLogDialog />}
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
                 <Button variant="outline">

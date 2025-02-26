@@ -48,12 +48,10 @@ export function SettingsDialog() {
       show_refresh_interval: settings?.show_refresh_interval ?? true,
       show_last_checked: settings?.show_last_checked ?? true,
       show_service_url: settings?.show_service_url ?? true,
-      show_uptime_log: settings?.show_uptime_log ?? false,
       show_status_badge: settings?.show_status_badge ?? true,
       admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
       admin_show_last_checked: settings?.admin_show_last_checked ?? true,
       admin_show_service_url: settings?.admin_show_service_url ?? true,
-      admin_show_uptime_log: settings?.admin_show_uptime_log ?? false,
       admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
@@ -62,11 +60,7 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const res = await apiRequest("PATCH", "/api/settings", {
-        id: data.id,
-        admin_show_uptime_log: data.admin_show_uptime_log,
-        show_uptime_log: data.show_uptime_log
-      });
+      const res = await apiRequest("PATCH", "/api/settings", data);
       return res.json();
     },
     onSuccess: () => {
@@ -377,22 +371,6 @@ export function SettingsDialog() {
                       />
                       <FormField
                         control={form.control}
-                        name="admin_show_uptime_log"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="admin_show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
-                              <Switch
-                                id="admin_show_uptime_log"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
                         name="admin_show_refresh_interval"
                         render={({ field }) => (
                           <FormItem>
@@ -453,22 +431,6 @@ export function SettingsDialog() {
                               <FormLabel htmlFor="show_status_badge" className="text-sm cursor-pointer">Show Status Badge</FormLabel>
                               <Switch
                                 id="show_status_badge"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="show_uptime_log"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</FormLabel>
-                              <Switch
-                                id="show_uptime_log"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
