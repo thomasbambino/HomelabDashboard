@@ -123,7 +123,7 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-gray-800">
+      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-[#4a4a4a]">
         {settings?.logo_url_large ? (
           <img
             src={settings.logo_url_large}
@@ -133,8 +133,8 @@ export default function AuthPage() {
         ) : (
           <ServerCog className="h-20 w-20 mb-4 text-primary" />
         )}
-        <h2 className="text-2xl font-bold mb-2">{settings?.site_title || "Homelab Dashboard"}</h2>
-        <p className="text-center text-muted-foreground max-w-md">
+        <h2 className="text-2xl font-bold mb-2 text-white">{settings?.site_title || "Homelab Dashboard"}</h2>
+        <p className="text-center text-gray-300 max-w-md">
           {settings?.login_description || "Monitor your services and game servers in real-time with our comprehensive dashboard."}
         </p>
       </div>
