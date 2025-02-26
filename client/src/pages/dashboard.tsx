@@ -66,7 +66,6 @@ export default function Dashboard() {
             <ThemeToggle />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
-            {/* Only show UptimeLogDialog for admins and superadmins */}
             {(isAdmin || isSuperAdmin) && <UptimeLogDialog />}
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
@@ -84,7 +83,7 @@ export default function Dashboard() {
         </header>
 
         <div className="grid gap-8">
-          <section>
+          <section className="relative">
             <div 
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServersExpanded(!isServersExpanded)}
@@ -108,17 +107,15 @@ export default function Dashboard() {
             <div
               id="game-servers-section"
               className={cn(
-                "transition-all duration-300 ease-in-out",
-                isServersExpanded 
-                  ? "max-h-[200px] opacity-100" 
-                  : "max-h-0 opacity-0 overflow-hidden"
+                "transition-all duration-300 ease-in-out overflow-hidden",
+                isServersExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
               )}
             >
               <GameServerList />
             </div>
           </section>
 
-          <section>
+          <section className="relative">
             <div 
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServicesExpanded(!isServicesExpanded)}
@@ -140,10 +137,8 @@ export default function Dashboard() {
             <div
               id="services-section"
               className={cn(
-                "transition-all duration-300 ease-in-out",
-                isServicesExpanded 
-                  ? "max-h-[2000px] opacity-100" 
-                  : "max-h-0 opacity-0 overflow-hidden"
+                "transition-all duration-300 ease-in-out overflow-hidden",
+                isServicesExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
               )}
             >
               {servicesLoading ? (
