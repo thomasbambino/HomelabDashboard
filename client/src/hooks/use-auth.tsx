@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error("Login failed");
       }
       console.log("Login response:", data);
       return data;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         action: (
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90"
+              className="px-3 py-2 text-sm font-medium text-white bg-destructive border-2 border-white rounded-md hover:bg-destructive/90"
               onClick={() => setLocation("/auth?tab=reset")}
             >
               Reset Password
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Registration failed");
       }
       return data;
     },
