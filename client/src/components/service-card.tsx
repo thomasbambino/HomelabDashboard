@@ -54,7 +54,7 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
   const [showPlexDialog, setShowPlexDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),
