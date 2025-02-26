@@ -6,37 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
 import { Shield, CheckCircle2, XCircle } from "lucide-react";
-import { 
-  AttIcon, GoogleIcon, ComcastIcon, NetworkIcon, 
-  VerizonIcon, TmobileIcon, FrontierIcon, SpectrumIcon, CoxIcon 
-} from "./isp-icons/index.js";
-
-// Map common ISP names to their icon components
-const ispIcons: Record<string, React.ComponentType<{ className?: string, size?: number }>> = {
-  'AT&T': AttIcon,
-  'Google': GoogleIcon,
-  'Comcast': ComcastIcon,
-  'Xfinity': ComcastIcon,
-  'Verizon': VerizonIcon,
-  'T-Mobile': TmobileIcon,
-  'Frontier': FrontierIcon,
-  'Spectrum': SpectrumIcon,
-  'Cox': CoxIcon
-};
-
-function getISPIcon(ispName: string): React.ComponentType<{ className?: string, size?: number }> {
-  // Check for exact matches
-  if (ispName in ispIcons) return ispIcons[ispName];
-
-  // Check for partial matches
-  const lowercaseIsp = ispName.toLowerCase();
-  for (const [key, icon] of Object.entries(ispIcons)) {
-    if (lowercaseIsp.includes(key.toLowerCase())) return icon;
-  }
-
-  // Return default network icon if no match found
-  return NetworkIcon;
-}
+import { ISPIcon } from "./isp-icons/index.js";
 
 export function LoginAttemptsDialog() {
   const { data: loginAttempts = [] } = useQuery<LoginAttempt[]>({
@@ -89,10 +59,11 @@ export function LoginAttemptsDialog() {
                     {attempt.isp && (
                       <p className="text-sm flex items-center gap-2">
                         <span className="text-muted-foreground">ISP:</span>
-                        {React.createElement(getISPIcon(attempt.isp), {
-                          className: "h-4 w-4",
-                          size: 16
-                        })}
+                        <ISPIcon 
+                          ispName={attempt.isp} 
+                          className="h-4 w-4"
+                          size={16}
+                        />
                         <span>{attempt.isp}</span>
                       </p>
                     )}
