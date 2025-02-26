@@ -18,7 +18,7 @@ export function ChatButton() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           className="relative"
           aria-label="Open chat"
