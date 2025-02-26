@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,52 +14,68 @@ import * as z from "zod";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
-const changePasswordSchema = z.object({
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-});
+const changePasswordSchema = z
+  .object({
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
 export function ForcePasswordChangeDialog() {
-  const [open, setOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
   const form = useForm<ChangePasswordForm>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
       newPassword: "",
+      confirmPassword: "",
     },
   });
 
   const onSubmit = async (data: ChangePasswordForm) => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ newPassword: data.newPassword }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to change password");
       }
 
+      // Update the user data in the cache to reflect the password change
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
       toast({
         title: "Success",
         description: "Your password has been updated successfully.",
       });
-      setOpen(false);
-      window.location.reload(); // Refresh to update auth state
+
+      // Refresh the page to update auth state
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update password. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {/* Prevent closing */}}>
+    <Dialog open={true} onOpenChange={() => {}}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Change Your Password</DialogTitle>
@@ -76,15 +92,27 @@ export function ForcePasswordChangeDialog() {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" placeholder="Enter new password" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Confirm new password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
+            />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Change Password
             </Button>
           </form>
