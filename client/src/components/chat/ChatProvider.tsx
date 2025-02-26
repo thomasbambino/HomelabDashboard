@@ -1,8 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Chat } from 'stream-chat-react';
-import { chatClient } from '@/lib/stream-chat';
 import { useAuth } from '@/hooks/use-auth';
-import { initializeStreamChatClient } from '@/lib/stream-chat';
+import { initializeStreamChatClient, chatClient } from '@/lib/stream-chat';
 import 'stream-chat-react/dist/css/v2/index.css';
 
 interface ChatProviderProps {
@@ -22,6 +21,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
         .catch((error) => {
           console.error('Failed to initialize Stream Chat:', error);
         });
+
+      // Cleanup function to disconnect user when unmounting
+      return () => {
+        chatClient.disconnectUser();
+        setIsInitialized(false);
+      };
     }
   }, [user, isInitialized]);
 

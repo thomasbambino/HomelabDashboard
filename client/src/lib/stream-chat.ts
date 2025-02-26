@@ -1,5 +1,4 @@
 import { StreamChat } from 'stream-chat';
-import { useAuth } from '@/hooks/use-auth';
 
 if (!import.meta.env.VITE_STREAM_API_KEY) {
   throw new Error('VITE_STREAM_API_KEY is not defined');

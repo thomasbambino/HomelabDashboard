@@ -1,9 +1,9 @@
 import { Channel, MessageInput, MessageList, Window } from 'stream-chat-react';
-import { chatClient } from '@/lib/stream-chat';
 import { useEffect, useState } from 'react';
 import { ChatRoom as ChatRoomType } from '@shared/schema';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { chatClient } from '@/lib/stream-chat';
 
 interface ChatRoomProps {
   room: ChatRoomType;
