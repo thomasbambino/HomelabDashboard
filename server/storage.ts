@@ -141,7 +141,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    const users = await db
+      .select({
+        users,
+        latest_ip: db
+          .select({ ip: loginAttempts.ip })
+          .from(loginAttempts)
+          .where(eq(loginAttempts.identifier, users.username))
+          .orderBy(desc(loginAttempts.timestamp))
+          .limit(1)
+      })
+      .from(users)
+      .leftJoin(loginAttempts, and(
+        eq(loginAttempts.identifier, users.username),
+        eq(loginAttempts.type, 'login')
+      ))
+      .orderBy(desc(loginAttempts.timestamp));
+
+    // Update the last_ip field with the latest IP from login attempts
+    const updatedUsers = users.map(user => ({
+      ...user.users,
+      last_ip: user.latest_ip?.ip || user.users.last_ip
+    }));
+
+    return updatedUsers;
   }
 
   async updateUser(user: UpdateUser): Promise<User | undefined> {
