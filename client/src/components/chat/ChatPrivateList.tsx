@@ -10,7 +10,11 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-export function ChatPrivateList() {
+interface ChatPrivateListProps {
+  onSelectRoom?: (room: ChatRoom) => void;
+}
+
+export function ChatPrivateList({ onSelectRoom }: ChatPrivateListProps) {
   const { toast } = useToast();
   const [isUserListOpen, setIsUserListOpen] = useState(false);
 
@@ -94,9 +98,7 @@ export function ChatPrivateList() {
             <div
               key={room.id}
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
-              onClick={() => {
-                // Will be handled by parent component
-              }}
+              onClick={() => onSelectRoom?.(room)}
             >
               <Avatar className="h-10 w-10">
                 <AvatarImage src={`https://avatar.vercel.sh/${room.name}`} />

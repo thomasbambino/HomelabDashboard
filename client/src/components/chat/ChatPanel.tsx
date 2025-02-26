@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatPublicRoom } from "./ChatPublicRoom";
 import { ChatPrivateList } from "./ChatPrivateList";
 import { ChatGroupList } from "./ChatGroupList";
+import { ChatRoom } from "@shared/schema";
 
 interface ChatPanelProps {
   onClose: () => void;
@@ -10,6 +11,12 @@ interface ChatPanelProps {
 
 export function ChatPanel({ onClose }: ChatPanelProps) {
   const [activeTab, setActiveTab] = useState("public");
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+
+  const handleRoomSelect = (room: ChatRoom) => {
+    setSelectedRoom(room);
+    // Additional logic for handling room selection will go here once we have Stream Chat set up
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -27,10 +34,10 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             <ChatPublicRoom />
           </TabsContent>
           <TabsContent value="private" className="h-full m-0">
-            <ChatPrivateList />
+            <ChatPrivateList onSelectRoom={handleRoomSelect} />
           </TabsContent>
           <TabsContent value="groups" className="h-full m-0">
-            <ChatGroupList />
+            <ChatGroupList onSelectRoom={handleRoomSelect} />
           </TabsContent>
         </div>
       </Tabs>
