@@ -20,7 +20,7 @@ export function LoginAttemptsDialog() {
           Login Attempts
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Login Attempts</DialogTitle>
         </DialogHeader>
@@ -35,7 +35,7 @@ export function LoginAttemptsDialog() {
                   <div>
                     <div className="flex items-center gap-2">
                       {attempt.type === 'success' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                       ) : (
                         <XCircle className="h-5 w-5 text-red-500" />
                       )}

@@ -21,10 +21,10 @@ async function getIpInfo(ip: string) {
 
     return {
       ip,
-      isp: data.org,
-      city: data.city,
-      region: data.region,
-      country: data.country_name,
+      isp: data.org || null,
+      city: data.city || null,
+      region: data.region || null,
+      country: data.country_name || null,
     };
   } catch (error) {
     console.error('Failed to get IP info:', error);
