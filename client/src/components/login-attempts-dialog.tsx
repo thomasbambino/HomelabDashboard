@@ -6,7 +6,7 @@ import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
 import { Shield, CheckCircle2, XCircle, Network } from "lucide-react";
 import { 
-  SiAmazon, SiGoogle, SiMicrosoft, SiXfinity, SiBox, SiTmobile,
+  SiAmazon, SiGoogle, SiBox, SiTmobile,
   SiSpectrum, SiDigitalocean, 
   SiCloudflare, SiAkamai
 } from "react-icons/si";
@@ -15,9 +15,6 @@ import {
 const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'Amazon': SiAmazon,
   'Google': SiGoogle,
-  'Microsoft': SiMicrosoft,
-  'Comcast': SiXfinity,
-  'Xfinity': SiXfinity,
   'T-Mobile': SiTmobile,
   'Spectrum': SiSpectrum,
   'DigitalOcean': SiDigitalocean,
