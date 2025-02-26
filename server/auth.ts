@@ -318,6 +318,28 @@ export function setupAuth(app: Express) {
     res.json(user);
   });
 
+  app.delete("/api/users/:id", isSuperAdmin, async (req, res) => {
+    const targetUserId = parseInt(req.params.id);
+    const targetUser = await storage.getUser(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent deletion of superadmin users
+    if (targetUser.role === 'superadmin') {
+      return res.status(403).json({ message: "Cannot delete superadmin users" });
+    }
+
+    try {
+      await storage.deleteUser(targetUserId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
     const { userId } = req.body;
     const user = await storage.getUser(userId);
