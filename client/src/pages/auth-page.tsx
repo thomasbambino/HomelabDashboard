@@ -2,8 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
@@ -19,7 +18,17 @@ const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type FormType = 'login' | 'register' | 'reset';
+const changePasswordSchema = z
+  .object({
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+type FormType = 'login' | 'register' | 'reset' | 'change-password';
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -54,21 +63,70 @@ export default function AuthPage() {
     }
   });
 
+  const changePasswordForm = useForm({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: ""
+    }
+  });
+
   const handleFormTypeChange = (type: FormType) => {
     setFormType(type);
     // Reset forms when switching
     loginForm.reset();
     registerForm.reset();
     resetForm.reset();
+    changePasswordForm.reset();
+  };
+
+  const handleLoginSuccess = (data: any) => {
+    if (data.requires_password_change) {
+      handleFormTypeChange('change-password');
+    }
+  };
+
+  const handleChangePassword = async (data: z.infer<typeof changePasswordSchema>) => {
+    try {
+      const response = await fetch("/api/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: data.newPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to change password");
+      }
+
+      toast({
+        title: "Success",
+        description: "Your password has been updated successfully.",
+      });
+
+      // Redirect to login
+      handleFormTypeChange('login');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleResetPassword = async (data: { email: string }) => {
     try {
-      await fetch('/api/request-reset', {
+      const response = await fetch('/api/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: data.email })
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to request password reset");
+      }
+
       toast({
         title: "Reset Request Sent",
         description: "If an account exists with this email, you will receive reset instructions.",
@@ -83,7 +141,7 @@ export default function AuthPage() {
     }
   };
 
-  if (user) {
+  if (user && !user.requires_password_change) {
     return <Redirect to="/" />;
   }
 
@@ -98,7 +156,7 @@ export default function AuthPage() {
             <div className="transition-all duration-200 ease-in-out">
               {formType === 'login' && (
                 <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
+                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data, { onSuccess: handleLoginSuccess }))} className="space-y-4">
                     <FormField
                       control={loginForm.control}
                       name="username"
@@ -108,6 +166,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -120,6 +179,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input type="password" {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -151,6 +211,42 @@ export default function AuthPage() {
                 </Form>
               )}
 
+              {formType === 'change-password' && (
+                <Form {...changePasswordForm}>
+                  <form onSubmit={changePasswordForm.handleSubmit(handleChangePassword)} className="space-y-4">
+                    <FormField
+                      control={changePasswordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={changePasswordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Confirm new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">
+                      Change Password
+                    </Button>
+                  </form>
+                </Form>
+              )}
+
               {formType === 'register' && (
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
@@ -163,6 +259,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -175,6 +272,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input type="email" {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -187,6 +285,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input type="password" {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -220,6 +319,7 @@ export default function AuthPage() {
                           <FormControl>
                             <Input type="email" placeholder="Enter your email address" {...field} />
                           </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
