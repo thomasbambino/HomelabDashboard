@@ -110,23 +110,35 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Attempting login for username:", username);
+
         // Try to find user by username first, then by email
         let user = await storage.getUserByUsername(username);
         if (!user) {
           user = await storage.getUserByEmail(username);
         }
 
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user) {
+          console.log("No user found with username/email:", username);
           return done(null, false);
         }
 
-        // Check if the user account is approved (enabled)
+        const passwordMatches = await comparePasswords(password, user.password);
+        console.log("Password comparison result:", passwordMatches);
+
+        if (!passwordMatches) {
+          return done(null, false);
+        }
+
+        // Check if the user account is enabled and approved
         if (!user.approved) {
+          console.log("User not approved:", username);
           return done(null, false);
         }
 
         return done(null, user);
       } catch (error) {
+        console.error("Login error:", error);
         return done(error);
       }
     }),
@@ -471,11 +483,26 @@ async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
-// Placeholder for compileTemplate function.  Replace with your actual implementation.
-function compileTemplate(template: string, data: any): string {
-  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
-  return template; // Replace with actual compiled template
+// Update the generateHashForTest and IIFE to be more detailed
+async function generateHashForTest() {
+  const password = "admin123";
+  const hashedPassword = await hashPassword(password);
+  console.log("Test hash generated for 'admin123':", hashedPassword);
+  return hashedPassword;
 }
+
+// Generate a hash and update admin user
+(async () => {
+  try {
+    const hashedPassword = await generateHashForTest();
+    console.log("Generated hash for admin user:", hashedPassword);
+    // Also create the admin user directly
+    const adminUser = await createAdminUser("admin", "admin123", "admin@example.com");
+    console.log("Admin user created:", adminUser);
+  } catch (error) {
+    console.error("Error generating hash:", error);
+  }
+})();
 
 // Add this function to create the admin user.  This assumes storage.createUser
 // accepts a similar object as in the /api/register route.  Adjust as needed
@@ -490,3 +517,9 @@ async function createAdminUser(username: string, password: string, email: string
 // Example usage:  Call this function at the app startup or a suitable place.
 // Replace "adminuser" and "password123" with desired credentials.
 // createAdminUser("adminuser", "password123", "admin@example.com").catch(console.error)
+
+// Placeholder for compileTemplate function.  Replace with your actual implementation.
+function compileTemplate(template: string, data: any): string {
+  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
+  return template; // Replace with actual compiled template
+}
