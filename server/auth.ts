@@ -197,12 +197,16 @@ export function setupAuth(app: Express) {
             timestamp: new Date()
           });
 
-          return res.sendStatus(401); // Only send status code, no message
+          return res.sendStatus(401);
         }
 
-        req.logIn(user, (err) => {
+        req.logIn(user, async (err) => {
           if (err) return next(err);
-          // Clear attempts on successful login
+          // Update user's last IP and clear attempts on successful login
+          await storage.updateUser({
+            id: user.id,
+            last_ip: ip
+          });
           storage.clearLoginAttempts(identifier, ip, type)
             .catch(console.error);
           res.json(user);
