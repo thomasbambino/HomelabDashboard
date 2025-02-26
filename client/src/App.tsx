@@ -29,8 +29,8 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ThemeProvider>
           <ChatProvider>
             <div className="min-h-screen bg-background text-foreground">
               <Router />
@@ -41,8 +41,8 @@ export default function App() {
               <FaviconUpdater />
             </div>
           </ChatProvider>
-        </AuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
