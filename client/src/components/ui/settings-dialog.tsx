@@ -62,15 +62,23 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      // Ensure we're sending both visibility settings independently
+      // Log the values being sent to the API
+      console.log('Updating settings with:', {
+        admin_show_uptime_log: data.admin_show_uptime_log,
+        show_uptime_log: data.show_uptime_log
+      });
+
       const res = await apiRequest("PATCH", "/api/settings", {
         ...data,
-        show_uptime_log: data.show_uptime_log,
-        admin_show_uptime_log: data.admin_show_uptime_log,
+        // Ensure we're sending the correct boolean values
+        admin_show_uptime_log: Boolean(data.admin_show_uptime_log),
+        show_uptime_log: Boolean(data.show_uptime_log)
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Log the response from the API
+      console.log('Settings updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
         title: "Settings updated",
@@ -79,6 +87,7 @@ export function SettingsDialog() {
       setOpen(false);
     },
     onError: (error: Error) => {
+      console.error('Settings update failed:', error);
       toast({
         title: "Failed to update settings",
         description: error.message,
@@ -386,7 +395,11 @@ export function SettingsDialog() {
                               <Switch
                                 id="admin_show_uptime_log"
                                 checked={field.value}
-                                onCheckedChange={field.onChange}
+                                onCheckedChange={(checked) => {
+                                  field.onChange(checked);
+                                  // Only update the admin setting
+                                  form.setValue("admin_show_uptime_log", checked);
+                                }}
                               />
                             </div>
                           </FormItem>
@@ -471,7 +484,11 @@ export function SettingsDialog() {
                               <Switch
                                 id="show_uptime_log"
                                 checked={field.value}
-                                onCheckedChange={field.onChange}
+                                onCheckedChange={(checked) => {
+                                  field.onChange(checked);
+                                  // Only update the user setting
+                                  form.setValue("show_uptime_log", checked);
+                                }}
                               />
                             </div>
                           </FormItem>

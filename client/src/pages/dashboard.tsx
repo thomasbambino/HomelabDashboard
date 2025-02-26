@@ -51,6 +51,14 @@ export default function Dashboard() {
     ? Boolean(settings?.admin_show_uptime_log)
     : Boolean(settings?.show_uptime_log);
 
+  // Debug logging
+  console.log('User Role:', user?.role);
+  console.log('Settings:', {
+    admin_show_uptime_log: settings?.admin_show_uptime_log,
+    show_uptime_log: settings?.show_uptime_log
+  });
+  console.log('Show Uptime Log:', showUptimeLog);
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
