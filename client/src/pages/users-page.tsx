@@ -73,27 +73,6 @@ export default function UsersPage() {
     },
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { defaultRole: string }) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({
-        title: "Settings updated",
-        description: "Default role settings have been updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update settings",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleEmailChange = (userId: number, email: string) => {
     setEditingEmails(prev => ({ ...prev, [userId]: email }));
   };
@@ -166,29 +145,29 @@ export default function UsersPage() {
                     <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="email"
-                          placeholder="Email address"
-                          value={editingEmails[u.id] ?? u.email ?? ''}
-                          onChange={(e) => handleEmailChange(u.id, e.target.value)}
-                          className="w-64"
-                        />
-                        {editingEmails[u.id] !== undefined && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => saveEmail(u.id)}
-                            disabled={updateUserMutation.isPending}
-                          >
-                            {updateUserMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
+                      <Input
+                        type="email"
+                        placeholder="Email address"
+                        value={editingEmails[u.id] ?? u.email ?? ''}
+                        onChange={(e) => handleEmailChange(u.id, e.target.value)}
+                        className="w-64"
+                      />
+                      {editingEmails[u.id] !== undefined && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => saveEmail(u.id)}
+                          disabled={updateUserMutation.isPending}
+                        >
+                          {updateUserMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
