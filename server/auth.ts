@@ -100,7 +100,7 @@ async function getClientIp(req: Request) {
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
     // Get the first IP if multiple are present
-    const ip = Array.isArray(forwardedFor) 
+    const ip = Array.isArray(forwardedFor)
       ? forwardedFor[0].split(',')[0].trim()
       : forwardedFor.split(',')[0].trim();
     console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
@@ -224,18 +224,29 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
 
         if (!user) {
-          // Get IP info and log failed attempt with location data
-          const ipInfo = await getIpInfo(clientIp);
-          await storage.addLoginAttempt({
-            identifier,
-            ip: ipInfo.ip,
-            type,
-            timestamp: new Date(),
-            isp: ipInfo.isp,
-            city: ipInfo.city,
-            region: ipInfo.region,
-            country: ipInfo.country
-          });
+          try {
+            // Get IP info and log failed attempt with location data
+            const ipInfo = await getIpInfo(clientIp);
+            await storage.addLoginAttempt({
+              identifier,
+              ip: ipInfo.ip || clientIp,
+              type,
+              timestamp: new Date(),
+              isp: ipInfo.isp || null,
+              city: ipInfo.city || null,
+              region: ipInfo.region || null,
+              country: ipInfo.country || null
+            });
+          } catch (error) {
+            console.error('Failed to record login attempt with geolocation:', error);
+            // Still record the attempt, but without geolocation data
+            await storage.addLoginAttempt({
+              identifier,
+              ip: clientIp,
+              type,
+              timestamp: new Date()
+            });
+          }
 
           return res.sendStatus(401);
         }
@@ -243,25 +254,29 @@ export function setupAuth(app: Express) {
         req.logIn(user, async (err) => {
           if (err) return next(err);
 
-          console.log(`Updating IP for user ${user.username} to ${clientIp}`);
+          try {
+            // Update user's last IP and clear attempts on successful login
+            const ipInfo = await getIpInfo(clientIp);
+            await storage.updateUser({
+              id: user.id,
+              last_ip: ipInfo.ip || clientIp
+            });
 
-          // Update user's last IP and clear attempts on successful login
-          const ipInfo = await getIpInfo(clientIp);
-          await storage.updateUser({
-            id: user.id,
-            last_ip: ipInfo.ip
-          });
+            await storage.clearLoginAttempts(identifier, clientIp, type);
 
-          await storage.clearLoginAttempts(identifier, clientIp, type);
-
-          console.log(`Successfully updated IP for user ${user.username}`);
-          console.log('User temp_password status:', user.temp_password);
-
-          // Include temp_password status in response
-          res.json({
-            ...user,
-            requires_password_change: user.temp_password
-          });
+            // Include temp_password status in response
+            res.json({
+              ...user,
+              requires_password_change: user.temp_password
+            });
+          } catch (error) {
+            console.error('Failed to update user IP with geolocation:', error);
+            // Still complete the login even if IP update fails
+            res.json({
+              ...user,
+              requires_password_change: user.temp_password
+            });
+          }
         });
       })(req, res, next);
     } catch (error) {
@@ -387,7 +402,7 @@ export function setupAuth(app: Express) {
     res.json(users);
   });
 
-  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { 
+  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => {
     const targetUserId = parseInt(req.params.id);
 
     // Check if the requesting admin can modify this user
@@ -429,7 +444,7 @@ export function setupAuth(app: Express) {
     try {
       const deletedUser = await storage.deleteUser(targetUserId);
       if (deletedUser) {
-        return res.status(200).json({ 
+        return res.status(200).json({
           message: "User deleted successfully",
           user: deletedUser
         });
@@ -438,7 +453,7 @@ export function setupAuth(app: Express) {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: "Failed to delete user",
         error: error instanceof Error ? error.message : "Unknown error"
       });
