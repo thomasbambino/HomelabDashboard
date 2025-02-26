@@ -15,6 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { ImageUpload } from "./image-upload";
 
+// Add explicit type for role-based visibility
+type VisibilitySettings = {
+  show_uptime_log: boolean;
+  admin_show_uptime_log: boolean;
+};
+
 export function SettingsDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -56,7 +62,12 @@ export function SettingsDialog() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const res = await apiRequest("PATCH", "/api/settings", data);
+      // Ensure we're sending both visibility settings independently
+      const res = await apiRequest("PATCH", "/api/settings", {
+        ...data,
+        show_uptime_log: data.show_uptime_log,
+        admin_show_uptime_log: data.admin_show_uptime_log,
+      });
       return res.json();
     },
     onSuccess: () => {
