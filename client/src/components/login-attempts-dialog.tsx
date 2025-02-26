@@ -9,10 +9,10 @@ import { Shield, CheckCircle2, XCircle } from "lucide-react";
 import { 
   AttIcon, GoogleIcon, ComcastIcon, NetworkIcon, 
   VerizonIcon, TmobileIcon, FrontierIcon, SpectrumIcon, CoxIcon 
-} from "./isp-icons";
+} from "./isp-icons/index.js";
 
 // Map common ISP names to their icon components
-const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const ispIcons: Record<string, React.ComponentType<{ className?: string, size?: number }>> = {
   'AT&T': AttIcon,
   'Google': GoogleIcon,
   'Comcast': ComcastIcon,
@@ -24,7 +24,7 @@ const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'Cox': CoxIcon
 };
 
-function getISPIcon(ispName: string): React.ComponentType<{ className?: string }> {
+function getISPIcon(ispName: string): React.ComponentType<{ className?: string, size?: number }> {
   // Check for exact matches
   if (ispName in ispIcons) return ispIcons[ispName];
 
@@ -90,7 +90,8 @@ export function LoginAttemptsDialog() {
                       <p className="text-sm flex items-center gap-2">
                         <span className="text-muted-foreground">ISP:</span>
                         {React.createElement(getISPIcon(attempt.isp), {
-                          className: "h-4 w-4"
+                          className: "h-4 w-4",
+                          size: 16
                         })}
                         <span>{attempt.isp}</span>
                       </p>
