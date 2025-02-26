@@ -249,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/chat/token", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { token } = await chatServer.connectUser(req.user);
+      const { token } = await chatServer.connectUser(req.user as User);
       res.json({ token });
     } catch (error) {
       console.error('Error generating chat token:', error);
@@ -836,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the complete message with sender info
       const messageWithSender = {
         ...message,
-        sender: awaitstorage.getUser(user.id),
+        sender: await storage.getUser(user.id),
       };
 
       // Broadcast the message through WebSocket

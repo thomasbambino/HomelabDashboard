@@ -41,12 +41,6 @@ export class ChatServer {
       // Create a Stream Chat token for the user
       const token = this.streamClient.createToken(user.id.toString());
       console.log('Generated Stream Chat token:', token);
-      console.log('Generated Stream Chat token structure:', JSON.stringify(token, null, 2));
-
-      // Decode and log the token payload
-      const [_, payloadBase64] = token.split('.');
-      const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
-      console.log('Decoded token payload:', payload);
 
       // Upsert the user to Stream Chat
       await this.streamClient.upsertUser({
@@ -54,12 +48,11 @@ export class ChatServer {
         name: user.username,
         role: streamRole,
       });
-      console.log('User object passed to connectUser:', user);
+      console.log('User upserted to Stream Chat');
 
       // Ensure user is added to public channel
       await this.ensurePublicChannel(user.id.toString());
 
-      console.log('User upserted to Stream Chat');
       return { token };
     } catch (error) {
       console.error('Error connecting user to Stream Chat:', error);
