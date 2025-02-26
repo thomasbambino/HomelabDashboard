@@ -22,7 +22,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { EmailTemplate, insertEmailTemplateSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import * as z from "zod";
 
 const emailTemplateSchema = insertEmailTemplateSchema.extend({
