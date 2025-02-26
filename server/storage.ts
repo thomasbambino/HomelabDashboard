@@ -192,6 +192,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(user: UpdateUser): Promise<User | undefined> {
+    // Get the existing user first
+    const existingUser = await this.getUser(user.id);
+    if (!existingUser) {
+      return undefined;
+    }
+
+    // Prevent modification of superadmin role
+    if (existingUser.role === 'superadmin' && user.role && user.role !== 'superadmin') {
+      throw new Error("Super Admin role cannot be modified");
+    }
+
     const [updatedUser] = await db
       .update(users)
       .set(user)
