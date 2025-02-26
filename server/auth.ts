@@ -185,6 +185,8 @@ export function setupAuth(app: Express) {
       const ip = req.ip;
       const type = 'login';
 
+      console.log("Login attempt - IP:", ip, "Username:", identifier);
+
       passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);
 
@@ -202,13 +204,19 @@ export function setupAuth(app: Express) {
 
         req.logIn(user, async (err) => {
           if (err) return next(err);
+
+          console.log(`Updating IP for user ${user.username} to ${ip}`);
+
           // Update user's last IP and clear attempts on successful login
           await storage.updateUser({
             id: user.id,
             last_ip: ip
           });
-          storage.clearLoginAttempts(identifier, ip, type)
-            .catch(console.error);
+
+          await storage.clearLoginAttempts(identifier, ip, type);
+
+          console.log(`Successfully updated IP for user ${user.username}`);
+
           res.json(user);
         });
       })(req, res, next);
