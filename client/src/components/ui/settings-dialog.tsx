@@ -69,8 +69,7 @@ export function SettingsDialog() {
       });
 
       const res = await apiRequest("PATCH", "/api/settings", {
-        ...data,
-        // Ensure we're sending the correct boolean values
+        id: data.id,
         admin_show_uptime_log: Boolean(data.admin_show_uptime_log),
         show_uptime_log: Boolean(data.show_uptime_log)
       });
@@ -396,9 +395,12 @@ export function SettingsDialog() {
                                 id="admin_show_uptime_log"
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
-                                  field.onChange(checked);
-                                  // Only update the admin setting
-                                  form.setValue("admin_show_uptime_log", checked);
+                                  const updatedData = {
+                                    id: form.getValues('id'),
+                                    admin_show_uptime_log: checked,
+                                    show_uptime_log: form.getValues('show_uptime_log')
+                                  };
+                                  updateSettingsMutation.mutate(updatedData);
                                 }}
                               />
                             </div>
@@ -485,9 +487,12 @@ export function SettingsDialog() {
                                 id="show_uptime_log"
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
-                                  field.onChange(checked);
-                                  // Only update the user setting
-                                  form.setValue("show_uptime_log", checked);
+                                  const updatedData = {
+                                    id: form.getValues('id'),
+                                    show_uptime_log: checked,
+                                    admin_show_uptime_log: form.getValues('admin_show_uptime_log')
+                                  };
+                                  updateSettingsMutation.mutate(updatedData);
                                 }}
                               />
                             </div>
