@@ -760,9 +760,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         approved: true,
       });
 
-      // Add user to public chat room
-      await storage.addUserToPublicRoom(user.id);
-
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
@@ -845,8 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const metrics = await ampService.getMetrics(instanceId);
       console.log(`Metrics for instance ${instanceId}:`, metrics);
 
-      res.json(metrics);
-    } catch (error) {
+      res.json(metrics);    } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
