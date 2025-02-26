@@ -43,14 +43,14 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
   // For admins, only check admin_show_uptime_log
   // For regular users, only check show_uptime_log
   // Make sure to handle each case independently
   const showUptimeLog = (() => {
-    if (isAdmin) {
+    if (isSuperAdmin || isAdmin) {
       return Boolean(settings?.admin_show_uptime_log);
     }
     return Boolean(settings?.show_uptime_log);
