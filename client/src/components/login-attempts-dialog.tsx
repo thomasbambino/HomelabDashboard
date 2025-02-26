@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
-import { Shield } from "lucide-react";
+import { Shield, CheckCircle2, XCircle } from "lucide-react";
 
 export function LoginAttemptsDialog() {
   const { data: loginAttempts = [] } = useQuery<LoginAttempt[]>({
@@ -33,21 +33,48 @@ export function LoginAttemptsDialog() {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-medium">{attempt.identifier}</p>
+                    <div className="flex items-center gap-2">
+                      {attempt.type === 'success' ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <p className="font-medium">{attempt.identifier}</p>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(attempt.timestamp), "PPp")}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">Type: {attempt.type}</p>
+                    <p className="text-sm font-medium">
+                      {attempt.type === 'success' ? 'Successful Login' : 'Failed Attempt'}
+                    </p>
                   </div>
                 </div>
-                <div className="bg-muted p-3 rounded-md">
+                <div className="bg-muted p-3 rounded-md space-y-1">
                   <p className="font-medium">IP: {attempt.ip}</p>
-                  {attempt.isp && <p>ISP: {attempt.isp}</p>}
-                  {attempt.city && <p>City: {attempt.city}</p>}
-                  {attempt.region && <p>Region: {attempt.region}</p>}
-                  {attempt.country && <p>Country: {attempt.country}</p>}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
+                    {attempt.isp && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">ISP:</span> {attempt.isp}
+                      </p>
+                    )}
+                    {attempt.city && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">City:</span> {attempt.city}
+                      </p>
+                    )}
+                    {attempt.region && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Region:</span> {attempt.region}
+                      </p>
+                    )}
+                    {attempt.country && (
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Country:</span> {attempt.country}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

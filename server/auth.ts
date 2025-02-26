@@ -230,7 +230,7 @@ export function setupAuth(app: Express) {
             await storage.addLoginAttempt({
               identifier,
               ip: ipInfo.ip || clientIp,
-              type,
+              type: 'failed',
               timestamp: new Date(),
               isp: ipInfo.isp || null,
               city: ipInfo.city || null,
@@ -243,7 +243,7 @@ export function setupAuth(app: Express) {
             await storage.addLoginAttempt({
               identifier,
               ip: clientIp,
-              type,
+              type: 'failed',
               timestamp: new Date()
             });
           }
@@ -255,14 +255,26 @@ export function setupAuth(app: Express) {
           if (err) return next(err);
 
           try {
-            // Update user's last IP and clear attempts on successful login
+            // Update user's last IP and record successful login
             const ipInfo = await getIpInfo(clientIp);
+
+            // Record successful login attempt
+            await storage.addLoginAttempt({
+              identifier,
+              ip: ipInfo.ip || clientIp,
+              type: 'success',
+              timestamp: new Date(),
+              isp: ipInfo.isp || null,
+              city: ipInfo.city || null,
+              region: ipInfo.region || null,
+              country: ipInfo.country || null
+            });
+
+            // Update user's last IP
             await storage.updateUser({
               id: user.id,
               last_ip: ipInfo.ip || clientIp
             });
-
-            await storage.clearLoginAttempts(identifier, clientIp, type);
 
             // Include temp_password status in response
             res.json({
