@@ -20,6 +20,7 @@ export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const isSuperAdmin = user?.role === 'superadmin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -141,14 +142,14 @@ export function SettingsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>UI Settings</DialogTitle>
+          <DialogTitle>{isSuperAdmin ? "Super Admin Settings" : "Admin Settings"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="general">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
-            <TabsTrigger value="amp">AMP</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="amp">AMP</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
@@ -166,6 +167,20 @@ export function SettingsDialog() {
                     </FormItem>
                   )}
                 />
+                {isSuperAdmin && (
+                  <FormField
+                    control={form.control}
+                    name="default_role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default User Role</FormLabel>
+                        <FormControl>
+                          <Input placeholder="pending" {...field} value={field.value || ""} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="discord_url"
@@ -278,9 +293,9 @@ export function SettingsDialog() {
                       <FormItem className="flex-1">
                         <FormLabel>Favicon Label</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Enter favicon label" 
-                            {...field} 
+                          <Input
+                            placeholder="Enter favicon label"
+                            {...field}
                             value={field.value || ""}
                           />
                         </FormControl>
@@ -515,83 +530,85 @@ export function SettingsDialog() {
               </form>
             </Form>
           </TabsContent>
-          <TabsContent value="amp">
-            <Form {...ampForm}>
-              <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
-                <FormField
-                  control={ampForm.control}
-                  name="amp_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>AMP Server URL</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="https://your-amp-server.com" 
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={ampForm.control}
-                  name="amp_username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>AMP Username</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="AMP admin username" 
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={ampForm.control}
-                  name="amp_password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>AMP Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="AMP admin password" 
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={updateAMPCredentialsMutation.isPending}
-                  >
-                    {updateAMPCredentialsMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {isSuperAdmin && (
+            <TabsContent value="amp">
+              <Form {...ampForm}>
+                <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
+                  <FormField
+                    control={ampForm.control}
+                    name="amp_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AMP Server URL</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="https://your-amp-server.com"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
                     )}
-                    Save Credentials
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={testAMPConnection}
-                    disabled={isTestingConnection}
-                  >
-                    {isTestingConnection ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="mr-2 h-4 w-4" />
+                  />
+                  <FormField
+                    control={ampForm.control}
+                    name="amp_username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AMP Username</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="AMP admin username"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
                     )}
-                    Test Connection
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </TabsContent>
+                  />
+                  <FormField
+                    control={ampForm.control}
+                    name="amp_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AMP Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="AMP admin password"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={updateAMPCredentialsMutation.isPending}
+                    >
+                      {updateAMPCredentialsMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Save Credentials
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={testAMPConnection}
+                      disabled={isTestingConnection}
+                    >
+                      {isTestingConnection ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      Test Connection
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>

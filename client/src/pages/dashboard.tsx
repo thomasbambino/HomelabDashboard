@@ -43,7 +43,8 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin';
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -63,10 +64,10 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            {isAdmin && <SettingsDialog />}
+            {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
             <UptimeLogDialog />
-            {isAdmin && (
+            {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
                 <Button variant="outline">
                   <Users className="h-4 w-4 mr-2" />
@@ -133,7 +134,7 @@ export default function Dashboard() {
                   )}
                 />
               </div>
-              {isAdmin && <AddServiceDialog />}
+              {(isAdmin || isSuperAdmin) && <AddServiceDialog />}
             </div>
             <div
               id="services-section"
