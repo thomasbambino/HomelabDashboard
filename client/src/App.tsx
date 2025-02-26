@@ -28,21 +28,21 @@ function Router() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ChatProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <div className="min-h-screen bg-background text-foreground">
               <Router />
               <div className="fixed bottom-4 right-4 z-50">
                 <ChatButton />
               </div>
               <Toaster />
               <FaviconUpdater />
-            </ChatProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </div>
-    </ThemeProvider>
+            </div>
+          </ChatProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
