@@ -252,18 +252,25 @@ export function setupAuth(app: Express) {
 
         // Send reset email directly to user
         const resetLink = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
-        await sendEmail({
+        const success = await sendEmail({
           to: user.email,
           subject: "Password Reset Instructions",
           html: `
-            <p>Hello ${user.username},</p>
-            <p>You recently requested to reset your password for your account.</p>
-            <p>Click the link below to reset your password:</p>
-            <p><a href="${resetLink}">Reset Your Password</a></p>
-            <p>This password reset link is only valid for the next hour.</p>
-            <p>If you did not request a password reset, please ignore this email and make sure you can still login to your account.</p>
-          `
+              <p>Hello ${user.username},</p>
+              <p>You recently requested to reset your password for your account.</p>
+              <p>Click the link below to reset your password:</p>
+              <p><a href="${resetLink}">Reset Your Password</a></p>
+              <p>This password reset link is only valid for the next hour.</p>
+              <p>If you did not request a password reset, please ignore this email and make sure you can still login to your account.</p>
+            `
         });
+
+        if (!success) {
+          console.error('Failed to send reset email to', user.email);
+          return res.status(500).json({ 
+            message: "Failed to send reset email. Please try again later." 
+          });
+        }
       }
 
       // Always return success to prevent user enumeration
