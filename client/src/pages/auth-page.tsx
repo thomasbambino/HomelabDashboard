@@ -143,6 +143,7 @@ export default function AuthPage() {
   };
 
   const handleGoogleLogin = () => {
+    console.log('Initiating Google OAuth login flow');
     window.location.href = '/oauth/google';
   };
 
