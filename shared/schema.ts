@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Create enums using sql template literal
-export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('superadmin', 'admin', 'user', 'pending')`;
+export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('admin', 'user', 'pending')`;
 export const chatRoomTypeEnum = sql`CREATE TYPE "chat_room_type" AS ENUM ('public', 'private', 'group')`;
 export const messageTypeEnum = sql`CREATE TYPE "message_type" AS ENUM ('text', 'image', 'file')`;
 
@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  role: text("role", { enum: ['superadmin', 'admin', 'user', 'pending'] }).notNull().default('pending'),
+  role: text("role", { enum: ['admin', 'user', 'pending'] }).notNull().default('pending'),
   enabled: boolean("enabled").notNull().default(true),
   approved: boolean("approved").notNull().default(false),
   can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),

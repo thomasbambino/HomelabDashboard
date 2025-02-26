@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, Link } from "wouter";
-import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save, Shield } from "lucide-react";
+import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -110,10 +110,7 @@ export default function UsersPage() {
     }
   };
 
-  // Check if current user is superadmin
-  const isSuperAdmin = user?.role === 'superadmin';
-
-  if (!isSuperAdmin && user?.role !== 'admin') {
+  if (user?.role !== 'admin') {
     return <Redirect to="/" />;
   }
 
@@ -151,7 +148,7 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {isSuperAdmin && <SelectItem value="admin">Admin</SelectItem>}
+                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
@@ -166,12 +163,7 @@ export default function UsersPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{u.username}</p>
-                      {u.role === 'superadmin' && (
-                        <Shield className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
+                    <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
@@ -213,8 +205,7 @@ export default function UsersPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {/* Only show controls if not viewing a superadmin, or if current user is superadmin */}
-                    {(u.role !== 'superadmin' || isSuperAdmin) && (
+                    {u.role !== 'admin' && (
                       <>
                         <div className="flex items-center gap-2">
                           <Switch
@@ -222,7 +213,6 @@ export default function UsersPage() {
                             onCheckedChange={(checked) =>
                               updateUserMutation.mutate({ id: u.id, approved: checked })
                             }
-                            disabled={u.role === 'superadmin' && !isSuperAdmin}
                           />
                           <Label>Account Enabled</Label>
                         </div>
@@ -232,38 +222,27 @@ export default function UsersPage() {
                             onCheckedChange={(checked) =>
                               updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
                             }
-                            disabled={u.role === 'superadmin' && !isSuperAdmin}
                           />
                           <Label>NSFW Access</Label>
                         </div>
-                        {/* Only show role selector if the current user has permission to change roles */}
-                        {((isSuperAdmin && u.role !== 'superadmin') || (user?.role === 'admin' && u.role !== 'admin' && u.role !== 'superadmin')) && (
-                          <Select
-                            value={u.role}
-                            onValueChange={(value) =>
-                              updateUserMutation.mutate({ id: u.id, role: value })
-                            }
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {isSuperAdmin && <SelectItem value="admin">Admin</SelectItem>}
-                              <SelectItem value="user">User</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <Select
+                          value={u.role}
+                          onValueChange={(value) =>
+                            updateUserMutation.mutate({ id: u.id, role: value })
+                          }
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </>
                     )}
-                    {/* Show role text for users that can't be modified */}
-                    {u.role === 'superadmin' && (
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        Super Administrator
-                        <Shield className="h-4 w-4 text-primary" />
-                      </p>
-                    )}
-                    {u.role === 'admin' && !isSuperAdmin && (
+                    {u.role === 'admin' && (
                       <p className="text-sm font-medium">Administrator</p>
                     )}
                   </div>
