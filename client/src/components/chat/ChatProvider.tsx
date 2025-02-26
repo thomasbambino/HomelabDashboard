@@ -3,7 +3,7 @@ import { Chat } from 'stream-chat-react';
 import { chatClient } from '@/lib/stream-chat';
 import { useAuth } from '@/hooks/use-auth';
 import { initializeStreamChatClient } from '@/lib/stream-chat';
-import '@stream-io/stream-chat-css/dist/css/index.css';
+import 'stream-chat-react/dist/css/v2/index.css';
 
 interface ChatProviderProps {
   children: ReactNode;
