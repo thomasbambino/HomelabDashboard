@@ -140,14 +140,16 @@ async function getClientIp(req: Request): Promise<string> {
 }
 
 export function setupAuth(app: Express) {
+  // Configure secure session settings
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: true,
-      sameSite: 'lax'
+      secure: true, // Ensure cookies only sent over HTTPS
+      sameSite: 'lax', // Protection against CSRF
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   };
 
@@ -156,21 +158,32 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configure Google OAuth routes
+  // Google OAuth Routes
   app.get('/oauth/google',
+    (req, res, next) => {
+      console.log('Starting Google OAuth flow at:', new Date().toISOString());
+      console.log('Session ID:', req.sessionID);
+      next();
+    },
     passport.authenticate('google', {
       scope: ['profile', 'email']
     })
   );
 
   app.get('/oauth/google/callback',
+    (req, res, next) => {
+      console.log('Google OAuth callback received at:', new Date().toISOString());
+      console.log('Query parameters:', req.query);
+      console.log('Session ID:', req.sessionID);
+      next();
+    },
     passport.authenticate('google', {
       failureRedirect: '/auth',
       failureMessage: true
     }),
     async (req, res) => {
-      // Log successful authentication
-      console.log('Google auth callback reached, user:', req.user);
+      console.log('Google authentication successful');
+      console.log('Authenticated user:', req.user);
 
       try {
         if (req.user) {
@@ -188,17 +201,20 @@ export function setupAuth(app: Express) {
             region: ipInfo.region || null,
             country: ipInfo.country || null
           });
-        }
-      } catch (error) {
-        console.error('Failed to record login attempt:', error);
-      }
 
-      // Redirect to home page
-      res.redirect('/');
+          console.log('Login attempt recorded successfully');
+        }
+
+        console.log('Redirecting to homepage');
+        res.redirect('/');
+      } catch (error) {
+        console.error('Error in callback handler:', error);
+        res.redirect('/auth');
+      }
     }
   );
 
-  // Configure Google Strategy
+  // Configure Google Strategy with exact callback URL
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -207,8 +223,11 @@ export function setupAuth(app: Express) {
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       console.log("Google OAuth callback received for profile:", profile.id);
+      console.log("Profile data:", JSON.stringify(profile, null, 2));
+
       const email = profile.emails?.[0]?.value;
       if (!email) {
+        console.error('No email found in Google profile');
         return done(new Error('No email found in Google profile'));
       }
 
@@ -216,14 +235,17 @@ export function setupAuth(app: Express) {
       let user = await storage.getUserByEmail(email);
 
       if (user) {
+        console.log('Existing user found:', user.username);
         // Update user's Google ID if not set
         if (!user.google_id) {
           user = await storage.updateUser({
             id: user.id,
             google_id: profile.id
           });
+          console.log('Updated user with Google ID');
         }
       } else {
+        console.log('Creating new user for email:', email);
         // Create new user with Google profile
         user = await storage.createUser({
           username: email.split('@')[0], // Use email prefix as username
@@ -232,6 +254,7 @@ export function setupAuth(app: Express) {
           google_id: profile.id,
           approved: true // Auto-approve Google users
         });
+        console.log('New user created:', user.username);
       }
 
       console.log("Successfully authenticated Google user:", user.email);
