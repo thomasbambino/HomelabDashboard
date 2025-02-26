@@ -22,15 +22,14 @@ const baseTemplate = `
     .header { 
       background-color: #1a1a1a; 
       padding: 20px;
-      text-align: center;
       border-radius: 8px 8px 0 0;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 15px;
+      justify-content: flex-start;
+      gap: 20px;
     }
     .header img { 
-      max-height: 62.5px; 
+      max-height: 81px; 
       width: auto;
       vertical-align: middle;
     }
@@ -69,8 +68,8 @@ const baseTemplate = `
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
       .content { padding: 20px; }
-      .header { flex-direction: column; gap: 10px; }
-      .header img { max-height: 50px; }
+      .header { flex-direction: column; align-items: center; gap: 15px; }
+      .header img { max-height: 65px; }
     }
   </style>
 </head>
