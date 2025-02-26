@@ -25,7 +25,16 @@ type AuthContextType = {
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+// Create context with a default value that matches the type
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: false,
+  error: null,
+  loginMutation: {} as UseMutationResult<AuthUser, Error, LoginData>,
+  logoutMutation: {} as UseMutationResult<void, Error, void>,
+  registerMutation: {} as UseMutationResult<AuthUser, Error, InsertUser>,
+});
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -46,11 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         throw new Error("Login failed");
       }
-      console.log("Login response:", data);
       return data;
     },
     onSuccess: (user: AuthUser) => {
-      console.log("Setting user data with requires_password_change:", user.requires_password_change);
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
@@ -58,16 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login failed",
         description: error.message,
         variant: "destructive",
-        action: (
-          <div className="flex items-center gap-2">
-            <button
-              className="px-3 py-2 text-sm font-medium text-white bg-destructive border-2 border-white rounded-md hover:bg-destructive/90"
-              onClick={() => setLocation("/auth?tab=reset")}
-            >
-              Reset Password
-            </button>
-          </div>
-        ),
       });
     },
   });
@@ -110,17 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const contextValue: AuthContextType = {
+    user: user ?? null,
+    isLoading,
+    error,
+    loginMutation,
+    logoutMutation,
+    registerMutation,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user: user ?? null,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
