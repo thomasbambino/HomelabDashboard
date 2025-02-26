@@ -29,6 +29,14 @@ export default function UsersPage() {
 
   const updateUserMutation = useMutation({
     mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean; email?: string; enabled?: boolean }) => {
+      // Prevent admins from modifying other admins' roles
+      if (user?.role === 'admin') {
+        const targetUser = users.find(u => u.id === data.id);
+        if (targetUser?.role === 'admin' && data.role && data.role !== 'admin') {
+          throw new Error('Admins cannot modify other admins\' roles');
+        }
+      }
+
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -258,7 +266,8 @@ export default function UsersPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {user?.role === 'superadmin' && (
+                              {/* Only show superadmin option to superadmins */}
+                              {user?.role === 'superadmin' && u.id === user.id && (
                                 <SelectItem value="superadmin">Superadmin</SelectItem>
                               )}
                               <SelectItem value="admin">Admin</SelectItem>

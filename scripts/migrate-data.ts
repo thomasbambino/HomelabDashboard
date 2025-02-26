@@ -50,7 +50,7 @@ async function migrateData() {
 
     console.log('Fetching data from source database...');
 
-    // First get all data from source
+    // Get core data from source
     const sourceUsers = await sourceDb.query.users.findMany();
     console.log(`Found ${sourceUsers.length} users to migrate`);
 
@@ -60,22 +60,8 @@ async function migrateData() {
     const sourceServices = await sourceDb.query.services.findMany();
     console.log(`Found ${sourceServices.length} services to migrate`);
 
-    const sourceGameServers = await sourceDb.query.gameServers.findMany();
-    console.log(`Found ${sourceGameServers.length} game servers to migrate`);
 
-    const sourceStatusLogs = await sourceDb.query.serviceStatusLogs.findMany();
-    console.log(`Found ${sourceStatusLogs.length} status logs to migrate`);
-
-    const sourceNotificationPrefs = await sourceDb.query.notificationPreferences.findMany();
-    console.log(`Found ${sourceNotificationPrefs.length} notification preferences to migrate`);
-
-    const sourceEmailTemplates = await sourceDb.query.emailTemplates.findMany();
-    console.log(`Found ${sourceEmailTemplates.length} email templates to migrate`);
-
-    const sourceSentNotifications = await sourceDb.query.sentNotifications.findMany();
-    console.log(`Found ${sourceSentNotifications.length} sent notifications to migrate`);
-
-    // Insert data into target database in the correct order to maintain relationships
+    // Insert data into target database in the correct order
     console.log('Starting data migration...');
 
     // 1. First users as they are referenced by other tables
@@ -99,46 +85,6 @@ async function migrateData() {
     for (const service of sourceServices) {
       await targetDb.insert(schema.services)
         .values(service)
-        .onConflictDoNothing();
-    }
-
-    // 4. Game Servers
-    console.log('Migrating game servers...');
-    for (const server of sourceGameServers) {
-      await targetDb.insert(schema.gameServers)
-        .values(server)
-        .onConflictDoNothing();
-    }
-
-    // 5. Service Status Logs (depends on services)
-    console.log('Migrating service status logs...');
-    for (const log of sourceStatusLogs) {
-      await targetDb.insert(schema.serviceStatusLogs)
-        .values(log)
-        .onConflictDoNothing();
-    }
-
-    // 6. Notification Preferences (depends on users and services)
-    console.log('Migrating notification preferences...');
-    for (const pref of sourceNotificationPrefs) {
-      await targetDb.insert(schema.notificationPreferences)
-        .values(pref)
-        .onConflictDoNothing();
-    }
-
-    // 7. Email Templates
-    console.log('Migrating email templates...');
-    for (const template of sourceEmailTemplates) {
-      await targetDb.insert(schema.emailTemplates)
-        .values(template)
-        .onConflictDoNothing();
-    }
-
-    // 8. Sent Notifications (depends on notification preferences, templates, and services)
-    console.log('Migrating sent notifications...');
-    for (const notification of sourceSentNotifications) {
-      await targetDb.insert(schema.sentNotifications)
-        .values(notification)
         .onConflictDoNothing();
     }
 
