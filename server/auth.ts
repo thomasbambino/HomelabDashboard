@@ -238,52 +238,59 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
+  //Updated request-reset endpoint
   app.post("/api/request-reset", checkRateLimit, async (req, res) => {
-    const { identifier } = req.body;
+    const { email } = req.body;
 
     try {
       // Log reset attempt
       await storage.addLoginAttempt({
-        identifier,
+        identifier: email,
         ip: req.ip,
         type: 'reset',
         timestamp: new Date()
       });
 
-      // Find user by username or email
-      let user = await storage.getUserByUsername(identifier);
-      if (!user) {
-        user = await storage.getUserByEmail(identifier);
-      }
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
 
-      // Get all admin users
-      const admins = await storage.getAllUsers();
-      const adminEmails = admins
-        .filter(admin => admin.role === 'admin' || admin.role === 'superadmin' && admin.email)
-        .map(admin => admin.email);
+      if (user && user.email) {
+        // Generate reset token
+        const resetToken = await generateResetToken();
+        const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour from now
 
-      if (user && adminEmails.length > 0) {
-        // Send email to all admins
-        for (const adminEmail of adminEmails) {
-          if (adminEmail) {
-            await sendEmail({
-              to: adminEmail,
-              subject: "Password Reset Request",
-              html: `
-                <p>A password reset has been requested for user: ${user.username}</p>
-                <p>User Email: ${user.email || 'No email provided'}</p>
-                <p>Please log in to the admin panel to reset their password.</p>
-              `
-            });
-          }
-        }
+        // Update user with reset token
+        await storage.updateUser({
+          id: user.id,
+          reset_token: resetToken,
+          reset_token_expires: resetTokenExpires
+        });
+
+        // Send reset email
+        const resetLink = `${req.protocol}://${req.get('host')}/auth/reset/${resetToken}`;
+        await sendEmail({
+          to: user.email,
+          subject: "Password Reset Request",
+          html: `
+            <p>You have requested to reset your password.</p>
+            <p>Please click the link below to reset your password:</p>
+            <p><a href="${resetLink}">Reset Password</a></p>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you did not request this reset, please ignore this email.</p>
+          `
+        });
       }
 
       // Always return success to prevent user enumeration
-      res.json({ message: "If the account exists, admins have been notified of your password reset request." });
+      res.json({ 
+        message: "If an account exists with this email address, you will receive password reset instructions." 
+      });
     } catch (error) {
       console.error('Reset request error:', error);
-      res.status(500).json({ message: "An error occurred processing your request" });
+      res.status(500).json({ 
+        message: "An error occurred processing your request",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -292,7 +299,7 @@ export function setupAuth(app: Express) {
     res.json(users);
   });
 
-  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { // Updated to require superadmin
+  app.patch("/api/users/:id", isSuperAdmin, async (req, res) => { 
     const targetUserId = parseInt(req.params.id);
 
     // Check if the requesting admin can modify this user
@@ -379,7 +386,7 @@ export function setupAuth(app: Express) {
 
     res.json({
       message: "Password reset successful",
-      tempPassword: user.email ? undefined : tempPassword // Only send temp password in response if user has no email
+      tempPassword: user.email ? undefined : tempPassword 
     });
   });
 
@@ -498,6 +505,40 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+
+  //New endpoint for password reset
+  app.post("/api/reset-password/:token", async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    try {
+      const user = await storage.getUserByResetToken(token);
+
+      if (!user || !user.reset_token_expires) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      if (new Date() > new Date(user.reset_token_expires)) {
+        return res.status(400).json({ message: "Reset token has expired" });
+      }
+
+      // Update password and clear reset token
+      await storage.updateUser({
+        id: user.id,
+        password: await hashPassword(password),
+        reset_token: null,
+        reset_token_expires: null
+      });
+
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      res.status(500).json({ 
+        message: "Failed to reset password",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 }
 
 async function hashPassword(password: string) {
@@ -556,6 +597,11 @@ async function createAdminUser(username: string, password: string, email: string
   return newUser;
 }
 
+
+// Add new function for generating reset token
+async function generateResetToken(): Promise<string> {
+  return randomBytes(32).toString('hex');
+}
 
 // Placeholder for compileTemplate function.  Replace with your actual implementation.
 function compileTemplate(template: string, data: any): string {
