@@ -27,7 +27,6 @@ export function DiscordButton() {
       size="icon"
       onClick={handleDiscordClick}
       aria-label="Join Discord"
-      className="border-2 border-primary" // Temporary debug styling
     >
       <SiDiscord className="h-5 w-5" />
     </Button>
