@@ -145,6 +145,10 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      secure: true,
+      sameSite: 'lax'
+    }
   };
 
   app.set("trust proxy", 1);
@@ -152,29 +156,26 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Update the Google Strategy configuration and route handlers
+  // Configure Google OAuth routes
   app.get('/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+    passport.authenticate('google', {
+      scope: ['profile', 'email']
+    })
   );
 
-  app.get('/api/auth/google/callback',
+  app.get('/oauth/google/callback',
     passport.authenticate('google', {
       failureRedirect: '/auth',
       successRedirect: '/',
-      failureFlash: true
-    }),
-    async (req, res) => {
-      console.log('Google auth callback reached, user:', req.user);
-      // Ensure we redirect to the root
-      res.redirect('/');
-    }
+      failureMessage: true
+    })
   );
 
-  // Update the Google Strategy configuration
+  // Configure Google Strategy
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "https://stylus.services/api/auth/google/callback",
+    callbackURL: "https://stylus.services/oauth/google/callback",
     scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
@@ -214,7 +215,6 @@ export function setupAuth(app: Express) {
     }
   }));
 
-  // Keep existing LocalStrategy...
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -669,8 +669,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-
-  //Google auth routes remain the same
 
   async function hashPassword(password: string) {
     const salt = randomBytes(16).toString("hex");
