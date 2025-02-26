@@ -14,7 +14,7 @@ import * as z from 'zod';
 import { useState } from 'react';
 
 const requestResetSchema = z.object({
-  identifier: z.string().min(1, "Username or email is required"),
+  email: z.string().email("Please enter a valid email address"),
 });
 
 type FormType = 'login' | 'register' | 'reset';
@@ -47,7 +47,7 @@ export default function AuthPage() {
   const resetForm = useForm({
     resolver: zodResolver(requestResetSchema),
     defaultValues: {
-      identifier: ""
+      email: ""
     }
   });
 
@@ -178,12 +178,12 @@ export default function AuthPage() {
               fetch('/api/request-reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ identifier: data.email })
               });
             })} className="space-y-4">
               <FormField
                 control={resetForm.control}
-                name="identifier"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
