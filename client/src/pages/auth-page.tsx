@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
 import * as z from 'zod';
 import { useState } from 'react';
+import { useToast } from "@/hooks/use-toast";
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -22,6 +23,7 @@ type FormType = 'login' | 'register' | 'reset';
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [formType, setFormType] = useState<FormType>('login');
+  const { toast } = useToast();
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -50,6 +52,35 @@ export default function AuthPage() {
       email: ""
     }
   });
+
+  const handleFormTypeChange = (type: FormType) => {
+    setFormType(type);
+    // Reset forms when switching
+    loginForm.reset();
+    registerForm.reset();
+    resetForm.reset();
+  };
+
+  const handleResetPassword = async (data: { email: string }) => {
+    try {
+      await fetch('/api/request-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: data.email })
+      });
+      toast({
+        title: "Reset Request Sent",
+        description: "If an account exists with this email, you will receive reset instructions.",
+      });
+      handleFormTypeChange('login');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset request. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (user) {
     return <Redirect to="/" />;
@@ -93,7 +124,7 @@ export default function AuthPage() {
               <div className="space-y-2 text-center">
                 <button 
                   type="button"
-                  onClick={() => setFormType('reset')}
+                  onClick={() => handleFormTypeChange('reset')}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Forgot password?
@@ -102,7 +133,7 @@ export default function AuthPage() {
                   Don't have an account?{" "}
                   <button
                     type="button"
-                    onClick={() => setFormType('register')}
+                    onClick={() => handleFormTypeChange('register')}
                     className="font-medium text-primary hover:underline"
                   >
                     Sign up
@@ -161,7 +192,7 @@ export default function AuthPage() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setFormType('login')}
+                  onClick={() => handleFormTypeChange('login')}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Already have an account? Login
@@ -174,13 +205,7 @@ export default function AuthPage() {
       case 'reset':
         return (
           <Form {...resetForm}>
-            <form onSubmit={resetForm.handleSubmit((data) => {
-              fetch('/api/request-reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier: data.email })
-              });
-            })} className="space-y-4">
+            <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
               <FormField
                 control={resetForm.control}
                 name="email"
@@ -188,7 +213,7 @@ export default function AuthPage() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="Enter your email address" />
+                      <Input type="email" placeholder="Enter your email address" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -200,7 +225,7 @@ export default function AuthPage() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setFormType('login')}
+                  onClick={() => handleFormTypeChange('login')}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Back to Login
