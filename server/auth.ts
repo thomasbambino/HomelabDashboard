@@ -158,27 +158,11 @@ export function setupAuth(app: Express) {
   );
 
   app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/auth' }),
-    async (req, res) => {
-      // Record successful login
-      try {
-        const clientIp = await getClientIp(req);
-        const ipInfo = await getIpInfo(clientIp);
-        await storage.addLoginAttempt({
-          identifier: req.user?.email || 'google-auth',
-          ip: ipInfo.ip || clientIp,
-          type: 'success',
-          timestamp: new Date(),
-          isp: ipInfo.isp || null,
-          city: ipInfo.city || null,
-          region: ipInfo.region || null,
-          country: ipInfo.country || null
-        });
-      } catch (error) {
-        console.error('Failed to record Google login attempt:', error);
-      }
-      res.redirect('/');
-    }
+    passport.authenticate('google', { 
+      failureRedirect: '/auth',
+      successRedirect: '/',
+      failureMessage: true
+    })
   );
 
   // Update the Google Strategy configuration
@@ -679,109 +663,81 @@ export function setupAuth(app: Express) {
     }
   });
 
+
   //Google auth routes remain the same
 
-  // Add Google auth routes
-  app.get('/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
+  async function hashPassword(password: string) {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 32)) as Buffer;
+    const hashedPassword = `${buf.toString("hex")}.${salt}`;
+    console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
+    return hashedPassword;
+  }
 
-  app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/auth' }),
-    async (req, res) => {
-      // Record successful login
-      try {
-        const clientIp = await getClientIp(req);
-        const ipInfo = await getIpInfo(clientIp);
-        await storage.addLoginAttempt({
-          identifier: req.user?.email || 'google-auth',
-          ip: ipInfo.ip || clientIp,
-          type: 'success',
-          timestamp: new Date(),
-          isp: ipInfo.isp || null,
-          city: ipInfo.city || null,
-          region: ipInfo.region || null,
-          country: ipInfo.country || null
-        });
-      } catch (error) {
-        console.error('Failed to record Google login attempt:', error);
+  async function comparePasswords(supplied: string, stored: string) {
+    try {
+      const [hash, salt] = stored.split(".");
+      if (!hash || !salt) {
+        console.error('Invalid stored password format:', stored);
+        return false;
       }
-      res.redirect('/');
-    }
-  );
-}
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 32)) as Buffer;
-  const hashedPassword = `${buf.toString("hex")}.${salt}`;
-  console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
-  return hashedPassword;
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  try {
-    const [hash, salt] = stored.split(".");
-    if (!hash || !salt) {
-      console.error('Invalid stored password format:', stored);
+      const hashedBuf = Buffer.from(hash, "hex");
+      const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
+      console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
+      console.log("Stored hash:", hash);
+      console.log("Supplied hash:", suppliedBuf.toString("hex"));
+      return timingSafeEqual(hashedBuf, suppliedBuf);
+    } catch (error) {
+      console.error('Password comparison error:', error);
       return false;
     }
-    const hashedBuf = Buffer.from(hash, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
-    console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
-    console.log("Stored hash:", hash);
-    console.log("Supplied hash:", suppliedBuf.toString("hex"));
-    return timingSafeEqual(hashedBuf, suppliedBuf);
-  } catch (error) {
-    console.error('Password comparison error:', error);
-    return false;
   }
-}
 
-// Update the generateHashForTest and IIFE to be more detailed
-async function generateHashForTest() {
-  const password = "admin123";
-  const hashedPassword = await hashPassword(password);
-  console.log("Test hash generated for 'admin123':", hashedPassword);
-  return hashedPassword;
-}
+  // Update the generateHashForTest and IIFE to be more detailed
+  async function generateHashForTest() {
+    const password = "admin123";
+    const hashedPassword = await hashPassword(password);
+    console.log("Test hash generated for 'admin123':", hashedPassword);
+    return hashedPassword;
+  }
 
-// Update createAdminUser function to check for existing superadmins
-async function createAdminUser(username: string, password: string, email: string) {
-  try {
-    // First check if any superadmin exists in the system
-    const users = await storage.getAllUsers();
-    const hasSuperAdmin = users.some(user => user.role === 'superadmin');
+  // Update createAdminUser function to check for existing superadmins
+  async function createAdminUser(username: string, password: string, email: string) {
+    try {
+      // First check if any superadmin exists in the system
+      const users = await storage.getAllUsers();
+      const hasSuperAdmin = users.some(user => user.role === 'superadmin');
 
-    if (hasSuperAdmin) {
-      console.log("A superadmin already exists in the system, skipping admin creation");
+      if (hasSuperAdmin) {
+        console.log("A superadmin already exists in the system, skipping admin creation");
+        return null;
+      }
+
+      // If no superadmin exists, check if this specific user exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        console.log("Admin user already exists, skipping creation");
+        return existingUser;
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const newUser = await storage.createUser({ 
+        username, 
+        password: hashedPassword, 
+        email, 
+        role: 'superadmin', 
+        approved: true 
+      });
+      console.log("New admin user created:", newUser);
+      return newUser;
+    } catch (error) {
+      console.error("Error in createAdminUser:", error);
       return null;
     }
-
-    // If no superadmin exists, check if this specific user exists
-    const existingUser = await storage.getUserByUsername(username);
-    if (existingUser) {
-      console.log("Admin user already exists, skipping creation");
-      return existingUser;
-    }
-
-    const hashedPassword = await hashPassword(password);
-    const newUser = await storage.createUser({ 
-      username, 
-      password: hashedPassword, 
-      email, 
-      role: 'superadmin', 
-      approved: true 
-    });
-    console.log("New admin user created:", newUser);
-    return newUser;
-  } catch (error) {
-    console.error("Error in createAdminUser:", error);
-    return null;
   }
-}
 
-function compileTemplate(template: string, data: any): string {
-  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
-  return template; // Replace with actual compiled template
+  function compileTemplate(template: string, data: any): string {
+    // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
+    return template; // Replace with actual compiled template
+  }
 }
