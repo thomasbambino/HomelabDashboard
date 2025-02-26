@@ -824,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Creating message in database`);
-            const message = await storage.createChatMessage({
+      const message = await storage.createChatMessage({
         roomId,
         senderId: user.id,
         type: 'text',
@@ -1232,23 +1232,26 @@ except Exception as e:
         return res.status(400).json({ message: "Email address is required" });
       }
 
-      const template = await storage.getEmailTemplate(parseInt(req.params.id));
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getEmailTemplate(templateId);
       if (!template) {
         return res.status(404).json({ message: "Template not found" });
       }
 
-      const testData = {
+      console.log('Testing email template with logo:', logoUrl);
+
+      const templateData = {
         serviceName: "Test Service",
         status: "offline",
         timestamp: new Date().toISOString(),
         duration: "5 minutes",
-        logoUrl: logoUrl || '/logo.png'  // Accept custom logo URL from request
+        logoUrl: logoUrl // Use the provided logo URL
       };
 
       const success = await sendEmail({
         to: email,
-        templateId: template.id,
-        templateData: testData
+        templateId,
+        templateData,
       });
 
       if (success) {
@@ -1258,7 +1261,7 @@ except Exception as e:
       }
     } catch (error) {
       console.error('Error sending test email:', error);
-      res.status(500).json({ message: "Failed to send test email" });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 

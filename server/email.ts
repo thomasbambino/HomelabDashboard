@@ -35,6 +35,12 @@ function getAbsoluteUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
+  // Log the URL conversion for debugging
+  console.log('Converting relative URL to absolute:', {
+    path,
+    baseUrl,
+    result: `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
+  });
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
@@ -59,6 +65,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
         logoUrl: getAbsoluteUrl(params.templateData?.logoUrl || '/logo.png')
       };
 
+      console.log('Sending email with template data:', templateData);
       html = compileTemplate(template.template, templateData);
     }
 
