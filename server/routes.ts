@@ -12,10 +12,9 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
-import {User} from '@shared/schema';
-import { ChatServer } from './chat';
+import { User } from '@shared/schema';
 import cookieParser from 'cookie-parser';
-import { sendEmail } from './email'; // Import sendEmail function
+import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
 
@@ -240,22 +239,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
 
   setupAuth(app);
-
-  // Initialize chat server
-  const chatServer = new ChatServer();
-  app.set('chatServer', chatServer);
-
-  // Add Stream Chat token endpoint
-  app.get("/api/chat/token", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { token } = await chatServer.connectUser(req.user);
-      res.json({ token });
-    } catch (error) {
-      console.error('Error generating chat token:', error);
-      res.status(500).json({ message: "Failed to generate chat token" });
-    }
-  });
 
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -681,184 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add private chat room routes
-  app.post("/api/chat/private-rooms", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { userId } = req.body;
-      const currentUser = req.user as User;
 
-      if (!userId || typeof userId !== "number") {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-
-      // Check if users already have a private chat
-      const existingRoom = await storage.findPrivateRoom(currentUser.id, userId);
-      if (existingRoom) {
-        return res.json(existingRoom);
-      }
-
-      // Get the other user's info for the room name
-      const otherUser = await storage.getUser(userId);
-      if (!otherUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Create new private room
-      const newRoom = await storage.createChatRoom({
-        name: `${currentUser.username} & ${otherUser.username}`,
-        type: "private",
-        createdBy: currentUser.id,
-      });
-
-      // Add both users as members
-      await storage.addChatMember({
-        roomId: newRoom.id,
-        userId: currentUser.id,
-        isAdmin: true,
-      });
-
-      await storage.addChatMember({
-        roomId: newRoom.id,
-        userId: userId,
-        isAdmin: true,
-      });
-
-      res.status(201).json(newRoom);
-    } catch (error) {
-      console.error("Error creating private chat room:", error);
-      res.status(500).json({ message: "Failed to create private chat room" });
-    }
-  });
-
-  app.get("/api/chat/private-rooms", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const user = req.user as User;
-      const rooms = await storage.listPrivateRooms(user.id);
-      res.json(rooms);
-    } catch (error) {
-      console.error("Error fetching private rooms:", error);
-      res.status(500).json({ message: "Failed to fetch private rooms" });
-    }
-  });
-
-  // Modify chat room creation to use Stream Chat
-  app.post("/api/chat/rooms", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { name } = req.body;
-      if (!name || typeof name !== "string" || !name.trim()) {
-        return res.status(400).json({ message: "Invalid chat room name" });
-      }
-
-      const user = req.user as User;
-      const channelId = `room-${Date.now()}`;
-
-      // Create channel in Stream Chat
-      await chatServer.createChannel('team', channelId, name.trim(), [user.id.toString()]);
-
-      // Store channel info in local database
-      const newRoom = await storage.createChatRoom({
-        name: name.trim(),
-        type: "group",
-        createdBy: user.id,
-        streamChannelId: channelId,
-      });
-
-      res.status(201).json(newRoom);
-    } catch (error) {
-      console.error("Error creating chat room:", error);
-      res.status(500).json({ message: "Failed to create chat room" });
-    }
-  });
-
-  app.get("/api/chat/rooms", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const user = req.user as User;
-      const rooms = await storage.listChatRooms(user.id);
-      res.json(rooms);
-    } catch (error) {
-      console.error("Error fetching chat rooms:", error);
-      res.status(500).json({ message: "Failed to fetch chat rooms" });
-    }
-  });
-
-  // Add chat message routes
-  app.post("/api/chat/messages/:roomId", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { content } = req.body;
-      const roomId = parseInt(req.params.roomId);
-      const user = req.user as User;
-
-      console.log(`Message send attempt - Room: ${roomId}, User: ${user.id}, Content length: ${content?.length}`);
-
-      if (!content || typeof content !== "string" || !content.trim()) {
-        console.log("Invalid message content");
-        return res.status(400).json({ message: "Invalid message content" });
-      }
-
-      // Get the room to check if it exists and its type
-      const room = await storage.getChatRoom(roomId);
-      if (!room) {
-        console.log(`Room ${roomId} not found`);
-        return res.status(404).json({ message: "Chat room not found" });
-      }
-
-      console.log(`Processing message for ${room.type} room ${roomId}`);
-
-      // For public rooms, ensure user is a member
-      if (room.type === 'public') {
-        console.log(`Ensuring user ${user.id} is member of public room`);
-        await storage.addUserToPublicRoom(user.id);
-      } else {
-        // For private/group rooms, verify membership
-        console.log(`Checking membership for user ${user.id} in room ${roomId}`);
-        const isMember = await storage.getChatMember(roomId, user.id);
-        if (!isMember) {
-          console.log(`User ${user.id} is not a member of room ${roomId}`);
-          return res.status(403).json({ message: "Not a member of this chat room" });
-        }
-      }
-
-      console.log(`Creating message in database`);
-      const message = await storage.createChatMessage({
-        roomId,
-        senderId: user.id,
-        type: 'text',        content: content.trim(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isEdited: false,
-      });
-
-      // Get the complete message with sender info
-      const messageWithSender = {
-        ...message,
-        sender: awaitstorage.getUser(user.id),
-      };
-
-      // Broadcast the message through WebSocket
-      if (chatServer) {
-        console.log(`Broadcasting message to room ${roomId}`);
-        chatServer.broadcastToRoom(roomId, {
-          type: 'message',
-          roomId,
-          data: messageWithSender,
-        });
-      } else {
-        console.warn('Chat server not found for broadcasting');
-      }
-
-      res.status(201).json(messageWithSender);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      res.status(500).json({ message: "Failed to send message" });
-    }
-  });
-
-  // Add endpoint to get users for private chats
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -1294,7 +1100,5 @@ except Exception as e:
   });
 
   const httpServer = createServer(app);
-  console.log('Chat server initialized successfully');
-
   return httpServer;
 }
