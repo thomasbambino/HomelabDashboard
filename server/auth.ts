@@ -200,7 +200,7 @@ export function setupAuth(app: Express) {
             timestamp: new Date()
           });
 
-          return res.status(401).json({ message: "Login failed" }); // Simplified error message
+          return res.sendStatus(401);
         }
 
         req.logIn(user, async (err) => {
