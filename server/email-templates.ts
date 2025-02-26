@@ -115,20 +115,6 @@ const templates = [
     defaultTemplate: true
   },
   {
-    name: "Account Approval",
-    subject: "Account Status Update",
-    template: baseTemplate.replace("{{content}}", `
-      <h2>Account Status Update</h2>
-      <p>Your account has been {{status}}.</p>
-      <p>You can now log in to the dashboard and access all features.</p>
-      {{#if message}}
-      <p><strong>Message from administrator:</strong></p>
-      <p>{{message}}</p>
-      {{/if}}
-    `),
-    defaultTemplate: true
-  },
-  {
     name: "Game Server Request",
     subject: "New Game Server Request",
     template: baseTemplate.replace("{{content}}", `
@@ -149,11 +135,11 @@ const templates = [
 export async function setupDefaultTemplates() {
   try {
     console.log('Setting up default email templates...');
-    
+
     for (const template of templates) {
       // Check if template already exists
       const existing = await storage.getEmailTemplateByName(template.name);
-      
+
       if (!existing) {
         console.log(`Creating template: ${template.name}`);
         await storage.createEmailTemplate(template);
@@ -161,7 +147,7 @@ export async function setupDefaultTemplates() {
         console.log(`Template already exists: ${template.name}`);
       }
     }
-    
+
     console.log('Default email templates setup complete');
   } catch (error) {
     console.error('Error setting up default templates:', error);

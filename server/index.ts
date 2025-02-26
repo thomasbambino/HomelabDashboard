@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startServiceChecker } from "./service-checker";
 import { ChatServer } from "./chat";
+import { setupDefaultTemplates } from "./email-templates";
 
 const app = express();
 app.use(express.json());
@@ -39,6 +40,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Set up default email templates
+  await setupDefaultTemplates();
+
   const server = await registerRoutes(app);
 
   // Initialize the chat server
