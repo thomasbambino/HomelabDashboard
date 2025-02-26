@@ -447,17 +447,23 @@ export function setupAuth(app: Express) {
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 32)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  const hashedPassword = `${buf.toString("hex")}.${salt}`;
+  console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
+  return hashedPassword;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
     const [hash, salt] = stored.split(".");
     if (!hash || !salt) {
+      console.error('Invalid stored password format:', stored);
       return false;
     }
     const hashedBuf = Buffer.from(hash, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
+    console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
+    console.log("Stored hash:", hash);
+    console.log("Supplied hash:", suppliedBuf.toString("hex"));
     return timingSafeEqual(hashedBuf, suppliedBuf);
   } catch (error) {
     console.error('Password comparison error:', error);
@@ -470,3 +476,17 @@ function compileTemplate(template: string, data: any): string {
   // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
   return template; // Replace with actual compiled template
 }
+
+// Add this function to create the admin user.  This assumes storage.createUser
+// accepts a similar object as in the /api/register route.  Adjust as needed
+// based on the actual structure of your storage.createUser function.
+async function createAdminUser(username: string, password: string, email: string) {
+  const hashedPassword = await hashPassword(password);
+  const newUser = await storage.createUser({ username, password: hashedPassword, email, role: 'admin', approved: true });
+  console.log("Admin user created:", newUser);
+  return newUser;
+}
+
+// Example usage:  Call this function at the app startup or a suitable place.
+// Replace "adminuser" and "password123" with desired credentials.
+// createAdminUser("adminuser", "password123", "admin@example.com").catch(console.error)
