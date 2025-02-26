@@ -8,12 +8,13 @@ import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Loader2, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Loader2, RefreshCw, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
+import { EmailTemplateDialog } from "../email-template-dialog";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -157,11 +158,19 @@ export function SettingsDialog() {
           <DialogTitle>{isSuperAdmin ? "Super Admin Settings" : "Admin Settings"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="visibility">Visibility</TabsTrigger>
-            {isSuperAdmin && <TabsTrigger value="amp">AMP</TabsTrigger>}
+            {isSuperAdmin && (
+              <>
+                <TabsTrigger value="amp">AMP</TabsTrigger>
+                <TabsTrigger value="email">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           <TabsContent value="general">
