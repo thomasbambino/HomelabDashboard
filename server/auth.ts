@@ -1,13 +1,14 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { User as SelectUser } from "@shared/schema";
-import { sendEmail } from "./email";
-import { getIpInfo } from './utils/ip';
+import { sendEmail } from "./email.js";
+import { getIpInfo } from './utils/ip.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -139,6 +140,48 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Add Google OAuth Strategy
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    callbackURL: "/api/auth/google/callback",
+    scope: ['profile', 'email']
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      const email = profile.emails?.[0]?.value;
+      if (!email) {
+        return done(new Error('No email found in Google profile'));
+      }
+
+      // Check if user exists with this email
+      let user = await storage.getUserByEmail(email);
+
+      if (user) {
+        // Update user's Google ID if not set
+        if (!user.google_id) {
+          user = await storage.updateUser({
+            id: user.id,
+            google_id: profile.id
+          });
+        }
+      } else {
+        // Create new user with Google profile
+        user = await storage.createUser({
+          username: email.split('@')[0], // Use email prefix as username
+          email: email,
+          password: await hashPassword(randomBytes(32).toString('hex')), // Random password
+          google_id: profile.id,
+          approved: true // Auto-approve Google users
+        });
+      }
+
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  }));
+
+  // Keep existing LocalStrategy...
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -592,6 +635,35 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+
+  // Add Google auth routes
+  app.get('/api/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
+  app.get('/api/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/auth' }),
+    async (req, res) => {
+      // Record successful login
+      try {
+        const clientIp = await getClientIp(req);
+        const ipInfo = await getIpInfo(clientIp);
+        await storage.addLoginAttempt({
+          identifier: req.user?.email || 'google-auth',
+          ip: ipInfo.ip || clientIp,
+          type: 'success',
+          timestamp: new Date(),
+          isp: ipInfo.isp || null,
+          city: ipInfo.city || null,
+          region: ipInfo.region || null,
+          country: ipInfo.country || null
+        });
+      } catch (error) {
+        console.error('Failed to record Google login attempt:', error);
+      }
+      res.redirect('/');
+    }
+  );
 }
 
 async function hashPassword(password: string) {
