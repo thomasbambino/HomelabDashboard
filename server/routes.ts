@@ -827,8 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.createChatMessage({
         roomId,
         senderId: user.id,
-        type: 'text',
-        content: content.trim(),
+        type: 'text',        content: content.trim(),
         createdAt: new Date(),
         updatedAt: new Date(),
         isEdited: false,
@@ -1238,14 +1237,22 @@ except Exception as e:
         return res.status(404).json({ message: "Template not found" });
       }
 
-      console.log('Testing email template with logo:', logoUrl);
+      // Ensure we have an absolute URL for the logo
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const absoluteLogoUrl = logoUrl?.startsWith('http') ? logoUrl : `${baseUrl}${logoUrl}`;
+
+      console.log('Testing email template with logo:', {
+        providedUrl: logoUrl,
+        absoluteUrl: absoluteLogoUrl,
+        baseUrl
+      });
 
       const templateData = {
         serviceName: "Test Service",
-        status: "offline",
-        timestamp: new Date().toISOString(),
+        status: "UP",
+        timestamp: new Date().toLocaleString(),
         duration: "5 minutes",
-        logoUrl: logoUrl // Use the provided logo URL
+        logoUrl: absoluteLogoUrl
       };
 
       const success = await sendEmail({
