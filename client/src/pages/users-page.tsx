@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
+import { format } from 'date-fns';
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -213,9 +214,16 @@ export default function UsersPage() {
                       <div className="flex items-center gap-4">
                         <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                         {isSuperAdmin && u.last_ip && (
-                          <p className="text-sm text-muted-foreground">
-                            Last IP: {u.last_ip}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-blue-500">
+                              IP: {u.last_ip}
+                            </p>
+                            {u.last_login && (
+                              <p className="text-sm text-blue-500">
+                                Last Login: {format(new Date(u.last_login), "PPpp")}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="flex items-center gap-2">

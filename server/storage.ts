@@ -155,14 +155,15 @@ export class DatabaseStorage implements IStorage {
     // Get all users
     const allUsers = await db.select().from(users);
 
-    // Map the latest IP to each user
+    // Map the latest IP and timestamp to each user
     return allUsers.map(user => {
       const latestAttempt = latestAttempts.find(
         attempt => attempt.username === user.username
       );
       return {
         ...user,
-        last_ip: latestAttempt?.ip || user.last_ip
+        last_ip: latestAttempt?.ip || user.last_ip,
+        last_login: latestAttempt?.timestamp
       };
     });
   }
