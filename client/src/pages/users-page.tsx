@@ -73,6 +73,27 @@ export default function UsersPage() {
     },
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: { defaultRole: string }) => {
+      const res = await apiRequest("PATCH", "/api/settings", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings updated",
+        description: "Default role settings have been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEmailChange = (userId: number, email: string) => {
     setEditingEmails(prev => ({ ...prev, [userId]: email }));
   };
@@ -92,6 +113,20 @@ export default function UsersPage() {
   if (user?.role !== 'admin' && user?.role !== 'superadmin') {
     return <Redirect to="/" />;
   }
+
+  // Add this helper function
+  const canModifyUser = (targetUser: User) => {
+    if (!user) return false;
+    if (user.role === 'superadmin') {
+      // Superadmins can't modify other superadmins unless it's themselves
+      if (targetUser.role === 'superadmin' && targetUser.id !== user.id) {
+        return false;
+      }
+      return true;
+    }
+    if (user.role === 'admin' && targetUser.role !== 'superadmin') return true;
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -145,37 +180,40 @@ export default function UsersPage() {
                     <p className="font-medium">{u.username}</p>
                     <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="email"
-                        placeholder="Email address"
-                        value={editingEmails[u.id] ?? u.email ?? ''}
-                        onChange={(e) => handleEmailChange(u.id, e.target.value)}
-                        className="w-64"
-                      />
-                      {editingEmails[u.id] !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          placeholder="Email address"
+                          value={editingEmails[u.id] ?? u.email ?? ''}
+                          onChange={(e) => handleEmailChange(u.id, e.target.value)}
+                          className="w-64"
+                          disabled={!canModifyUser(u)}
+                        />
+                        {editingEmails[u.id] !== undefined && canModifyUser(u) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => saveEmail(u.id)}
+                            disabled={updateUserMutation.isPending}
+                          >
+                            {updateUserMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      {canModifyUser(u) && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => saveEmail(u.id)}
-                          disabled={updateUserMutation.isPending}
+                          onClick={() => resetPasswordMutation.mutate(u.id)}
                         >
-                          {updateUserMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Save className="h-4 w-4" />
-                          )}
+                          <KeyRound className="h-4 w-4 mr-2" />
+                          Reset Password
                         </Button>
                       )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => resetPasswordMutation.mutate(u.id)}
-                      >
-                        <KeyRound className="h-4 w-4 mr-2" />
-                        Reset Password
-                      </Button>
                     </div>
                     {tempPasswords[u.id] && (
                       <p className="text-sm text-muted-foreground">
@@ -187,27 +225,49 @@ export default function UsersPage() {
                     {u.role === 'superadmin' ? (
                       <p className="text-sm font-medium text-primary">Superadmin</p>
                     ) : (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={u.approved}
-                            onCheckedChange={(checked) =>
-                              updateUserMutation.mutate({ id: u.id, approved: checked })
+                      canModifyUser(u) && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={u.approved}
+                              onCheckedChange={(checked) =>
+                                updateUserMutation.mutate({ id: u.id, approved: checked })
+                              }
+                              disabled={!canModifyUser(u)}
+                            />
+                            <Label>Account Enabled</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={u.can_view_nsfw}
+                              onCheckedChange={(checked) =>
+                                updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
+                              }
+                              disabled={!canModifyUser(u)}
+                            />
+                            <Label>NSFW Access</Label>
+                          </div>
+                          <Select
+                            value={u.role}
+                            onValueChange={(value) =>
+                              updateUserMutation.mutate({ id: u.id, role: value })
                             }
-                          />
-                          <Label>Account Enabled</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={u.can_view_nsfw}
-                            onCheckedChange={(checked) =>
-                              updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
-                            }
-                          />
-                          <Label>NSFW Access</Label>
-                        </div>
-                        {/* Role selection removed */}
-                      </>
+                            disabled={!canModifyUser(u)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {user?.role === 'superadmin' && (
+                                <SelectItem value="superadmin">Superadmin</SelectItem>
+                              )}
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </>
+                      )
                     )}
                   </div>
                 </div>
