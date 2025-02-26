@@ -7,14 +7,13 @@ import { RequestServerDialog } from "@/components/request-server-dialog";
 import { SettingsDialog } from "@/components/ui/settings-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ServerCog, Users, LogOut, ChevronDown, MessageSquare } from "lucide-react";
+import { ServerCog, Users, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UptimeLogDialog } from "@/components/uptime-log-dialog";
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChatButton } from "@/components/chat/chat-button";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -65,7 +64,6 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <ChatButton />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
             {(isAdmin || isSuperAdmin) && <UptimeLogDialog />}
