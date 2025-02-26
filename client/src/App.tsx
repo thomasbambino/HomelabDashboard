@@ -1,4 +1,3 @@
-
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -14,9 +13,6 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ChatButton } from "@/components/chat/chat-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
-import { ChartContext } from "@/components/ui/chart";
-import { CarouselContext } from "@/components/ui/carousel";
-import { SidebarContext } from "@/components/ui/sidebar";
 
 function Router() {
   return (
@@ -32,17 +28,21 @@ function Router() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <ChatProvider>
-            <Router />
-            <Toaster />
-            <ChatButton />
-            <FaviconUpdater />
-          </ChatProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" attribute="class" enableSystem>
+      <div className="min-h-screen bg-background text-foreground">
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ChatProvider>
+              <Router />
+              <div className="fixed bottom-4 right-4 z-50">
+                <ChatButton />
+              </div>
+              <Toaster />
+              <FaviconUpdater />
+            </ChatProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </div>
+    </ThemeProvider>
   );
 }
