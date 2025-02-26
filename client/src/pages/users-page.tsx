@@ -114,7 +114,6 @@ export default function UsersPage() {
     return <Redirect to="/" />;
   }
 
-
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -174,7 +173,6 @@ export default function UsersPage() {
                           value={editingEmails[u.id] ?? u.email ?? ''}
                           onChange={(e) => handleEmailChange(u.id, e.target.value)}
                           className="w-64"
-                          
                         />
                         {editingEmails[u.id] !== undefined && (
                           <Button
@@ -210,44 +208,27 @@ export default function UsersPage() {
                     {u.role === 'superadmin' ? (
                       <p className="text-sm font-medium text-primary">Superadmin</p>
                     ) : (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={u.approved}
-                              onCheckedChange={(checked) =>
-                                updateUserMutation.mutate({ id: u.id, approved: checked })
-                              }
-                              
-                            />
-                            <Label>Account Enabled</Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={u.can_view_nsfw}
-                              onCheckedChange={(checked) =>
-                                updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
-                              }
-                              
-                            />
-                            <Label>NSFW Access</Label>
-                          </div>
-                          <Select
-                            value={u.role}
-                            onValueChange={(value) =>
-                              updateUserMutation.mutate({ id: u.id, role: value })
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={u.approved}
+                            onCheckedChange={(checked) =>
+                              updateUserMutation.mutate({ id: u.id, approved: checked })
                             }
-                            
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="user">User</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </>
+                          />
+                          <Label>Account Enabled</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={u.can_view_nsfw}
+                            onCheckedChange={(checked) =>
+                              updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
+                            }
+                          />
+                          <Label>NSFW Access</Label>
+                        </div>
+                        {/* Role selection removed */}
+                      </>
                     )}
                   </div>
                 </div>
