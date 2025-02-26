@@ -71,7 +71,7 @@ export default function AuthPage() {
           </Form>
           <div className="mt-4 space-y-2 text-center">
             <a href="#" className="text-sm text-muted-foreground hover:text-primary block">
-              Forgot Username / Password?
+              Forgot password?
             </a>
             <a href="#" className="text-sm text-muted-foreground hover:text-primary block">
               Create your Account →
