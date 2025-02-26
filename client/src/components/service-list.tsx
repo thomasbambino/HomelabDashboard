@@ -13,16 +13,35 @@ interface ServiceListProps {
 export function ServiceList({ services }: ServiceListProps) {
   const { user } = useAuth();
   const [orderedServices, setOrderedServices] = useState(() => {
-    // If user has a custom order, use it, otherwise sort alphabetically
-    if (user?.service_order?.length) {
-      const orderMap = new Map(user.service_order.map((id, index) => [id, index]));
-      return [...services].sort((a, b) => {
+    // Create a sorted array considering NSFW content and user's custom order
+    const sortedServices = [...services].sort((a, b) => {
+      // If user has admin/superadmin role, respect their custom order or fall back to alphabetical
+      if (user?.role === 'admin' || user?.role === 'superadmin') {
+        if (user?.service_order?.length) {
+          const orderMap = new Map(user.service_order.map((id, index) => [id, index]));
+          const orderA = orderMap.get(a.id) ?? Infinity;
+          const orderB = orderMap.get(b.id) ?? Infinity;
+          return orderA - orderB;
+        }
+        return a.name.localeCompare(b.name);
+      }
+
+      // For regular users, push NSFW content to the end
+      if (a.isNSFW && !b.isNSFW) return 1;
+      if (!a.isNSFW && b.isNSFW) return -1;
+
+      // If both are NSFW or both are not NSFW, use user's custom order or alphabetical
+      if (user?.service_order?.length) {
+        const orderMap = new Map(user.service_order.map((id, index) => [id, index]));
         const orderA = orderMap.get(a.id) ?? Infinity;
         const orderB = orderMap.get(b.id) ?? Infinity;
         return orderA - orderB;
-      });
-    }
-    return [...services].sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+
+    return sortedServices;
   });
 
   const updateOrderMutation = useMutation({
