@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { EmailTemplateDialog } from "../email-template-dialog";
+import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export function SettingsDialog() {
       id: settings?.id ?? 1,
       favicon_url: settings?.favicon_url ?? "",
       favicon_label: settings?.favicon_label ?? "",
+      tracking_code: settings?.tracking_code ?? "",  // Added tracking code default
       default_role: settings?.default_role ?? "pending",
       site_title: settings?.site_title ?? "",
       font_family: settings?.font_family ?? "",
@@ -324,6 +326,27 @@ export function SettingsDialog() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="tracking_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Analytics Tracking Code</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Insert your tracking code here..."
+                          {...field}
+                          value={field.value || ""}
+                          className="font-mono text-sm"
+                          rows={4}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Paste your analytics tracking code here. It will be inserted in the &lt;head&gt; section of your HTML.
+                      </p>
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="online_color"

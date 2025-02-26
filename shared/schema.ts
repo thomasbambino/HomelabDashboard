@@ -41,7 +41,8 @@ export const settings = pgTable("settings", {
   logo_url: text("logo_url"),
   logo_url_large: text("logo_url_large"),
   favicon_url: text("favicon_url"),
-  favicon_label: text("favicon_label"),  // Added favicon_label field
+  favicon_label: text("favicon_label"),
+  tracking_code: text("tracking_code"),  // Added tracking code field
   login_description: text("login_description").default("Monitor your services and game servers in real-time with our comprehensive dashboard."),
   online_color: text("online_color").default("#22c55e"),
   offline_color: text("offline_color").default("#ef4444"),
