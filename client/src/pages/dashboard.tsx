@@ -46,15 +46,10 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
-  // For admins, only check admin_show_uptime_log
-  // For regular users, only check show_uptime_log
-  // Make sure to handle each case independently
-  const showUptimeLog = (() => {
-    if (isSuperAdmin || isAdmin) {
-      return Boolean(settings?.admin_show_uptime_log);
-    }
-    return Boolean(settings?.show_uptime_log);
-  })();
+  // Simplified logic: if admin/superadmin, only check admin setting
+  const showUptimeLog = (isAdmin || isSuperAdmin) 
+    ? Boolean(settings?.admin_show_uptime_log)
+    : Boolean(settings?.show_uptime_log);
 
   return (
     <div className="min-h-screen bg-background p-8">
