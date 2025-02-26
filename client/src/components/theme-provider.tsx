@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 
 type ThemeProviderProps = {
@@ -16,10 +16,10 @@ export function ThemeProvider({
   defaultTheme = "system",
   enableSystem = true,
 }: ThemeProviderProps) {
-  const [mounted, setMounted] = React.useState(false)
+  const [mounted, setMounted] = useState(false)
 
   // Only render the provider's children after the component is mounted
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true)
   }, [])
 
