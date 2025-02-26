@@ -145,6 +145,7 @@ export interface IStorage {
   // Add new method for getting game server by instanceId
   getGameServerByInstanceId(instanceId: string): Promise<GameServer | undefined>;
   getGameServer(id: number): Promise<GameServer | undefined>;
+  deleteUser(id: number): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -752,6 +753,14 @@ export class DatabaseStorage implements IStorage {
       .from(gameServers)
       .where(eq(gameServers.id, id));
     return server;
+  }
+
+  async deleteUser(id: number): Promise<User | undefined> {
+    const [deletedUser] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning();
+    return deletedUser;
   }
 }
 
