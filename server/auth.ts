@@ -162,12 +162,7 @@ export function setupAuth(app: Express) {
       failureRedirect: '/auth',
       successRedirect: '/',
       failureFlash: true
-    }),
-    async (req, res) => {
-      console.log('Google auth callback reached, user:', req.user);
-      // Ensure we redirect to the root
-      res.redirect('/');
-    }
+    })
   );
 
   // Update the Google Strategy configuration
