@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
+import { getIpInfo } from './utils/ip';
 
 const scryptAsync = promisify(scrypt);
 
@@ -92,6 +93,37 @@ function canModifyUser(requestingUser: any, targetUserId: number) {
 
   // Regular users can only modify themselves
   return requestingUser.id === targetUserId;
+}
+
+async function getClientIp(req: Request) {
+  // Check for forwarded IP first (for proxied requests)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // Get the first IP if multiple are present
+    const ip = Array.isArray(forwardedFor) 
+      ? forwardedFor[0].split(',')[0].trim()
+      : forwardedFor.split(',')[0].trim();
+    console.log('Found forwarded IP:', ip, 'from x-forwarded-for:', forwardedFor);
+    return ip;
+  }
+
+  // Check other common proxy headers
+  const proxyHeaders = [
+    'x-real-ip',
+    'cf-connecting-ip', // Cloudflare
+    'true-client-ip'
+  ];
+
+  for (const header of proxyHeaders) {
+    const proxyIp = req.headers[header];
+    if (proxyIp) {
+      console.log(`Found IP in ${header}:`, proxyIp);
+      return Array.isArray(proxyIp) ? proxyIp[0] : proxyIp;
+    }
+  }
+
+  console.log('Using direct IP:', req.ip);
+  return req.ip;
 }
 
 export function setupAuth(app: Express) {
@@ -183,21 +215,26 @@ export function setupAuth(app: Express) {
   app.post("/api/login", checkRateLimit, async (req, res, next) => {
     try {
       const identifier = req.body.username;
-      const ip = req.ip;
+      const clientIp = await getClientIp(req);
       const type = 'login';
 
-      console.log("Login attempt - IP:", ip, "Username:", identifier);
+      console.log("Login attempt - IP:", clientIp, "Username:", identifier);
 
       passport.authenticate("local", async (err: any, user: any, info: any) => {
         if (err) return next(err);
 
         if (!user) {
-          // Log failed attempt
+          // Get IP info and log failed attempt with location data
+          const ipInfo = await getIpInfo(clientIp);
           await storage.addLoginAttempt({
             identifier,
-            ip,
+            ip: ipInfo.ip,
             type,
-            timestamp: new Date()
+            timestamp: new Date(),
+            isp: ipInfo.isp,
+            city: ipInfo.city,
+            region: ipInfo.region,
+            country: ipInfo.country
           });
 
           return res.sendStatus(401);
@@ -206,15 +243,16 @@ export function setupAuth(app: Express) {
         req.logIn(user, async (err) => {
           if (err) return next(err);
 
-          console.log(`Updating IP for user ${user.username} to ${ip}`);
+          console.log(`Updating IP for user ${user.username} to ${clientIp}`);
 
           // Update user's last IP and clear attempts on successful login
+          const ipInfo = await getIpInfo(clientIp);
           await storage.updateUser({
             id: user.id,
-            last_ip: ip
+            last_ip: ipInfo.ip
           });
 
-          await storage.clearLoginAttempts(identifier, ip, type);
+          await storage.clearLoginAttempts(identifier, clientIp, type);
 
           console.log(`Successfully updated IP for user ${user.username}`);
           console.log('User temp_password status:', user.temp_password);

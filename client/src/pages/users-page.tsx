@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -162,12 +163,15 @@ export default function UsersPage() {
             <Users className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold">User Management</h1>
           </div>
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {isSuperAdmin && <LoginAttemptsDialog />}
+            <Link href="/">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
         </header>
 
         <Card>

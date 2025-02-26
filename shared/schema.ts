@@ -171,13 +171,17 @@ export const chatAttachments = pgTable("chat_attachments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Add new table for tracking login attempts
-export const loginAttempts = pgTable("login_attempts", {
+// Update the loginAttempts table definition
+export const loginAttempts = pgTable("loginAttempts", {
   id: serial("id").primaryKey(),
   identifier: text("identifier").notNull(), // username or email used
   ip: text("ip").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   type: text("type").notNull(), // 'login' or 'reset'
+  isp: text("isp"),
+  city: text("city"),
+  region: text("region"),
+  country: text("country"),
 });
 
 export const insertUserSchema = createInsertSchema(users);
@@ -193,7 +197,7 @@ export const insertChatMemberSchema = createInsertSchema(chatMembers);
 export const insertChatMessageSchema = createInsertSchema(chatMessages);
 export const insertChatAttachmentSchema = createInsertSchema(chatAttachments);
 
-// Add new types for the login attempts
+// Update the insert schema for login attempts
 export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
 
 export const updateServiceSchema = insertServiceSchema.extend({
@@ -270,5 +274,6 @@ export type ChatMember = typeof chatMembers.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type ChatAttachment = typeof chatAttachments.$inferSelect;
 
+export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
