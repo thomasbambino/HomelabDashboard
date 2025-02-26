@@ -56,135 +56,134 @@ export default function AuthPage() {
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
-          {/* Fixed height section */}
-          <div className="h-[110px] border-b">
-            <CardHeader className="pb-2">
-              <CardTitle>Welcome to {settings?.site_title || "Homelab Dashboard"}</CardTitle>
-            </CardHeader>
-            <div className="px-6">
-              <Tabs defaultValue="login">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
-                  <TabsTrigger value="reset">Reset</TabsTrigger>
-                </TabsList>
-                <div className="min-h-[250px]">
-                  <TabsContent value="login" className="transition-transform duration-200 ease-in-out">
-                    <Form {...loginForm}>
-                      <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={loginForm.control}
-                          name="username"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Username or Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={loginForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                          {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Login
-                        </Button>
-                      </form>
-                    </Form>
-                  </TabsContent>
+          <CardHeader>
+            <CardTitle>Welcome to {settings?.site_title || "Homelab Dashboard"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsTrigger value="reset">Reset</TabsTrigger>
+              </TabsList>
 
-                  <TabsContent value="register" className="transition-transform duration-200 ease-in-out">
-                    <Form {...registerForm}>
-                      <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="username"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Username</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input type="email" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" {...field} />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-                          {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Register
-                        </Button>
-                      </form>
-                    </Form>
-                  </TabsContent>
+              <TabsContent value="login">
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}>
+                    <div className="space-y-4">
+                      <FormField
+                        control={loginForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username or Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={loginForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                        {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Login
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
 
-                  <TabsContent value="reset" className="transition-transform duration-200 ease-in-out">
-                    <Form {...resetForm}>
-                      <form onSubmit={resetForm.handleSubmit((data) => {
-                        fetch('/api/request-reset', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(data)
-                        });
-                      })} className="space-y-4">
-                        <FormField
-                          control={resetForm.control}
-                          name="identifier"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Username or Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Enter your username or email" />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full">
-                          Request Password Reset
-                        </Button>
-                      </form>
-                    </Form>
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </div>
-          </div>
+              <TabsContent value="register">
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))}>
+                    <div className="space-y-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                        {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Register
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
 
-          {/* Dynamic content section */}
-          
+              <TabsContent value="reset">
+                <Form {...resetForm}>
+                  <form onSubmit={resetForm.handleSubmit((data) => {
+                    fetch('/api/request-reset', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    });
+                  })}>
+                    <div className="space-y-4">
+                      <FormField
+                        control={resetForm.control}
+                        name="identifier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username or Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter your username or email" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Request Password Reset
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
       </div>
 
