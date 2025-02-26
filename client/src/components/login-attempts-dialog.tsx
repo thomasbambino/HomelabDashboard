@@ -5,23 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoginAttempt } from "@shared/schema";
 import { format } from "date-fns";
-import { Shield, CheckCircle2, XCircle, Network } from "lucide-react";
-import { 
-  SiAmazon, SiGoogle, SiBox, SiTmobile,
-  SiSpectrum, SiDigitalocean, 
-  SiCloudflare, SiAkamai
-} from "react-icons/si";
+import { Shield, CheckCircle2, XCircle } from "lucide-react";
+import { AttIcon, GoogleIcon, ComcastIcon, NetworkIcon } from "./isp-icons";
 
-// Map common ISP names to their icons
+// Map common ISP names to their icon components
 const ispIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  'Amazon': SiAmazon,
-  'Google': SiGoogle,
-  'T-Mobile': SiTmobile,
-  'Spectrum': SiSpectrum,
-  'DigitalOcean': SiDigitalocean,
-  'Cloudflare': SiCloudflare,
-  'Akamai': SiAkamai,
-  'Cox': SiBox
+  'AT&T': AttIcon,
+  'Google': GoogleIcon,
+  'Comcast': ComcastIcon,
+  'Xfinity': ComcastIcon,
 };
 
 function getISPIcon(ispName: string): React.ComponentType<{ className?: string }> {
@@ -35,7 +27,7 @@ function getISPIcon(ispName: string): React.ComponentType<{ className?: string }
   }
 
   // Return default network icon if no match found
-  return Network;
+  return NetworkIcon;
 }
 
 export function LoginAttemptsDialog() {
