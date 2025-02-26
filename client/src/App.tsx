@@ -34,7 +34,7 @@ export default function App() {
             <FaviconUpdater />
             <Router />
             <Toaster />
-            <div className="fixed bottom-4 right-4 flex items-center gap-2" style={{ zIndex: 9999 }}>
+            <div className="fixed bottom-4 right-4 z-50">
               <DiscordButton />
             </div>
           </AuthProvider>
