@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, TestTube2 } from "lucide-react";
+import { Plus, TestTube2, Eye } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { EmailTemplate } from "@shared/schema";
 import { useState } from "react";
@@ -16,27 +16,53 @@ interface EmailTemplateDialogProps {
   onTestEmail: (templateId: number, email: string) => void;
 }
 
-const defaultTemplate = `<p>Dear Administrator,</p>
+const defaultTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .header { background-color: #1a1a1a; padding: 20px; text-align: center; }
+    .header img { max-height: 50px; }
+    .header h1 { color: white; margin: 10px 0; }
+    .content { padding: 20px; }
+    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="{{logoUrl}}" alt="{{appName}} Logo" />
+    <h1>{{appName}}</h1>
+  </div>
+  <div class="content">
+    <p>Dear Administrator,</p>
 
-<p>This is to notify you that the service "{{serviceName}}" is currently {{status}}.</p>
+    <p>This is to notify you that the service "{{serviceName}}" is currently {{status}}.</p>
 
-<p>Status Details:</p>
-<ul>
-  <li>Service: {{serviceName}}</li>
-  <li>Status: {{status}}</li>
-  <li>Time: {{timestamp}}</li>
-  <li>Duration: {{duration}}</li>
-</ul>
+    <p>Status Details:</p>
+    <ul>
+      <li>Service: {{serviceName}}</li>
+      <li>Status: {{status}}</li>
+      <li>Time: {{timestamp}}</li>
+      <li>Duration: {{duration}}</li>
+    </ul>
 
-<p>Please check the service dashboard for more details.</p>
+    <p>Please check the service dashboard for more details.</p>
 
-<p>Best regards,<br>
-Your Monitoring System</p>`;
+    <p>Best regards,<br>
+    Your Monitoring System</p>
+  </div>
+  <div class="footer">
+    This is an automated message from {{appName}}. Please do not reply to this email.
+  </div>
+</body>
+</html>`;
 
 export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTemplateDialogProps) {
   const { toast } = useToast();
   const [editingTemplate, setEditingTemplate] = useState<Partial<EmailTemplate> | null>(null);
   const [testEmail, setTestEmail] = useState("");
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   const { data: templates = [] } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/email-templates"],
@@ -115,14 +141,32 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
     onTestEmail(templateId, testEmail);
   };
 
+  const handlePreview = (template: EmailTemplate) => {
+    const sampleData = {
+      logoUrl: "/logo.png",
+      appName: "Homelab Monitor",
+      serviceName: "Example Service",
+      status: "UP",
+      timestamp: new Date().toLocaleString(),
+      duration: "5 minutes"
+    };
+
+    let preview = template.template;
+    Object.entries(sampleData).forEach(([key, value]) => {
+      preview = preview.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
+
+    setPreviewHtml(preview);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Email Templates</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {!editingTemplate ? (
+          {!editingTemplate && !previewHtml ? (
             <>
               <div className="flex justify-end">
                 <Button
@@ -152,12 +196,21 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        onClick={() => setEditingTemplate(template)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditingTemplate(template)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handlePreview(template)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview
+                        </Button>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Input
                           type="email"
@@ -179,6 +232,18 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                 ))}
               </div>
             </>
+          ) : previewHtml ? (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setPreviewHtml(null)}>
+                  Close Preview
+                </Button>
+              </div>
+              <div 
+                className="border rounded-lg p-4"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
           ) : (
             <div className="space-y-4">
               <Input
@@ -195,7 +260,7 @@ export function EmailTemplateDialog({ open, onOpenChange, onTestEmail }: EmailTe
                 placeholder="HTML template content"
                 value={editingTemplate.template || ""}
                 onChange={(e) => setEditingTemplate(prev => ({ ...prev, template: e.target.value }))}
-                className="min-h-[200px] font-mono"
+                className="min-h-[400px] font-mono"
               />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditingTemplate(null)}>
