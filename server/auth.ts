@@ -158,11 +158,16 @@ export function setupAuth(app: Express) {
   );
 
   app.get('/api/auth/google/callback',
-    passport.authenticate('google', { 
+    passport.authenticate('google', {
       failureRedirect: '/auth',
       successRedirect: '/',
-      failureMessage: true
-    })
+      failureFlash: true
+    }),
+    async (req, res) => {
+      console.log('Google auth callback reached, user:', req.user);
+      // Ensure we redirect to the root
+      res.redirect('/');
+    }
   );
 
   // Update the Google Strategy configuration
@@ -201,6 +206,7 @@ export function setupAuth(app: Express) {
         });
       }
 
+      console.log("Successfully authenticated Google user:", user.email);
       return done(null, user);
     } catch (error) {
       console.error("Error in Google OAuth callback:", error);
@@ -721,12 +727,12 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(password);
-      const newUser = await storage.createUser({ 
-        username, 
-        password: hashedPassword, 
-        email, 
-        role: 'superadmin', 
-        approved: true 
+      const newUser = await storage.createUser({
+        username,
+        password: hashedPassword,
+        email,
+        role: 'superadmin',
+        approved: true
       });
       console.log("New admin user created:", newUser);
       return newUser;
