@@ -56,22 +56,20 @@ export default function AuthPage() {
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
-          <div className="flex flex-col h-full">
-            <CardHeader className="flex-none">
+          {/* Fixed height section */}
+          <div className="h-[110px] border-b">
+            <CardHeader className="pb-2">
               <CardTitle>Welcome to {settings?.site_title || "Homelab Dashboard"}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
-              <Tabs defaultValue="login" className="h-full">
-                <div className="flex-none">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="register">Register</TabsTrigger>
-                    <TabsTrigger value="reset">Reset</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <div className="mt-6 flex-1">
-                  <TabsContent value="login" className="space-y-4">
+            <div className="px-6">
+              <Tabs defaultValue="login">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="register">Register</TabsTrigger>
+                  <TabsTrigger value="reset">Reset</TabsTrigger>
+                </TabsList>
+                <div className="min-h-[250px]">
+                  <TabsContent value="login" className="transition-transform duration-200 ease-in-out">
                     <Form {...loginForm}>
                       <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
                         <FormField
@@ -106,7 +104,7 @@ export default function AuthPage() {
                     </Form>
                   </TabsContent>
 
-                  <TabsContent value="register" className="space-y-4">
+                  <TabsContent value="register" className="transition-transform duration-200 ease-in-out">
                     <Form {...registerForm}>
                       <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
                         <FormField
@@ -153,7 +151,7 @@ export default function AuthPage() {
                     </Form>
                   </TabsContent>
 
-                  <TabsContent value="reset" className="space-y-4">
+                  <TabsContent value="reset" className="transition-transform duration-200 ease-in-out">
                     <Form {...resetForm}>
                       <form onSubmit={resetForm.handleSubmit((data) => {
                         fetch('/api/request-reset', {
@@ -182,8 +180,11 @@ export default function AuthPage() {
                   </TabsContent>
                 </div>
               </Tabs>
-            </CardContent>
+            </div>
           </div>
+
+          {/* Dynamic content section */}
+          
         </Card>
       </div>
 
