@@ -10,7 +10,6 @@ import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ChatButton } from "@/components/chat/chat-button";
 import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
 
@@ -36,7 +35,6 @@ export default function App() {
             <Router />
             <Toaster />
             <div className="fixed bottom-4 right-4 flex items-center gap-2" style={{ zIndex: 9999 }}>
-              <ChatButton />
               <DiscordButton />
             </div>
           </AuthProvider>

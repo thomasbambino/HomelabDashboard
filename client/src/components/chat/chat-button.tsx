@@ -4,14 +4,16 @@ import { MessageSquare } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { ChatProvider } from "./ChatProvider";
 
 export function ChatButton() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
+  const { user } = useAuth();
 
-  // Don't render on the auth page
-  if (location === "/auth") {
+  // Don't render on the auth page or if user is not authenticated
+  if (location === "/auth" || !user) {
     return null;
   }
 
@@ -26,11 +28,11 @@ export function ChatButton() {
         <DialogHeader className="px-6 py-2">
           <DialogTitle>Chat</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-hidden">
-          <ChatProvider>
+        <ChatProvider>
+          <div className="flex-1 overflow-hidden">
             <ChatPanel onClose={() => setOpen(false)} />
-          </ChatProvider>
-        </div>
+          </div>
+        </ChatProvider>
       </DialogContent>
     </Dialog>
   );
