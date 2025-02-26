@@ -218,8 +218,8 @@ export function setupAuth(app: Express) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "https://stylus.services/oauth/google/callback",
-    scope: ['profile', 'email']
+    callbackURL: "/oauth/google/callback", // Use relative URL instead of hardcoded domain
+    proxy: true // Enable proxy support for correct protocol detection
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       console.log("Google OAuth callback received for profile:", profile.id);
