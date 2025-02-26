@@ -9,13 +9,13 @@ import { Shield } from "lucide-react";
 export function LoginAttemptsDialog() {
   const { data: loginAttempts = [] } = useQuery<LoginAttempt[]>({
     queryKey: ["/api/login-attempts"],
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
           <Shield className="h-4 w-4 mr-2" />
           Login Attempts
         </Button>

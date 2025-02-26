@@ -836,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the complete message with sender info
       const messageWithSender = {
         ...message,
-        sender: await storage.getUser(user.id),
+        sender: awaitstorage.getUser(user.id),
       };
 
       // Broadcast the message through WebSocket
@@ -1269,6 +1269,27 @@ except Exception as e:
     } catch (error) {
       console.error('Error sending test email:', error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Add the endpoint for fetching login attempts
+  app.get("/api/login-attempts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    // Check if user is a superadmin
+    const user = req.user as User;
+    if (user.role !== 'superadmin') {
+      return res.status(403).json({ message: "Only superadmins can view login attempts" });
+    }
+
+    try {
+      // Get all login attempts, ordered by most recent first
+      const attempts = await storage.getLoginAttempts();
+      console.log('Fetched login attempts:', attempts);
+      res.json(attempts);
+    } catch (error) {
+      console.error('Error fetching login attempts:', error);
+      res.status(500).json({ message: "Failed to fetch login attempts" });
     }
   });
 
