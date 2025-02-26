@@ -19,6 +19,7 @@ import { EmailTemplateDialog } from "../email-template-dialog";
 export function SettingsDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   const { user } = useAuth();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const isSuperAdmin = user?.role === 'superadmin';
@@ -53,7 +54,6 @@ export function SettingsDialog() {
     },
   });
 
-  // Update browser title when favicon label changes
   useEffect(() => {
     const faviconLabel = form.watch("favicon_label");
     if (faviconLabel) {
@@ -158,14 +158,14 @@ export function SettingsDialog() {
           <DialogTitle>{isSuperAdmin ? "Super Admin Settings" : "Admin Settings"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="branding">Branding</TabsTrigger>
-            <TabsTrigger value="visibility">Visibility</TabsTrigger>
+          <TabsList className="w-full flex space-x-1">
+            <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+            <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
+            <TabsTrigger value="visibility" className="flex-1">Visibility</TabsTrigger>
             {isSuperAdmin && (
               <>
-                <TabsTrigger value="amp">AMP</TabsTrigger>
-                <TabsTrigger value="email">
+                <TabsTrigger value="amp" className="flex-1">AMP</TabsTrigger>
+                <TabsTrigger value="email" className="flex-1">
                   <Mail className="h-4 w-4 mr-2" />
                   Email
                 </TabsTrigger>
@@ -520,83 +520,94 @@ export function SettingsDialog() {
             </Form>
           </TabsContent>
           {isSuperAdmin && (
-            <TabsContent value="amp">
-              <Form {...ampForm}>
-                <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
-                  <FormField
-                    control={ampForm.control}
-                    name="amp_url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AMP Server URL</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://your-amp-server.com"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ampForm.control}
-                    name="amp_username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AMP Username</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="AMP admin username"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={ampForm.control}
-                    name="amp_password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AMP Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="AMP admin password"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={updateAMPCredentialsMutation.isPending}
-                    >
-                      {updateAMPCredentialsMutation.isPending && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <>
+              <TabsContent value="amp">
+                <Form {...ampForm}>
+                  <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
+                    <FormField
+                      control={ampForm.control}
+                      name="amp_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>AMP Server URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://your-amp-server.com"
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
                       )}
-                      Save Credentials
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={testAMPConnection}
-                      disabled={isTestingConnection}
-                    >
-                      {isTestingConnection ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-2 h-4 w-4" />
+                    />
+                    <FormField
+                      control={ampForm.control}
+                      name="amp_username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>AMP Username</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="AMP admin username"
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
                       )}
-                      Test Connection
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </TabsContent>
+                    />
+                    <FormField
+                      control={ampForm.control}
+                      name="amp_password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>AMP Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="AMP admin password"
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        className="flex-1"
+                        disabled={updateAMPCredentialsMutation.isPending}
+                      >
+                        {updateAMPCredentialsMutation.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save Credentials
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={testAMPConnection}
+                        disabled={isTestingConnection}
+                      >
+                        {isTestingConnection ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                        )}
+                        Test Connection
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              <TabsContent value="email" className="mt-4">
+                <EmailTemplateDialog
+                  open={showEmailTemplates}
+                  onOpenChange={setShowEmailTemplates}
+                  onTestEmail={(templateId: number, email: string) => {
+                    // Handle test email
+                  }}
+                />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </DialogContent>
