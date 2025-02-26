@@ -229,7 +229,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 };
 
 const isAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (!req.isAuthenticated() || (req.user as User).role !== 'admin') {
+  if (!req.isAuthenticated() || (req.user as User).role !== 'admin' && (req.user as User).role !== 'superadmin') {
     return res.status(403).json({ message: 'Forbidden' });
   }
   next();
