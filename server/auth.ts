@@ -136,6 +136,7 @@ export function setupAuth(app: Express) {
           return done(null, false);
         }
 
+        console.log("Login successful. Temp password status:", user.temp_password);
         return done(null, user);
       } catch (error) {
         console.error("Login error:", error);
@@ -216,6 +217,7 @@ export function setupAuth(app: Express) {
           await storage.clearLoginAttempts(identifier, ip, type);
 
           console.log(`Successfully updated IP for user ${user.username}`);
+          console.log('User temp_password status:', user.temp_password);
 
           // Include temp_password status in response
           res.json({
@@ -582,7 +584,6 @@ async function createAdminUser(username: string, password: string, email: string
   console.log("Admin user created:", newUser);
   return newUser;
 }
-
 
 // Placeholder for compileTemplate function.  Replace with your actual implementation.
 function compileTemplate(template: string, data: any): string {

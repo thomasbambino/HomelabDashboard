@@ -11,7 +11,7 @@ import { useLocation } from "wouter";
 
 // Extend SelectUser type to include the requires_password_change field
 type AuthUser = SelectUser & {
-  requires_password_change?: boolean;
+  requires_password_change: boolean;
 };
 
 type AuthContextType = {
@@ -44,11 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Login failed");
       }
+      console.log("Login response:", data);
       return data;
     },
     onSuccess: (user: AuthUser) => {
+      console.log("Setting user data with requires_password_change:", user.requires_password_change);
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
