@@ -76,16 +76,25 @@ const baseTemplate = `
       border: 1px solid #e4e4e7;
     }
     .content-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px 0;
     }
     .heading {
-        font-weight: bold;
-        margin-bottom: 8px;
+      font-weight: bold;
+      margin-bottom: 8px;
     }
     .information {
-        margin-top: 16px;
+      margin-top: 16px;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 16px 0;
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #f59e0b;
     }
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
@@ -133,10 +142,29 @@ const templates = [
     defaultTemplate: true
   },
   {
-    name: "Password Reset",
-    subject: "Password Reset Notification",
+    name: "User Password Reset Request",
+    subject: "Password Reset Request",
     template: baseTemplate.replace("{{content}}", `
-      <h2>Password Reset</h2>
+      <h2>Password Reset Request</h2>
+      <p>A password reset has been requested for your account.</p>
+      <div class="content-box">
+        <p class="heading">Your New Temporary Password:</p>
+        <div class="code-block">{{tempPassword}}</div>
+      </div>
+      <div class="information">
+        <p>For security reasons, you will be required to change this password when you next log in.</p>
+        <div class="alert">
+          <strong>Important:</strong> If you did not request this password reset, please contact your administrator immediately.
+        </div>
+      </div>
+    `),
+    defaultTemplate: true
+  },
+  {
+    name: "Admin Password Reset",
+    subject: "Password Reset by Administrator",
+    template: baseTemplate.replace("{{content}}", `
+      <h2>Password Reset by Administrator</h2>
       <p>Your password has been reset by an administrator.</p>
       <div class="content-box">
         <p class="heading">Your New Temporary Password:</p>
@@ -144,7 +172,9 @@ const templates = [
       </div>
       <div class="information">
         <p>For security reasons, you will be required to change this password when you next log in.</p>
-        <p><strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.</p>
+        <div class="alert">
+          <strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.
+        </div>
       </div>
     `),
     defaultTemplate: true

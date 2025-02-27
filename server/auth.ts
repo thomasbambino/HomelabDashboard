@@ -392,9 +392,12 @@ export function setupAuth(app: Express) {
     });
 
     if (user.email) {
+      // Get the Admin Password Reset template
+      const template = await storage.getEmailTemplateByName("Admin Password Reset");
+
       await sendEmail({
         to: user.email,
-        templateId: 2, // Password Reset template
+        templateId: template?.id, // Use the template ID
         templateData: {
           tempPassword,
           appName: process.env.APP_NAME || 'Homelab Monitor',
