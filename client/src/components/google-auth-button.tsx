@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { ISPIcon } from '@/components/isp-icons/ISPIcon.js';
 import { Loader2 } from 'lucide-react';
 
 export function GoogleAuthButton() {
@@ -98,7 +97,11 @@ export function GoogleAuthButton() {
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <ISPIcon ispName="Google" size={20} />
+        <img 
+          src="/google-g-logo.png" 
+          alt="Google logo" 
+          className="w-5 h-5"
+        />
       )}
       Sign in with Google
     </Button>

@@ -11,13 +11,7 @@ const targetDir = path.join(__dirname, '..', 'client', 'public');
 const size = 32;
 
 const logos = {
-  'Google__G__logo.svg.png': 'google-logo.png',
-  '61447fb55953a50004ee16ee.png': 'tmobile-logo.png',
-  'Frontier_communications_logo_2022.png': 'frontier-logo.png',
-  '6227182b74a10c92f2ae07aa.png': 'spectrum-logo.png',
-  'Daco_558615.png': 'cox-logo.png',
-  '5842905ca6515b1e0ad75ab9.png': 'att-logo.png',
-  'Verizon_logo.png': 'verizon-logo.png'
+  'Google__G__logo.svg.png': 'google-g-logo.png',
 };
 
 async function resizeLogos() {
