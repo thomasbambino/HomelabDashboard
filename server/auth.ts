@@ -24,13 +24,13 @@ try {
   // Initialize with service account
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: 'stylus-dashboard-f6c70',
-      clientEmail: 'firebase-adminsdk-stylus-dashboard-f6c70@stylus-dashboard-f6c70.iam.gserviceaccount.com',
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      clientEmail: `firebase-adminsdk-${process.env.VITE_FIREBASE_PROJECT_ID}@${process.env.VITE_FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
       privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmaougWKcG8x5o\nOmNWsnQg3ZFPuQ/Wu33YMiVpogPbIXCwQ8H/Rjcvl+LzXWPJesdIBMLd4xp0c/AA\nZqrZkvJ3wQOycAOcRwIOI4ZhC2ellH81OCa1BvS/Z1Ywv4PbOq60b1S9bonlj/jG\n3rbjHSsbEtQX1AZz9rxgnKnGfSD6KhVFzXzOT/C/K0Q2OA81wX6M0EAo4pT+/p1I\n3SKWur1T0jsnDkX/OGoIQgZOrGSMTqb45cGZfbEo2zTmqoPADxBimcz7eJ8z8HfA\n3bBi8KMpHaI0MR4CYXSp7odOibFVPIz4IPb09/WI8t2onBMXeEr3rsFeZJrbSVdv\nTnyJDV1vAgMBAAECggEAArCNCka9a3XkBSTJxnTUk+ISpmNSUlLuGvwXKnw7iGN4\n+R6PPAJt9T2E3rsvHyNLpXhyrH8uYpyPT+l1U+R1jv6ZuweR/nq6bv9mbykYlWsS\n47RPZ2ZHRUZ02EZpBigqwgXOnnqBN9Ur+WLeHS1eEKctI+7IyM3qMp/DzkA8l251\njws1q0FZq3tJicACJ00fD+Y1C+FmZGc/NZ84tFIzUKIWpfTEbsvUE0mWRjwbJJ4K\nQoD0hp6a4L3mzmHollZL1gj7eT8mdT14PUp4TgNTRz2cZEHZpbd53oWgCLEZjbGR\nqVOWxb3OZ2X5I2HIG2Q/bPbcBMR2LIPxPvDm6G9k8QKBgQDdGfMCmWTIkEWm52nF\n9aKIdIx4SrNiZSCLZYiE/48zwyld8lRp53rlF7X6AKaaOznfFNer8JIXfDQAP6AH\nXXOs07GoCTZjkAOatv+Asuj7P7KLWKdlvKjn43pn8BCIcBUQMu175IJbKHIskyIB\n8IhsbhCWIRZ5uRB+nQzXEbFr9wKBgQDAru40OFML8kwxPOxVEm3ukhcisa/KKMqj\n+qSkd+GWruhAlQggPxlWbV2rZ5OK0ejgkpTbrV+R/avoLxlX8EN7AJjh49kyjMSF\nJjcryNM4VJ6oTeef8JcptgHAOp4a+x4+jDydMlEZnaptdcShSjD0PPYKI1Qhz4Ke\nft2ZAUoMSQKBgQCaLXIrqdOBmDk5vb0gcb048izR5SVZw7MCAXdFZv/w1HKQNF9w\nyh4Eipg3ESUb/5jHWr1aBJObFN0eHz/0YtI6/hOwXVwz6UTaKinZEOkt6qkSSmvQ\nodIWgaXlvJ2Kxr2pYhoAfsP31ShotODOAXDgS4/9YG1PzCEYaWN+xbO22QKBgD+T\neJVSYFR4xhsY9wG66vrkyS1xY4dYnkQs11ZNF+oYHBnzEpNRPpL90wJTUqNjT2uJ\n8gPp2Lba9HXP1JTnedyD/e3KuEetmso0KdAQm2DiytbNnbdwMvBYVYuPy8srQHdy\n3i0gBRJmq20ihpaRXEW6N5Rww7nENl0FjyiE/GHBAoGAag2hp6qclxeysJctlvK1\naHbt5CTUfC2eodNzB8D+kJ50kpWAVB9NdDFv69A26jVE5cvoOrlUpwIVmxAIkPPu\n8lS1XrObHOZNI/+Yi7k0LtIVg2S2DWUKZh6fXZfqC70OISSWISFVK4MERhakQrGX\nwF5GJxxfDNa/Wm5F/Lek69E=\n-----END PRIVATE KEY-----\n"
     }),
   });
 
-  console.log('Firebase Admin initialized successfully');
+  console.log('Firebase Admin initialized successfully with project ID:', process.env.VITE_FIREBASE_PROJECT_ID);
 } catch (error) {
   console.error('Error initializing Firebase Admin:', error);
 }
