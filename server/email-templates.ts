@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 
 const baseTemplate = `
 <!DOCTYPE html>
@@ -65,6 +65,28 @@ const baseTemplate = `
       background-color: #fee2e2;
       color: #991b1b;
     }
+    .code-block {
+      background-color: #f4f4f5;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 16px;
+      text-align: center;
+      margin: 16px 0;
+      border: 1px solid #e4e4e7;
+    }
+    .content-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .heading {
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    .information {
+        margin-top: 16px;
+    }
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
       .content { padding: 20px; }
@@ -116,11 +138,11 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Password Reset</h2>
       <p>Your password has been reset by an administrator.</p>
-      <div class="bg-primary/10 p-4 rounded-lg my-4">
-        <p class="font-bold mb-2">Your New Temporary Password:</p>
-        <code class="bg-background p-2 rounded block text-center text-lg">{{tempPassword}}</code>
+      <div class="content-box">
+        <p class="heading">Your New Temporary Password:</p>
+        <div class="code-block">{{tempPassword}}</div>
       </div>
-      <div class="space-y-4">
+      <div class="information">
         <p>For security reasons, you will be required to change this password when you next log in.</p>
         <p><strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.</p>
       </div>
