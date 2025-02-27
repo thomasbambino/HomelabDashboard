@@ -11,9 +11,10 @@ import { Loader2, ServerCog } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Settings } from "@shared/schema";
 import * as z from 'zod';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { GoogleAuthButton } from "@/components/google-auth-button";
+import { useLocation } from 'wouter';
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -34,7 +35,9 @@ type FormType = 'login' | 'register' | 'reset' | 'change-password';
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [formType, setFormType] = useState<FormType>('login');
+  const [location] = useLocation();
   const { toast } = useToast();
+  const isPending = new URLSearchParams(window.location.search).get('pending') === 'true';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -144,6 +147,37 @@ export default function AuthPage() {
 
   if (user && !user.requires_password_change) {
     return <Redirect to="/" />;
+  }
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Account Pending Approval</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Your account has been created successfully but requires administrator approval before you can access the dashboard.
+              </p>
+              <p className="text-muted-foreground">
+                Please check back later or contact your administrator for more information.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  window.location.href = '/auth';
+                }}
+              >
+                Back to Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

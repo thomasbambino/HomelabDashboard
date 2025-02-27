@@ -16,26 +16,19 @@ export function GoogleAuthButton() {
     try {
       setIsLoading(true);
 
-      // Show loading toast
       toast({
         title: "Connecting to Google",
         description: "Please complete the sign-in in the popup window",
       });
 
-      // Try to sign in with Google
       const result = await signInWithPopup(auth, googleProvider);
-
-      // Get the ID token
       const idToken = await result.user.getIdToken();
-      console.log('Successfully obtained ID token from Google');
 
-      // Show success toast for Google auth
       toast({
         title: "Google Sign-in Successful",
         description: "Completing authentication with server...",
       });
 
-      // Send the token to our backend
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: {
@@ -47,13 +40,11 @@ export function GoogleAuthButton() {
       if (!response.ok) {
         const errorData = await response.json();
 
-        // Check if the account needs approval
         if (response.status === 403 && errorData.requiresApproval) {
           toast({
-            title: "Account Pending Approval",
-            description: "Your account has been created and is pending administrator approval.",
+            title: "Account Created",
+            description: "Your account is pending administrator approval.",
           });
-          // Redirect to a pending approval page or show a message
           window.location.href = '/auth?pending=true';
           return;
         }
@@ -61,21 +52,17 @@ export function GoogleAuthButton() {
         throw new Error(errorData.message || 'Failed to authenticate with the server');
       }
 
-      // Backend will set the session cookie and return the user data
       await response.json();
 
-      // Show final success toast
       toast({
         title: "Success",
         description: "Successfully signed in with Google",
       });
 
-      // Only redirect after successful authentication
       window.location.href = '/';
     } catch (error) {
       console.error('Google sign in error:', error);
 
-      // Show more specific error messages
       let errorMessage = "Could not sign in with Google. Please try again.";
       if (error instanceof Error) {
         if (error.message.includes('popup-closed-by-user')) {
