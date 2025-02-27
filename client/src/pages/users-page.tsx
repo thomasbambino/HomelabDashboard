@@ -32,7 +32,7 @@ export default function UsersPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: number; role?: string; approved?: boolean; canViewNSFW?: boolean; email?: string; enabled?: boolean }) => {
+    mutationFn: async (data: { id: number; role?: string; approved?: boolean; can_view_nsfw?: boolean; email?: string; enabled?: boolean }) => {
       const res = await apiRequest("PATCH", `/api/users/${data.id}`, data);
       return res.json();
     },
@@ -317,7 +317,7 @@ export default function UsersPage() {
                               <Switch
                                 checked={u.can_view_nsfw}
                                 onCheckedChange={(checked) =>
-                                  updateUserMutation.mutate({ id: u.id, canViewNSFW: checked })
+                                  updateUserMutation.mutate({ id: u.id, can_view_nsfw: checked })
                                 }
                                 disabled={!canModifyUser(u)}
                               />
