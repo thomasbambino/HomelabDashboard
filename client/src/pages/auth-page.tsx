@@ -40,9 +40,8 @@ export default function AuthPage() {
   const { toast } = useToast();
   const isPending = new URLSearchParams(window.location.search).get('pending') === 'true';
   const [contentVisible, setContentVisible] = useState(false);
-  const [elementsVisible, setElementsVisible] = useState(false);
 
-  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
+  const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
@@ -79,19 +78,11 @@ export default function AuthPage() {
   });
 
   useEffect(() => {
-    if (!settingsLoading) {
-      // First fade in the page with reduced delay
-      const pageTimer = setTimeout(() => {
-        setContentVisible(true);
-        // Then fade in the elements with a shorter delay
-        const elementsTimer = setTimeout(() => {
-          setElementsVisible(true);
-        }, 100); // Reduced from 200ms to 100ms
-        return () => clearTimeout(elementsTimer);
-      }, 200); // Reduced from 300ms to 200ms
-      return () => clearTimeout(pageTimer);
-    }
-  }, [settingsLoading]);
+    const timer = setTimeout(() => {
+      setContentVisible(true);
+    }, 150); // Single quick fade-in
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFormTypeChange = (type: FormType) => {
     setFormType(type);
@@ -196,36 +187,20 @@ export default function AuthPage() {
     );
   }
 
-  if (settingsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={cn(
       "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-all duration-500",
-      contentVisible ? "opacity-100" : "opacity-0"
+      contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
     )}>
       <div className="flex items-center justify-center p-8">
-        <Card className={cn(
-          "w-full max-w-md transition-all duration-500 delay-200",
-          elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        )}>
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="transition-all duration-300 delay-300">
+            <CardTitle className="transition-all duration-300">
               Welcome to {settings?.site_title || "Homelab Dashboard"}
             </CardTitle>
           </CardHeader>
-          <CardContent className={cn(
-            "pt-0 transition-all duration-300",
-            elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          )}>
+          <CardContent className="pt-0">
             {formType === 'login' && (
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data, { onSuccess: handleLoginSuccess }))} className="space-y-4">
@@ -430,8 +405,8 @@ export default function AuthPage() {
 
       <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/3">
         <div className={cn(
-          "flex flex-col items-center transition-all duration-500 delay-300",
-          elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          "flex flex-col items-center transition-all duration-500",
+          contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}>
           {settings?.logo_url_large ? (
             <img
