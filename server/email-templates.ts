@@ -76,34 +76,6 @@ const baseTemplate = `
       margin-bottom: 12px;
       text-align: center;
     }
-    .information {
-      margin-top: 16px;
-      width: 100%;
-    }
-    .alert {
-      padding: 12px;
-      border-radius: 6px;
-      margin: 16px 0;
-      background-color: #fef3c7;
-      color: #92400e;
-      border: 1px solid #f59e0b;
-    }
-    .status {
-      padding: 15px;
-      border-radius: 6px;
-      margin: 15px 0;
-      text-align: center;
-    }
-    .status.up {
-      background-color: #dcfce7;
-      color: #166534;
-      border: 1px solid #22c55e;
-    }
-    .status.down {
-      background-color: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #ef4444;
-    }
     .details {
       width: 100%;
       margin: 10px 0;
@@ -119,6 +91,14 @@ const baseTemplate = `
       background-color: white;
       border-radius: 4px;
       border: 1px solid #e4e4e7;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 16px 0;
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #f59e0b;
     }
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
@@ -152,21 +132,18 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Service Status Update</h2>
       <div class="content-box">
-        <p class="heading">Service Status</p>
-        <div class="status {{#if isUp}}up{{else}}down{{/if}}">
-          The service "{{serviceName}}" is currently <strong>{{status}}</strong>
-        </div>
+        <p class="heading">Current Status</p>
+        <div class="code-block">{{serviceName}} is {{status}}</div>
         <div class="details">
           <ul>
             <li><strong>Service:</strong> {{serviceName}}</li>
-            <li><strong>Status:</strong> {{status}}</li>
-            <li><strong>Time:</strong> {{timestamp}}</li>
             <li><strong>Duration:</strong> {{duration}}</li>
+            <li><strong>Time:</strong> {{timestamp}}</li>
           </ul>
         </div>
       </div>
       <div class="alert">
-        Please check the service dashboard for more details and current status.
+        <strong>Note:</strong> Visit the service dashboard for real-time status updates and detailed monitoring information.
       </div>
     `),
     defaultTemplate: true
@@ -177,18 +154,18 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>New Game Server Request</h2>
       <div class="content-box">
-        <p class="heading">Request Details</p>
+        <p class="heading">Request Information</p>
+        <div class="code-block">{{game}}</div>
         <div class="details">
           <ul>
-            <li><strong>Game:</strong> {{game}}</li>
             <li><strong>Requested by:</strong> {{username}}</li>
-            <li><strong>User Email:</strong> {{userEmail}}</li>
+            <li><strong>Email:</strong> {{userEmail}}</li>
             <li><strong>Time:</strong> {{timestamp}}</li>
           </ul>
         </div>
       </div>
       <div class="alert">
-        This request requires admin review. Please access the admin dashboard to process this request.
+        <strong>Action Required:</strong> Please review this request in the admin dashboard to approve or deny the server creation.
       </div>
     `),
     defaultTemplate: true
