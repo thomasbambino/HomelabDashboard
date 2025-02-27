@@ -628,8 +628,22 @@ export function setupAuth(app: Express) {
           username: decodedToken.name || decodedToken.email.split('@')[0],
           email: decodedToken.email,
           password: await hashPassword(randomPassword),
-          approved: true,
+          approved: false, // Set approved to false by default
           role: defaultRole
+        });
+      }
+
+      // Check if user is approved
+      if (!user.approved) {
+        return res.status(403).json({
+          message: "Account pending approval",
+          requiresApproval: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            approved: false
+          }
         });
       }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ISPIcon } from '@/components/isp-icons/ISPIcon.js';
@@ -46,6 +46,18 @@ export function GoogleAuthButton() {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Check if the account needs approval
+        if (response.status === 403 && errorData.requiresApproval) {
+          toast({
+            title: "Account Pending Approval",
+            description: "Your account has been created and is pending administrator approval.",
+          });
+          // Redirect to a pending approval page or show a message
+          window.location.href = '/auth?pending=true';
+          return;
+        }
+
         throw new Error(errorData.message || 'Failed to authenticate with the server');
       }
 
