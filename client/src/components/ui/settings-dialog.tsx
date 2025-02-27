@@ -157,7 +157,7 @@ export function SettingsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{isSuperAdmin ? "Super Admin Settings" : "Admin Settings"}</DialogTitle>
+          <DialogTitle>Admin Settings</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="general">
           <TabsList className="w-full flex space-x-1">
