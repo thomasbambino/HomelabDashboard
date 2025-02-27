@@ -394,12 +394,12 @@ export function setupAuth(app: Express) {
     if (user.email) {
       await sendEmail({
         to: user.email,
-        subject: "Password Reset",
-        html: `
-          <p>Your password has been reset by an administrator.</p>
-          <p>Your new temporary password is: ${tempPassword}</p>
-          <p>Please log in with this password. You will be required to change your password upon login.</p>
-        `
+        templateId: 2, // Password Reset template
+        templateData: {
+          tempPassword,
+          appName: process.env.APP_NAME || 'Homelab Monitor',
+          logoUrl: '/logo.png'
+        }
       });
     }
 

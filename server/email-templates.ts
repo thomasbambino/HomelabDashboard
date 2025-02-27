@@ -112,13 +112,18 @@ const templates = [
   },
   {
     name: "Password Reset",
-    subject: "Password Reset Request",
+    subject: "Password Reset Notification",
     template: baseTemplate.replace("{{content}}", `
-      <h2>Password Reset Request</h2>
-      <p>Your password has been reset as requested.</p>
-      <p>Your new temporary password is: <strong>{{tempPassword}}</strong></p>
-      <p>Please log in with this password. You will be required to change your password upon login.</p>
-      <p><strong>Note:</strong> If you did not request this password reset, please contact your administrator immediately.</p>
+      <h2>Password Reset</h2>
+      <p>Your password has been reset by an administrator.</p>
+      <div class="bg-primary/10 p-4 rounded-lg my-4">
+        <p class="font-bold mb-2">Your New Temporary Password:</p>
+        <code class="bg-background p-2 rounded block text-center text-lg">{{tempPassword}}</code>
+      </div>
+      <div class="space-y-4">
+        <p>For security reasons, you will be required to change this password when you next log in.</p>
+        <p><strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.</p>
+      </div>
     `),
     defaultTemplate: true
   },
