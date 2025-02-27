@@ -50,21 +50,19 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
-          <div className="flex items-center gap-3 min-w-0 md:min-w-fit">
+          <div className="flex items-center gap-3">
             {settings?.logo_url ? (
               <img
                 src={settings.logo_url}
                 alt="Site Logo"
-                className="h-8 w-8 object-contain flex-shrink-0"
+                className="h-8 w-8 object-contain"
               />
             ) : (
-              <ServerCog className="h-8 w-8 text-primary flex-shrink-0" />
+              <ServerCog className="h-8 w-8 text-primary" />
             )}
-            <h1 className="text-3xl font-bold truncate">
-              {settings?.site_title || "Homelab Dashboard"}
-            </h1>
+            <h1 className="text-3xl font-bold">{settings?.site_title || "Homelab Dashboard"}</h1>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto md:overflow-visible px-2 md:px-0">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
@@ -72,24 +70,21 @@ export default function Dashboard() {
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
                 <Button variant="outline">
-                  <Users className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Manage Users</span>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Users
                 </Button>
               </Link>
             )}
-            <Button 
-              variant="outline" 
-              onClick={() => logoutMutation.mutate()}
-            >
-              <LogOut className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Logout</span>
+            <Button variant="outline" onClick={() => logoutMutation.mutate()}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
             </Button>
           </div>
         </header>
 
         <div className="grid gap-8">
           <section className="relative">
-            <div
+            <div 
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServersExpanded(!isServersExpanded)}
               role="button"
@@ -121,7 +116,7 @@ export default function Dashboard() {
           </section>
 
           <section className="relative">
-            <div
+            <div 
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServicesExpanded(!isServicesExpanded)}
               role="button"
