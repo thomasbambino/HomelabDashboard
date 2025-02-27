@@ -80,15 +80,15 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!settingsLoading) {
-      // First fade in the page
+      // First fade in the page with reduced delay
       const pageTimer = setTimeout(() => {
         setContentVisible(true);
-        // Then fade in the elements with a slight delay
+        // Then fade in the elements with a shorter delay
         const elementsTimer = setTimeout(() => {
           setElementsVisible(true);
-        }, 200);
+        }, 100); // Reduced from 200ms to 100ms
         return () => clearTimeout(elementsTimer);
-      }, 300);
+      }, 200); // Reduced from 300ms to 200ms
       return () => clearTimeout(pageTimer);
     }
   }, [settingsLoading]);
