@@ -80,7 +80,7 @@ export default function AuthPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setContentVisible(true);
-    }, 150); // Single quick fade-in
+    }, 150);
     return () => clearTimeout(timer);
   }, []);
 
@@ -190,7 +190,7 @@ export default function AuthPage() {
 
   return (
     <div className={cn(
-      "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-all duration-500",
+      "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-all duration-500 overflow-hidden",
       contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
     )}>
       <div className="flex items-center justify-center p-8">
@@ -403,7 +403,7 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/3">
+      <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/3 overflow-hidden">
         <div className={cn(
           "flex flex-col items-center transition-all duration-500",
           contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
