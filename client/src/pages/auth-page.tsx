@@ -40,6 +40,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const isPending = new URLSearchParams(window.location.search).get('pending') === 'true';
   const [contentVisible, setContentVisible] = useState(false);
+  const [elementsVisible, setElementsVisible] = useState(false);
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -79,10 +80,16 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!settingsLoading) {
-      const timer = setTimeout(() => {
+      // First fade in the page
+      const pageTimer = setTimeout(() => {
         setContentVisible(true);
+        // Then fade in the elements with a slight delay
+        const elementsTimer = setTimeout(() => {
+          setElementsVisible(true);
+        }, 200);
+        return () => clearTimeout(elementsTimer);
       }, 300);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(pageTimer);
     }
   }, [settingsLoading]);
 
@@ -202,21 +209,23 @@ export default function AuthPage() {
 
   return (
     <div className={cn(
-      "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-opacity duration-500",
+      "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-all duration-500",
       contentVisible ? "opacity-100" : "opacity-0"
     )}>
       <div className="flex items-center justify-center p-8">
-        <Card className="w-full max-w-md">
+        <Card className={cn(
+          "w-full max-w-md transition-all duration-500 delay-200",
+          elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        )}>
           <CardHeader>
-            {settingsLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-48 bg-primary/20 animate-pulse rounded" />
-              </div>
-            ) : (
-              <CardTitle>Welcome to {settings?.site_title || "Homelab Dashboard"}</CardTitle>
-            )}
+            <CardTitle className="transition-all duration-300 delay-300">
+              Welcome to {settings?.site_title || "Homelab Dashboard"}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className={cn(
+            "pt-0 transition-all duration-300",
+            elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}>
             {formType === 'login' && (
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data, { onSuccess: handleLoginSuccess }))} className="space-y-4">
@@ -420,29 +429,24 @@ export default function AuthPage() {
       </div>
 
       <div className="hidden md:flex flex-col items-center justify-center p-8 bg-primary/3">
-        {settingsLoading ? (
-          <>
-            <div className="h-20 w-20 mb-4 bg-primary/20 animate-pulse rounded" />
-            <div className="h-8 w-48 bg-primary/20 animate-pulse rounded mb-2" />
-            <div className="h-4 w-96 bg-primary/20 animate-pulse rounded" />
-          </>
-        ) : (
-          <>
-            {settings?.logo_url_large ? (
-              <img
-                src={settings.logo_url_large}
-                alt="Site Logo"
-                className="h-20 w-20 mb-4 object-contain"
-              />
-            ) : (
-              <ServerCog className="h-20 w-20 mb-4 text-primary" />
-            )}
-            <h2 className="text-2xl font-bold mb-2">{settings?.site_title || "Homelab Dashboard"}</h2>
-            <p className="text-center text-muted-foreground max-w-md">
-              {settings?.login_description || "Monitor your services and game servers in real-time with our comprehensive dashboard."}
-            </p>
-          </>
-        )}
+        <div className={cn(
+          "flex flex-col items-center transition-all duration-500 delay-300",
+          elementsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        )}>
+          {settings?.logo_url_large ? (
+            <img
+              src={settings.logo_url_large}
+              alt="Site Logo"
+              className="h-20 w-20 mb-4 object-contain"
+            />
+          ) : (
+            <ServerCog className="h-20 w-20 mb-4 text-primary" />
+          )}
+          <h2 className="text-2xl font-bold mb-2">{settings?.site_title || "Homelab Dashboard"}</h2>
+          <p className="text-center text-muted-foreground max-w-md">
+            {settings?.login_description || "Monitor your services and game servers in real-time with our comprehensive dashboard."}
+          </p>
+        </div>
       </div>
     </div>
   );
