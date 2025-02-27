@@ -11,7 +11,7 @@ export function TrackingCodeInjector() {
     // Create and inject the tracking script
     const script = document.createElement('script');
     script.async = true;
-    script.src = "https://192.168.0.124:3000/script.js";
+    script.src = "/script.js";  // Use relative path instead of absolute URL
     script.setAttribute('data-website-id', '8ad305e2-bee6-4306-a498-f1b8486dc77e');
     script.setAttribute('data-tracking-script', 'true');
 
