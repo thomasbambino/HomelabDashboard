@@ -52,18 +52,33 @@ const baseTemplate = `
       color: #666;
       font-size: 12px;
     }
-    .status {
-      padding: 10px;
-      border-radius: 4px;
-      margin: 10px 0;
+    .code-block {
+      background-color: #f4f4f5;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 16px;
+      text-align: center;
+      margin: 16px 0;
+      border: 1px solid #e4e4e7;
     }
-    .status.up {
-      background-color: #dcfce7;
-      color: #166534;
+    .content-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px 0;
+      background-color: #f4f4f5;
+      padding: 15px;
+      border-radius: 6px;
     }
-    .status.down {
-      background-color: #fee2e2;
-      color: #991b1b;
+    .heading {
+      font-weight: bold;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .information {
+      margin-top: 16px;
+      width: 100%;
     }
     .alert {
       padding: 12px;
@@ -73,11 +88,25 @@ const baseTemplate = `
       color: #92400e;
       border: 1px solid #f59e0b;
     }
-    .details {
-      background-color: #f4f4f5;
+    .status {
       padding: 15px;
       border-radius: 6px;
       margin: 15px 0;
+      text-align: center;
+    }
+    .status.up {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #22c55e;
+    }
+    .status.down {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+    }
+    .details {
+      width: 100%;
+      margin: 10px 0;
     }
     .details ul {
       list-style: none;
@@ -86,14 +115,10 @@ const baseTemplate = `
     }
     .details li {
       margin: 8px 0;
-      padding-left: 20px;
-      position: relative;
-    }
-    .details li:before {
-      content: "•";
-      position: absolute;
-      left: 0;
-      color: #666;
+      padding: 8px 12px;
+      background-color: white;
+      border-radius: 4px;
+      border: 1px solid #e4e4e7;
     }
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
@@ -126,17 +151,23 @@ const templates = [
     subject: "Service Status Update: {{serviceName}}",
     template: baseTemplate.replace("{{content}}", `
       <h2>Service Status Update</h2>
-      <p>The service "{{serviceName}}" is currently <strong>{{status}}</strong>.</p>
-      <div class="status {{#if isUp}}up{{else}}down{{/if}}">
-        <strong>Status Details:</strong>
-        <ul>
-          <li>Service: {{serviceName}}</li>
-          <li>Status: {{status}}</li>
-          <li>Time: {{timestamp}}</li>
-          <li>Duration: {{duration}}</li>
-        </ul>
+      <div class="content-box">
+        <p class="heading">Service Status</p>
+        <div class="status {{#if isUp}}up{{else}}down{{/if}}">
+          The service "{{serviceName}}" is currently <strong>{{status}}</strong>
+        </div>
+        <div class="details">
+          <ul>
+            <li><strong>Service:</strong> {{serviceName}}</li>
+            <li><strong>Status:</strong> {{status}}</li>
+            <li><strong>Time:</strong> {{timestamp}}</li>
+            <li><strong>Duration:</strong> {{duration}}</li>
+          </ul>
+        </div>
       </div>
-      <p>Please check the service dashboard for more details.</p>
+      <div class="alert">
+        Please check the service dashboard for more details and current status.
+      </div>
     `),
     defaultTemplate: true
   },
@@ -145,16 +176,20 @@ const templates = [
     subject: "New Game Server Request",
     template: baseTemplate.replace("{{content}}", `
       <h2>New Game Server Request</h2>
-      <p>A new game server has been requested:</p>
-      <div class="details">
-        <ul>
-          <li><strong>Game:</strong> {{game}}</li>
-          <li><strong>Requested by:</strong> {{username}}</li>
-          <li><strong>User Email:</strong> {{userEmail}}</li>
-          <li><strong>Time:</strong> {{timestamp}}</li>
-        </ul>
+      <div class="content-box">
+        <p class="heading">Request Details</p>
+        <div class="details">
+          <ul>
+            <li><strong>Game:</strong> {{game}}</li>
+            <li><strong>Requested by:</strong> {{username}}</li>
+            <li><strong>User Email:</strong> {{userEmail}}</li>
+            <li><strong>Time:</strong> {{timestamp}}</li>
+          </ul>
+        </div>
       </div>
-      <p>Please review this request in the admin dashboard.</p>
+      <div class="alert">
+        This request requires admin review. Please access the admin dashboard to process this request.
+      </div>
     `),
     defaultTemplate: true
   },
@@ -164,12 +199,15 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Password Reset Request</h2>
       <p>A password reset has been requested for your account.</p>
-      <div class="details">
-        <ul>
-          <li><strong>Temporary Password:</strong> {{tempPassword}}</li>
-          <li><strong>Account:</strong> {{username}}</li>
-          <li><strong>Time:</strong> {{timestamp}}</li>
-        </ul>
+      <div class="content-box">
+        <p class="heading">Your New Temporary Password:</p>
+        <div class="code-block">{{tempPassword}}</div>
+        <div class="details">
+          <ul>
+            <li><strong>Account:</strong> {{username}}</li>
+            <li><strong>Time:</strong> {{timestamp}}</li>
+          </ul>
+        </div>
       </div>
       <div class="alert">
         <strong>Important:</strong> For security reasons, you will be required to change this password when you next log in.
@@ -185,12 +223,15 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Password Reset by Administrator</h2>
       <p>Your password has been reset by an administrator.</p>
-      <div class="details">
-        <ul>
-          <li><strong>Temporary Password:</strong> {{tempPassword}}</li>
-          <li><strong>Account:</strong> {{username}}</li>
-          <li><strong>Time:</strong> {{timestamp}}</li>
-        </ul>
+      <div class="content-box">
+        <p class="heading">Your New Temporary Password:</p>
+        <div class="code-block">{{tempPassword}}</div>
+        <div class="details">
+          <ul>
+            <li><strong>Account:</strong> {{username}}</li>
+            <li><strong>Time:</strong> {{timestamp}}</li>
+          </ul>
+        </div>
       </div>
       <div class="alert">
         <strong>Important:</strong> For security reasons, you will be required to change this password when you next log in.
