@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useLocation } from 'wouter';
+import { cn } from "@/lib/utils";
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -38,6 +39,7 @@ export default function AuthPage() {
   const [location] = useLocation();
   const { toast } = useToast();
   const isPending = new URLSearchParams(window.location.search).get('pending') === 'true';
+  const [contentVisible, setContentVisible] = useState(false);
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -75,9 +77,17 @@ export default function AuthPage() {
     }
   });
 
+  useEffect(() => {
+    if (!settingsLoading) {
+      const timer = setTimeout(() => {
+        setContentVisible(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [settingsLoading]);
+
   const handleFormTypeChange = (type: FormType) => {
     setFormType(type);
-    // Reset forms when switching
     loginForm.reset();
     registerForm.reset();
     resetForm.reset();
@@ -108,7 +118,6 @@ export default function AuthPage() {
         description: "Your password has been updated successfully.",
       });
 
-      // Redirect to login
       handleFormTypeChange('login');
     } catch (error) {
       toast({
@@ -180,8 +189,22 @@ export default function AuthPage() {
     );
   }
 
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+    <div className={cn(
+      "min-h-screen grid grid-cols-1 md:grid-cols-2 transition-opacity duration-500",
+      contentVisible ? "opacity-100" : "opacity-0"
+    )}>
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
