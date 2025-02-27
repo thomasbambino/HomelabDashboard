@@ -213,18 +213,16 @@ export default function UsersPage() {
                       <p className="font-medium">{u.username}</p>
                       <div className="flex items-center gap-4">
                         <p className="text-sm text-muted-foreground">ID: {u.id}</p>
-                        {isSuperAdmin && u.last_ip && (
-                          <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-6">
+                          <p className="text-sm text-blue-500">
+                            IP: {u.last_ip}
+                          </p>
+                          {u.last_login && (
                             <p className="text-sm text-blue-500">
-                              IP: {u.last_ip}
+                              Last Login: {format(new Date(u.last_login), "PPpp")}
                             </p>
-                            {u.last_login && (
-                              <p className="text-sm text-blue-500">
-                                Last Login: {format(new Date(u.last_login), "PPpp")}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">

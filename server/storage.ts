@@ -144,12 +144,13 @@ export class DatabaseStorage implements IStorage {
     // First get all login attempts with latest timestamp for each user
     const latestAttempts = await db
       .select({
-        username: loginAttempts.identifier,
+        identifier: loginAttempts.identifier,
         ip: loginAttempts.ip,
-        timestamp: loginAttempts.timestamp
+        timestamp: loginAttempts.timestamp,
+        type: loginAttempts.type
       })
       .from(loginAttempts)
-      .where(eq(loginAttempts.type, 'login'))
+      .where(eq(loginAttempts.type, 'success'))
       .orderBy(desc(loginAttempts.timestamp));
 
     // Get all users
@@ -158,12 +159,12 @@ export class DatabaseStorage implements IStorage {
     // Map the latest IP and timestamp to each user
     return allUsers.map(user => {
       const latestAttempt = latestAttempts.find(
-        attempt => attempt.username === user.username
+        attempt => attempt.identifier === user.username
       );
       return {
         ...user,
         last_ip: latestAttempt?.ip || user.last_ip,
-        last_login: latestAttempt?.timestamp
+        last_login: latestAttempt?.timestamp || user.last_login
       };
     });
   }

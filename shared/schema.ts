@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   show_last_checked: boolean("show_last_checked").notNull().default(true),
   service_order: integer("service_order").array().default([]),
   isOnline: boolean("is_online").notNull().default(false),
-  lastSeen: timestamp("last_seen").defaultNow(),
+  last_login: timestamp("last_login"),
   last_ip: text("last_ip"),
   temp_password: boolean("temp_password").notNull().default(false),
 });
