@@ -64,28 +64,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  let port = 5000;
-  const tryListen = (retryCount = 0) => {
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    })
-    .on('error', (err) => {
-      if (err.code === 'EADDRINUSE' && retryCount < 5) {
-        log(`Port ${port} is already in use, trying port ${port + 1}...`);
-        port++;
-        server.close();
-        tryListen(retryCount + 1);
-      } else {
-        throw err;
-      }
-    })
-    .on('listening', () => {
-      log(`serving on port ${port}`);
-    });
-  };
-  tryListen();
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
 
   // Handle graceful shutdown
   const cleanup = () => {
