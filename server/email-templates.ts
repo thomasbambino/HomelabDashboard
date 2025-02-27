@@ -154,7 +154,7 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>New Game Server Request</h2>
       <div class="content-box">
-        <p class="heading">Request Information</p>
+        <p class="heading">Game Information</p>
         <div class="code-block">{{game}}</div>
         <div class="details">
           <ul>
