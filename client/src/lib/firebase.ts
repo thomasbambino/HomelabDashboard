@@ -22,13 +22,13 @@ console.log('Initializing Firebase with config:', {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Configure Google Provider with additional scopes and custom domain settings
+// Configure Google Provider with custom domain settings
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
 googleProvider.setCustomParameters({
   prompt: 'select_account',
-  // Add the custom domain to allowed origins
+  ux_mode: 'popup',
   auth_domain: 'auth.stylus.services'
 });
 
