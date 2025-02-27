@@ -112,7 +112,9 @@ async function getClientIp(req: Request) {
   return req.ip;
 }
 
-const googleClient = new OAuth2Client(process.env.VITE_FIREBASE_PROJECT_ID);
+const googleClient = new OAuth2Client({
+  clientId: process.env.VITE_FIREBASE_PROJECT_ID
+});
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -358,35 +360,43 @@ export function setupAuth(app: Express) {
     try {
       const { token } = req.body;
       if (!token) {
+        console.error('No token provided in request');
         return res.status(400).json({ message: "No token provided" });
       }
+
+      console.log('Verifying Google token with project ID:', process.env.VITE_FIREBASE_PROJECT_ID);
 
       const ticket = await googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.VITE_FIREBASE_PROJECT_ID
+      }).catch(error => {
+        console.error('Token verification failed:', error);
+        throw error;
       });
 
       const payload = ticket.getPayload();
       if (!payload || !payload.email) {
-        return res.status(401).json({ message: "Invalid token" });
+        console.error('Invalid token payload:', payload);
+        return res.status(401).json({ message: "Invalid token payload" });
       }
+
+      console.log('Token verified successfully for email:', payload.email);
 
       const { email, name } = payload;
       let user = await storage.getUserByEmail(email);
 
       if (!user) {
-        // Create a new user if they don't exist
+        console.log('Creating new user for email:', email);
         const randomPassword = randomBytes(32).toString('hex');
         user = await storage.createUser({
           username: name || email.split('@')[0],
           email,
           password: await hashPassword(randomPassword),
-          approved: true, // Auto-approve Google authenticated users
-          role: 'user' // Set default role
+          approved: true,
+          role: 'user'
         });
       }
 
-      // Log the user in
       req.login(user, (err) => {
         if (err) {
           console.error('Login error:', err);

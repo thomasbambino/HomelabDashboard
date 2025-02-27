@@ -27,6 +27,7 @@ export function GoogleAuthButton() {
 
       // Get the ID token
       const idToken = await result.user.getIdToken();
+      console.log('Successfully obtained ID token from Google');
 
       // Show success toast for Google auth
       toast({
@@ -71,6 +72,8 @@ export function GoogleAuthButton() {
           errorMessage = "Network error occurred. Please check your connection and try again.";
         } else if (error.message.includes('popup-blocked')) {
           errorMessage = "Pop-up was blocked. Please allow pop-ups for this site and try again.";
+        } else if (error.message.includes('Failed to authenticate')) {
+          errorMessage = error.message;
         }
       }
 
