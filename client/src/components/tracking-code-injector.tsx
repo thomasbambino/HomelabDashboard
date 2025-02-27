@@ -17,31 +17,22 @@ export function TrackingCodeInjector() {
     // If there's a tracking code in settings, inject it
     if (settings?.tracking_code) {
       try {
-        // Create a script element directly
+        // Create a new script element
         const script = document.createElement('script');
 
-        // Parse the tracking code to extract attributes
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = settings.tracking_code;
-        const sourceScript = tempDiv.querySelector('script');
+        // Set script attributes from tracking code
+        script.defer = true;
+        script.src = "http://192.168.0.124:3000/script.js";
+        script.setAttribute('data-website-id', '8ad305e2-bee6-4306-a498-f1b8486dc77e');
 
-        if (sourceScript) {
-          // Copy all attributes from the source script
-          Array.from(sourceScript.attributes).forEach(attr => {
-            script.setAttribute(attr.name, attr.value);
-          });
+        // Mark it as our tracking script
+        script.setAttribute('data-tracking-script', 'true');
 
-          // Set the script content if any
-          script.textContent = sourceScript.textContent;
+        // Insert the script at the beginning of the head to ensure early loading
+        const firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(script, firstScript);
 
-          // Mark it as our tracking script
-          script.setAttribute('data-tracking-script', 'true');
-
-          // Add it to the head
-          document.head.appendChild(script);
-
-          console.log('Tracking script injected successfully');
-        }
+        console.log('Tracking script injected successfully');
       } catch (error) {
         console.error('Error injecting tracking script:', error);
       }
