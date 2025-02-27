@@ -619,12 +619,17 @@ export function setupAuth(app: Express) {
       if (!user) {
         console.log('Creating new user for email:', decodedToken.email);
         const randomPassword = randomBytes(32).toString('hex');
+
+        // Get default role from settings
+        const settings = await storage.getSettings();
+        const defaultRole = settings?.default_role || 'user';
+
         user = await storage.createUser({
           username: decodedToken.name || decodedToken.email.split('@')[0],
           email: decodedToken.email,
           password: await hashPassword(randomPassword),
           approved: true,
-          role: 'user'
+          role: defaultRole
         });
       }
 
