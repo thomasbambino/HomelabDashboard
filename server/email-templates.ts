@@ -142,6 +142,22 @@ const templates = [
     defaultTemplate: true
   },
   {
+    name: "Game Server Request",
+    subject: "New Game Server Request",
+    template: baseTemplate.replace("{{content}}", `
+      <h2>New Game Server Request</h2>
+      <p>A new game server has been requested:</p>
+      <ul>
+        <li><strong>Game:</strong> {{game}}</li>
+        <li><strong>Requested by:</strong> {{username}}</li>
+        <li><strong>User Email:</strong> {{userEmail}}</li>
+        <li><strong>Time:</strong> {{timestamp}}</li>
+      </ul>
+      <p>Please review this request in the admin dashboard.</p>
+    `),
+    defaultTemplate: true
+  },
+  {
     name: "User Password Reset Request",
     subject: "Password Reset Request",
     template: baseTemplate.replace("{{content}}", `
@@ -176,22 +192,6 @@ const templates = [
           <strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.
         </div>
       </div>
-    `),
-    defaultTemplate: true
-  },
-  {
-    name: "Game Server Request",
-    subject: "New Game Server Request",
-    template: baseTemplate.replace("{{content}}", `
-      <h2>New Game Server Request</h2>
-      <p>A new game server has been requested:</p>
-      <ul>
-        <li><strong>Game:</strong> {{game}}</li>
-        <li><strong>Requested by:</strong> {{username}}</li>
-        <li><strong>User Email:</strong> {{userEmail}}</li>
-        <li><strong>Time:</strong> {{timestamp}}</li>
-      </ul>
-      <p>Please review this request in the admin dashboard.</p>
     `),
     defaultTemplate: true
   }
