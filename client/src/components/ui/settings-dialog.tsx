@@ -24,11 +24,11 @@ export function SettingsDialog() {
   const { user } = useAuth();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const isSuperAdmin = user?.role === 'superadmin';
-  const [currentTab, setCurrentTab] = useState("general"); // Added state for current tab
+  const [currentTab, setCurrentTab] = useState("general");
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
-    enabled: open, // Only fetch when dialog is open
+    enabled: open,
   });
 
   const form = useForm({
@@ -58,6 +58,14 @@ export function SettingsDialog() {
     },
   });
 
+  // Watch for favicon label changes
+  useEffect(() => {
+    const faviconLabel = form.watch("favicon_label");
+    if (faviconLabel) {
+      document.title = faviconLabel;
+    }
+  }, [form.watch("favicon_label")]);
+
   // Reset form when settings are loaded or dialog is opened
   useEffect(() => {
     if (settings && open) {
@@ -84,6 +92,11 @@ export function SettingsDialog() {
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
       });
+
+      // Set the document title when settings are loaded
+      if (settings.favicon_label) {
+        document.title = settings.favicon_label;
+      }
     }
   }, [settings, open, form]);
 
@@ -110,6 +123,11 @@ export function SettingsDialog() {
           online_color: data.online_color,
           offline_color: data.offline_color,
         });
+
+        // Update the document title immediately after successful mutation
+        if (data.favicon_label) {
+          document.title = data.favicon_label;
+        }
       } else if (currentTab === "visibility") {
         Object.assign(relevantData, {
           show_refresh_interval: data.show_refresh_interval,
@@ -210,7 +228,7 @@ export function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>Admin Settings</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}> {/* Added onValueChange */}
+        <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
           <TabsList className="w-full flex space-x-1">
             <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
             <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
