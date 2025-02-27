@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ISPIcon } from '@/components/isp-icons/ISPIcon.js';
@@ -11,12 +11,28 @@ export function GoogleAuthButton() {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleGoogleSignIn = async () => {
+    if (isLoading) return;
+
     try {
       setIsLoading(true);
 
+      // Show loading toast
+      toast({
+        title: "Connecting to Google",
+        description: "Please complete the sign-in in the popup window",
+      });
+
       // Try to sign in with Google
       const result = await signInWithPopup(auth, googleProvider);
+
+      // Get the ID token
       const idToken = await result.user.getIdToken();
+
+      // Show success toast for Google auth
+      toast({
+        title: "Google Sign-in Successful",
+        description: "Completing authentication with server...",
+      });
 
       // Send the token to our backend
       const response = await fetch('/api/auth/google', {
@@ -35,6 +51,12 @@ export function GoogleAuthButton() {
       // Backend will set the session cookie and return the user data
       await response.json();
 
+      // Show final success toast
+      toast({
+        title: "Success",
+        description: "Successfully signed in with Google",
+      });
+
       // Only redirect after successful authentication
       window.location.href = '/';
     } catch (error) {
@@ -43,10 +65,12 @@ export function GoogleAuthButton() {
       // Show more specific error messages
       let errorMessage = "Could not sign in with Google. Please try again.";
       if (error instanceof Error) {
-        if (error.message.includes('popup')) {
+        if (error.message.includes('popup-closed-by-user')) {
           errorMessage = "The sign-in popup was closed. Please try again.";
         } else if (error.message.includes('network')) {
           errorMessage = "Network error occurred. Please check your connection and try again.";
+        } else if (error.message.includes('popup-blocked')) {
+          errorMessage = "Pop-up was blocked. Please allow pop-ups for this site and try again.";
         }
       }
 
