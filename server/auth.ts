@@ -112,7 +112,7 @@ async function getClientIp(req: Request) {
   return req.ip;
 }
 
-const googleClient = new OAuth2Client();
+const googleClient = new OAuth2Client(process.env.VITE_FIREBASE_PROJECT_ID);
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -354,6 +354,56 @@ export function setupAuth(app: Express) {
   });
 
 
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "No token provided" });
+      }
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.VITE_FIREBASE_PROJECT_ID
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+
+      const { email, name } = payload;
+      let user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        // Create a new user if they don't exist
+        const randomPassword = randomBytes(32).toString('hex');
+        user = await storage.createUser({
+          username: name || email.split('@')[0],
+          email,
+          password: await hashPassword(randomPassword),
+          approved: true, // Auto-approve Google authenticated users
+          role: 'user' // Set default role
+        });
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.status(500).json({ message: "Error logging in" });
+        }
+        res.json(user);
+      });
+
+    } catch (error) {
+      console.error('Google auth error:', error);
+      res.status(401).json({ 
+        message: "Authentication failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
     const { userId } = req.body;
     const user = await storage.getUser(userId);
@@ -566,49 +616,6 @@ export function setupAuth(app: Express) {
       res.json({ message: "Test email sent successfully" });
     } else {
       res.status(500).json({ message: "Failed to send test email" });
-    }
-  });
-
-  // Add new route to handle Google authentication
-  app.post("/api/auth/google", async (req, res) => {
-    try {
-      const { token } = req.body;
-
-      const ticket = await googleClient.verifyIdToken({
-        idToken: token,
-        audience: process.env.VITE_FIREBASE_PROJECT_ID
-      });
-
-      const payload = ticket.getPayload();
-      if (!payload) {
-        return res.status(401).json({ message: "Invalid token" });
-      }
-
-      const { email, name: username } = payload;
-
-      let user = await storage.getUserByEmail(email);
-
-      if (!user) {
-        const randomPassword = randomBytes(32).toString('hex');
-        user = await storage.createUser({
-          username: username || email.split('@')[0],
-          email,
-          password: await hashPassword(randomPassword),
-          approved: true // Auto-approve Google authenticated users
-        });
-      }
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Login error:', err);
-          return res.status(500).json({ message: "Error logging in" });
-        }
-        res.json(user);
-      });
-
-    } catch (error) {
-      console.error('Google auth error:', error);
-      res.status(401).json({ message: "Authentication failed" });
     }
   });
 }

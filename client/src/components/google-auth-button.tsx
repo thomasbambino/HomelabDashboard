@@ -13,10 +13,12 @@ export function GoogleAuthButton() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
+
+      // Try to sign in with Google
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
 
-      // Send the token to our backend to verify and create/update user session
+      // Send the token to our backend
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: {
@@ -26,17 +28,31 @@ export function GoogleAuthButton() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to authenticate with the server');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to authenticate with the server');
       }
 
       // Backend will set the session cookie and return the user data
       await response.json();
-      window.location.href = '/'; // Redirect to home page after successful authentication
+
+      // Only redirect after successful authentication
+      window.location.href = '/';
     } catch (error) {
       console.error('Google sign in error:', error);
+
+      // Show more specific error messages
+      let errorMessage = "Could not sign in with Google. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes('popup')) {
+          errorMessage = "The sign-in popup was closed. Please try again.";
+        } else if (error.message.includes('network')) {
+          errorMessage = "Network error occurred. Please check your connection and try again.";
+        }
+      }
+
       toast({
         title: "Authentication failed",
-        description: "Could not sign in with Google. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
