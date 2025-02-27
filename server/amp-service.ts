@@ -51,21 +51,16 @@ export class AMPService {
     });
   }
 
-  private async makeAPICall(method: string, parameters: any = {}, requiresAuth: boolean = true) {
+  private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      console.log(`Making API call to ${method}`, { ...parameters, password: '[REDACTED]' });
-
-      const requestBody = {
-        method,
-        parameters: {
-          ...parameters,
-          ...(requiresAuth && this.sessionId ? { SESSIONID: this.sessionId } : {})
-        }
-      };
+      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
 
       const response = await axios.post(
-        `${this.baseUrl}/API/`,
-        requestBody,
+        `${this.baseUrl}/API/${endpoint}`,
+        {
+          ...parameters,
+          ...(requiresAuth && this.sessionId ? { SESSIONID: this.sessionId } : {})
+        },
         {
           headers: {
             'Accept': 'application/json',
@@ -74,10 +69,10 @@ export class AMPService {
         }
       );
 
-      console.log(`API Response from ${method}:`, response.data);
+      console.log(`API Response from ${endpoint}:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(`API call failed for ${method}:`, error);
+      console.error(`API call failed for ${endpoint}:`, error);
       if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', error.response.data);
         throw new Error(`API call failed: ${error.response.data.message || error.message}`);
@@ -116,34 +111,33 @@ export class AMPService {
     }
   }
 
+  private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
+    await this.ensureAuthenticated();
+    return this.makeAPICall(endpoint, parameters, true);
+  }
+
   // Server control methods
   async startInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.makeAPICall('Core/StartInstance', { InstanceName: instanceId });
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
   }
 
   async stopInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.makeAPICall('Core/StopInstance', { InstanceName: instanceId });
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
   }
 
   async restartInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.makeAPICall('Core/RestartInstance', { InstanceName: instanceId });
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
   }
 
   async killInstance(instanceId: string): Promise<void> {
-    await this.ensureAuthenticated();
-    await this.makeAPICall('Core/Kill', { InstanceName: instanceId });
+    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
   }
 
-  // Status and metrics methods updated to use new API format
+  // Status and metrics methods
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      await this.ensureAuthenticated();
-      // Keep the original path format for getting instances
-      const result = await this.makeAPICall('ADSModule/GetInstances');
+      const result = await this.callAPI('ADSModule/GetInstances', {});
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
         const instances = result[0].AvailableInstances;
@@ -168,9 +162,7 @@ export class AMPService {
   async getInstanceStatus(instanceId: string): Promise<any> {
     try {
       console.log(`Getting status for instance ${instanceId}`);
-      await this.ensureAuthenticated();
-      // Keep the original path format for status
-      const status = await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`);
+      const status = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
       console.log(`Status for instance ${instanceId}:`, status);
       return status;
     } catch (error) {
@@ -317,10 +309,6 @@ export class AMPService {
         throw new Error('Cannot determine available API methods');
       }
     }
-  }
-  private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, parameters, true);
   }
 }
 
