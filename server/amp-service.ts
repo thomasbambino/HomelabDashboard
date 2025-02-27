@@ -118,19 +118,48 @@ export class AMPService {
 
   // Server control methods
   async startInstance(instanceId: string): Promise<void> {
-    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+    // Try both methods since AMP API can be inconsistent
+    try {
+      // Try first with the instance ID
+      await this.callAPI(`Core/Start`, { InstanceName: instanceId });
+    } catch (error) {
+      console.log(`Failed with direct method, trying alternative path for start: ${error}`);
+      // Fallback to the old method
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+    }
   }
 
   async stopInstance(instanceId: string): Promise<void> {
-    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+    try {
+      // Try first with the instance ID
+      await this.callAPI(`Core/Stop`, { InstanceName: instanceId });
+    } catch (error) {
+      console.log(`Failed with direct method, trying alternative path for stop: ${error}`);
+      // Fallback to the old method
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+    }
   }
 
   async restartInstance(instanceId: string): Promise<void> {
-    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+    try {
+      // Try first with the instance ID
+      await this.callAPI(`Core/Restart`, { InstanceName: instanceId });
+    } catch (error) {
+      console.log(`Failed with direct method, trying alternative path for restart: ${error}`);
+      // Fallback to the old method
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+    }
   }
 
   async killInstance(instanceId: string): Promise<void> {
-    await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+    try {
+      // Try first with the instance ID
+      await this.callAPI(`Core/Kill`, { InstanceName: instanceId });
+    } catch (error) {
+      console.log(`Failed with direct method, trying alternative path for kill: ${error}`);
+      // Fallback to the old method
+      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+    }
   }
 
   // Status and metrics methods
