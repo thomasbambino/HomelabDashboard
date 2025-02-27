@@ -1,3 +1,4 @@
+import admin from 'firebase-admin';
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express, Request, Response, NextFunction } from "express";
@@ -8,9 +9,31 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
 import { getIpInfo } from './utils/ip';
-import { OAuth2Client } from 'google-auth-library';
 
 const scryptAsync = promisify(scrypt);
+
+// Initialize Firebase Admin
+try {
+  // Delete any existing apps
+  const apps = admin.apps;
+  if (apps.length) {
+    console.log('Cleaning up existing Firebase Admin apps...');
+    apps.forEach(app => app && app.delete());
+  }
+
+  // Initialize with service account
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: 'stylus-dashboard-f6c70',
+      clientEmail: 'firebase-adminsdk-stylus-dashboard-f6c70@stylus-dashboard-f6c70.iam.gserviceaccount.com',
+      privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmaougWKcG8x5o\nOmNWsnQg3ZFPuQ/Wu33YMiVpogPbIXCwQ8H/Rjcvl+LzXWPJesdIBMLd4xp0c/AA\nZqrZkvJ3wQOycAOcRwIOI4ZhC2ellH81OCa1BvS/Z1Ywv4PbOq60b1S9bonlj/jG\n3rbjHSsbEtQX1AZz9rxgnKnGfSD6KhVFzXzOT/C/K0Q2OA81wX6M0EAo4pT+/p1I\n3SKWur1T0jsnDkX/OGoIQgZOrGSMTqb45cGZfbEo2zTmqoPADxBimcz7eJ8z8HfA\n3bBi8KMpHaI0MR4CYXSp7odOibFVPIz4IPb09/WI8t2onBMXeEr3rsFeZJrbSVdv\nTnyJDV1vAgMBAAECggEAArCNCka9a3XkBSTJxnTUk+ISpmNSUlLuGvwXKnw7iGN4\n+R6PPAJt9T2E3rsvHyNLpXhyrH8uYpyPT+l1U+R1jv6ZuweR/nq6bv9mbykYlWsS\n47RPZ2ZHRUZ02EZpBigqwgXOnnqBN9Ur+WLeHS1eEKctI+7IyM3qMp/DzkA8l251\njws1q0FZq3tJicACJ00fD+Y1C+FmZGc/NZ84tFIzUKIWpfTEbsvUE0mWRjwbJJ4K\nQoD0hp6a4L3mzmHollZL1gj7eT8mdT14PUp4TgNTRz2cZEHZpbd53oWgCLEZjbGR\nqVOWxb3OZ2X5I2HIG2Q/bPbcBMR2LIPxPvDm6G9k8QKBgQDdGfMCmWTIkEWm52nF\n9aKIdIx4SrNiZSCLZYiE/48zwyld8lRp53rlF7X6AKaaOznfFNer8JIXfDQAP6AH\nXXOs07GoCTZjkAOatv+Asuj7P7KLWKdlvKjn43pn8BCIcBUQMu175IJbKHIskyIB\n8IhsbhCWIRZ5uRB+nQzXEbFr9wKBgQDAru40OFML8kwxPOxVEm3ukhcisa/KKMqj\n+qSkd+GWruhAlQggPxlWbV2rZ5OK0ejgkpTbrV+R/avoLxlX8EN7AJjh49kyjMSF\nJjcryNM4VJ6oTeef8JcptgHAOp4a+x4+jDydMlEZnaptdcShSjD0PPYKI1Qhz4Ke\nft2ZAUoMSQKBgQCaLXIrqdOBmDk5vb0gcb048izR5SVZw7MCAXdFZv/w1HKQNF9w\nyh4Eipg3ESUb/5jHWr1aBJObFN0eHz/0YtI6/hOwXVwz6UTaKinZEOkt6qkSSmvQ\nodIWgaXlvJ2Kxr2pYhoAfsP31ShotODOAXDgS4/9YG1PzCEYaWN+xbO22QKBgD+T\neJVSYFR4xhsY9wG66vrkyS1xY4dYnkQs11ZNF+oYHBnzEpNRPpL90wJTUqNjT2uJ\n8gPp2Lba9HXP1JTnedyD/e3KuEetmso0KdAQm2DiytbNnbdwMvBYVYuPy8srQHdy\n3i0gBRJmq20ihpaRXEW6N5Rww7nENl0FjyiE/GHBAoGAag2hp6qclxeysJctlvK1\naHbt5CTUfC2eodNzB8D+kJ50kpWAVB9NdDFv69A26jVE5cvoOrlUpwIVmxAIkPPu\n8lS1XrObHOZNI/+Yi7k0LtIVg2S2DWUKZh6fXZfqC70OISSWISFVK4MERhakQrGX\nwF5GJxxfDNa/Wm5F/Lek69E=\n-----END PRIVATE KEY-----\n"
+    }),
+  });
+
+  console.log('Firebase Admin initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase Admin:', error);
+}
 
 const RATE_LIMIT = {
   MAX_ATTEMPTS: 5,
@@ -112,11 +135,6 @@ async function getClientIp(req: Request) {
   return req.ip;
 }
 
-const googleClient = new OAuth2Client({
-  clientId: "779648554838-tqj0khcc0ra6d8qcb79ssjddf2d4c1aq.apps.googleusercontent.com",  // Use the messaging sender ID as the client ID
-});
-
-console.log('Google OAuth client initialized with client ID:', '[REDACTED]');
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -357,63 +375,6 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-
-  app.post("/api/auth/google", async (req, res) => {
-    try {
-      const { token } = req.body;
-      if (!token) {
-        console.error('No token provided in request');
-        return res.status(400).json({ message: "No token provided" });
-      }
-
-      const ticket = await googleClient.verifyIdToken({
-        idToken: token,
-        audience: "779648554838-tqj0khcc0ra6d8qcb79ssjddf2d4c1aq.apps.googleusercontent.com"  // Use the full client ID
-      }).catch(error => {
-        console.error('Token verification failed:', error);
-        throw error;
-      });
-
-      const payload = ticket.getPayload();
-      if (!payload || !payload.email) {
-        console.error('Invalid token payload:', payload);
-        return res.status(401).json({ message: "Invalid token payload" });
-      }
-
-      console.log('Token verified successfully for email:', payload.email);
-
-      const { email, name } = payload;
-      let user = await storage.getUserByEmail(email);
-
-      if (!user) {
-        console.log('Creating new user for email:', email);
-        const randomPassword = randomBytes(32).toString('hex');
-        user = await storage.createUser({
-          username: name || email.split('@')[0],
-          email,
-          password: await hashPassword(randomPassword),
-          approved: true,
-          role: 'user'
-        });
-      }
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Login error:', err);
-          return res.status(500).json({ message: "Error logging in" });
-        }
-        res.json(user);
-      });
-
-    } catch (error) {
-      console.error('Google auth error:', error);
-      res.status(401).json({ 
-        message: "Authentication failed",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   app.post("/api/admin/reset-user-password", isAdmin, async (req, res) => {
     const { userId } = req.body;
     const user = await storage.getUser(userId);
@@ -628,6 +589,61 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        console.error('No token provided in request');
+        return res.status(400).json({ message: "No token provided" });
+      }
+
+      console.log('Attempting to verify Firebase token');
+
+      // Verify the Firebase ID token
+      const decodedToken = await admin.auth().verifyIdToken(token)
+        .catch(error => {
+          console.error('Token verification failed:', error);
+          throw error;
+        });
+
+      if (!decodedToken.email) {
+        console.error('No email in decoded token:', decodedToken);
+        return res.status(401).json({ message: "Invalid token: no email found" });
+      }
+
+      console.log('Token verified successfully for email:', decodedToken.email);
+
+      let user = await storage.getUserByEmail(decodedToken.email);
+
+      if (!user) {
+        console.log('Creating new user for email:', decodedToken.email);
+        const randomPassword = randomBytes(32).toString('hex');
+        user = await storage.createUser({
+          username: decodedToken.name || decodedToken.email.split('@')[0],
+          email: decodedToken.email,
+          password: await hashPassword(randomPassword),
+          approved: true,
+          role: 'user'
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.status(500).json({ message: "Error logging in" });
+        }
+        res.json(user);
+      });
+
+    } catch (error) {
+      console.error('Google auth error:', error);
+      res.status(401).json({
+        message: "Authentication failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 }
 
 async function hashPassword(password: string) {
@@ -681,12 +697,12 @@ async function createAdminUser(username: string, password: string, email: string
     }
 
     const hashedPassword = await hashPassword(password);
-    const newUser = await storage.createUser({ 
-      username, 
-      password: hashedPassword, 
-      email, 
-      role: 'superadmin', 
-      approved: true 
+    const newUser = await storage.createUser({
+      username,
+      password: hashedPassword,
+      email,
+      role: 'superadmin',
+      approved: true
     });
     console.log("New admin user created:", newUser);
     return newUser;
@@ -697,5 +713,5 @@ async function createAdminUser(username: string, password: string, email: string
 }
 
 function compileTemplate(template: string, data: any): string {
-  return template; 
+  return template;
 }
