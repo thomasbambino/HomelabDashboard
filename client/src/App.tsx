@@ -12,7 +12,6 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
-import { TrackingCodeInjector } from "@/components/tracking-code-injector";
 
 function Router() {
   return (
@@ -32,7 +31,6 @@ export default function App() {
       <div className="min-h-screen bg-background text-foreground">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <TrackingCodeInjector />
             <FaviconUpdater />
             <Router />
             <Toaster />
