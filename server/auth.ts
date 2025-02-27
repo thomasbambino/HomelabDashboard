@@ -113,7 +113,7 @@ async function getClientIp(req: Request) {
 }
 
 const googleClient = new OAuth2Client({
-  clientId: "779648554838",  // Use the messagingSenderId as the client ID
+  clientId: "779648554838-tqj0khcc0ra6d8qcb79ssjddf2d4c1aq.apps.googleusercontent.com",  // Use the messaging sender ID as the client ID
 });
 
 console.log('Google OAuth client initialized with client ID:', '[REDACTED]');
@@ -368,7 +368,7 @@ export function setupAuth(app: Express) {
 
       const ticket = await googleClient.verifyIdToken({
         idToken: token,
-        audience: "779648554838"  // Use the messagingSenderId as the audience
+        audience: "779648554838-tqj0khcc0ra6d8qcb79ssjddf2d4c1aq.apps.googleusercontent.com"  // Use the full client ID
       }).catch(error => {
         console.error('Token verification failed:', error);
         throw error;
