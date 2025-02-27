@@ -72,8 +72,8 @@ export default function Dashboard() {
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
                 <Button variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  <span>Manage Users</span>
+                  <Users className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Manage Users</span>
                 </Button>
               </Link>
             )}
@@ -81,8 +81,8 @@ export default function Dashboard() {
               variant="outline" 
               onClick={() => logoutMutation.mutate()}
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              <span>Logout</span>
+              <LogOut className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Logout</span>
             </Button>
           </div>
         </header>
