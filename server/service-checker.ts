@@ -52,24 +52,11 @@ async function updateServiceStatus(service: Service) {
 
   if (hasStatusChanged) {
     try {
+      // Only log status changes (transitions between online and offline)
       await storage.createServiceStatusLog(service.id, status, responseTime);
-      console.log(`Status logged for service ${service.name}: ${status ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
-    } catch (error) {
-      console.error('Error logging status:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          serviceId: service.id,
-          serviceName: service.name,
-          status,
-          responseTime
-        });
-      }
-    }
+      console.log(`Status change logged for service ${service.name}: ${status ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
 
-    // Update service status in database
-    try {
+      // Update service status in database
       await db
         .update(services)
         .set({ 
@@ -81,6 +68,26 @@ async function updateServiceStatus(service: Service) {
       console.log(`Service status updated in database for ${service.name}`);
     } catch (error) {
       console.error('Error updating service status:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          serviceId: service.id,
+          serviceName: service.name,
+          status,
+          responseTime
+        });
+      }
+    }
+  } else {
+    // Even if status hasn't changed, update the lastChecked timestamp
+    try {
+      await db
+        .update(services)
+        .set({ lastChecked: new Date().toISOString() })
+        .where(eq(services.id, service.id));
+    } catch (error) {
+      console.error('Error updating lastChecked timestamp:', error);
     }
   }
 

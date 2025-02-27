@@ -309,14 +309,8 @@ export class DatabaseStorage implements IStorage {
 
     const logs = await query.orderBy(desc(serviceStatusLogs.timestamp));
 
-    // Filter to only include status changes
-    const lastStatusByService = new Map<number, boolean>();
-    return logs.filter((log) => {
-      const lastStatus = lastStatusByService.get(log.serviceId);
-      const isChange = lastStatus === undefined || lastStatus !== log.status;
-      lastStatusByService.set(log.serviceId, log.status);
-      return isChange;
-    });
+    // Since we're only storing status changes now, we don't need additional filtering
+    return logs;
   }
 
   async getService(id: number): Promise<Service | undefined> {
