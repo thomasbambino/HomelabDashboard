@@ -699,12 +699,13 @@ export function setupAuth(app: Express) {
 
         try {
           const ipInfo = await getIpInfo(clientIp);
+          const now = new Date();
 
           await storage.addLoginAttempt({
             identifier: decodedToken.email,
             ip: ipInfo.ip || clientIp,
             type: 'success',
-            timestamp: new Date(),
+            timestamp: now,
             isp: ipInfo.isp || null,
             city: ipInfo.city || null,
             region: ipInfo.region || null,
@@ -713,7 +714,8 @@ export function setupAuth(app: Express) {
 
           await storage.updateUser({
             id: user.id,
-            last_ip: ipInfo.ip || clientIp
+            last_ip: ipInfo.ip || clientIp,
+            last_login: now // Add last_login update for Google auth
           });
 
         } catch (error) {
