@@ -1,5 +1,6 @@
 import axios from 'axios';
 import https from 'https';
+import axiosRetry from 'axios-retry';
 
 interface AMPInstance {
   InstanceID: string;
@@ -46,6 +47,16 @@ export class AMPService {
       });
     }
 
+    // Configure axios with retry logic
+    axiosRetry(axios, { 
+      retries: 3,
+      retryDelay: axiosRetry.exponentialDelay,
+      retryCondition: (error) => {
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+               error.response?.status === 401; // Retry on auth failures
+      }
+    });
+
     axios.defaults.httpsAgent = new https.Agent({
       rejectUnauthorized: false
     });
@@ -53,7 +64,15 @@ export class AMPService {
 
   private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
-      console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
+      console.log(`Making API call to ${endpoint}`, { 
+        ...parameters,
+        password: parameters.password ? '[REDACTED]' : undefined
+      });
+
+      // Ensure we have a valid session if authentication is required
+      if (requiresAuth) {
+        await this.ensureAuthenticated();
+      }
 
       const response = await axios.post(
         `${this.baseUrl}/API/${endpoint}`,
@@ -75,6 +94,12 @@ export class AMPService {
       console.error(`API call failed for ${endpoint}:`, error);
       if (axios.isAxiosError(error) && error.response) {
         console.error('Error response:', error.response.data);
+        if (error.response.status === 401 && requiresAuth) {
+          // Force session refresh on next request
+          this.sessionId = null;
+          this.sessionExpiry = null;
+          throw new Error('Authentication failed. Please check your credentials.');
+        }
         throw new Error(`API call failed: ${error.response.data.message || error.message}`);
       }
       throw error;
@@ -111,54 +136,42 @@ export class AMPService {
     }
   }
 
-  private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
-    await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, parameters, true);
-  }
-
-  // Server control methods
+  // Server control methods with fallbacks
   async startInstance(instanceId: string): Promise<void> {
-    // Try both methods since AMP API can be inconsistent
     try {
-      // Try first with the instance ID
-      await this.callAPI(`Core/Start`, { InstanceName: instanceId });
+      // Try first with instance name
+      await this.makeAPICall(`Core/Start`, { InstanceName: instanceId });
     } catch (error) {
       console.log(`Failed with direct method, trying alternative path for start: ${error}`);
       // Fallback to the old method
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+      await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
     }
   }
 
   async stopInstance(instanceId: string): Promise<void> {
     try {
-      // Try first with the instance ID
-      await this.callAPI(`Core/Stop`, { InstanceName: instanceId });
+      await this.makeAPICall(`Core/Stop`, { InstanceName: instanceId });
     } catch (error) {
       console.log(`Failed with direct method, trying alternative path for stop: ${error}`);
-      // Fallback to the old method
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+      await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
     }
   }
 
   async restartInstance(instanceId: string): Promise<void> {
     try {
-      // Try first with the instance ID
-      await this.callAPI(`Core/Restart`, { InstanceName: instanceId });
+      await this.makeAPICall(`Core/Restart`, { InstanceName: instanceId });
     } catch (error) {
       console.log(`Failed with direct method, trying alternative path for restart: ${error}`);
-      // Fallback to the old method
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+      await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
     }
   }
 
   async killInstance(instanceId: string): Promise<void> {
     try {
-      // Try first with the instance ID
-      await this.callAPI(`Core/Kill`, { InstanceName: instanceId });
+      await this.makeAPICall(`Core/Kill`, { InstanceName: instanceId });
     } catch (error) {
       console.log(`Failed with direct method, trying alternative path for kill: ${error}`);
-      // Fallback to the old method
-      await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+      await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
     }
   }
 
@@ -166,11 +179,11 @@ export class AMPService {
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
-      const result = await this.callAPI('ADSModule/GetInstances', {});
+      const result = await this.makeAPICall('ADSModule/GetInstances', {});
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
         const instances = result[0].AvailableInstances;
-        console.log('Found instances with metrics:', instances);
+        console.log('Found instances:', instances);
         return instances.map((instance: any) => ({
           ...instance,
           Metrics: instance.Metrics || {
@@ -191,7 +204,7 @@ export class AMPService {
   async getInstanceStatus(instanceId: string): Promise<any> {
     try {
       console.log(`Getting status for instance ${instanceId}`);
-      const status = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
+      const status = await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`, {});
       console.log(`Status for instance ${instanceId}:`, status);
       return status;
     } catch (error) {
@@ -247,7 +260,7 @@ export class AMPService {
       console.log(`Getting user list for instance ${instanceId}`);
 
       // Call the GetUserList API endpoint
-      const result = await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/GetUserList`, {});
+      const result = await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/GetUserList`, {});
       console.log('Raw user list response:', result);
 
       // Handle empty or invalid responses
@@ -321,7 +334,7 @@ export class AMPService {
     try {
       console.log('Attempting to get API specification...');
       // Try to get the API specification
-      const apiSpec = await this.callAPI('Core/GetAPISpec', {});
+      const apiSpec = await this.makeAPICall('Core/GetAPISpec', {});
       console.log('Available API methods:', apiSpec);
       return apiSpec;
     } catch (error) {
@@ -330,7 +343,7 @@ export class AMPService {
       // If GetAPISpec also doesn't exist, try a different approach
       try {
         console.log('Trying to get module info instead...');
-        const moduleInfo = await this.callAPI('Core/GetModuleInfo', {});
+        const moduleInfo = await this.makeAPICall('Core/GetModuleInfo', {});
         console.log('Module info (might contain API hints):', moduleInfo);
         return moduleInfo;
       } catch (innerError) {
