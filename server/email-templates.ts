@@ -65,29 +65,6 @@ const baseTemplate = `
       background-color: #fee2e2;
       color: #991b1b;
     }
-    .code-block {
-      background-color: #f4f4f5;
-      padding: 12px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 16px;
-      text-align: center;
-      margin: 16px 0;
-      border: 1px solid #e4e4e7;
-    }
-    .content-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 20px 0;
-    }
-    .heading {
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-    .information {
-      margin-top: 16px;
-    }
     .alert {
       padding: 12px;
       border-radius: 6px;
@@ -95,6 +72,28 @@ const baseTemplate = `
       background-color: #fef3c7;
       color: #92400e;
       border: 1px solid #f59e0b;
+    }
+    .details {
+      background-color: #f4f4f5;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+    .details ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .details li {
+      margin: 8px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    .details li:before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #666;
     }
     @media only screen and (max-width: 600px) {
       .container { width: 100%; padding: 10px; }
@@ -147,12 +146,14 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>New Game Server Request</h2>
       <p>A new game server has been requested:</p>
-      <ul>
-        <li><strong>Game:</strong> {{game}}</li>
-        <li><strong>Requested by:</strong> {{username}}</li>
-        <li><strong>User Email:</strong> {{userEmail}}</li>
-        <li><strong>Time:</strong> {{timestamp}}</li>
-      </ul>
+      <div class="details">
+        <ul>
+          <li><strong>Game:</strong> {{game}}</li>
+          <li><strong>Requested by:</strong> {{username}}</li>
+          <li><strong>User Email:</strong> {{userEmail}}</li>
+          <li><strong>Time:</strong> {{timestamp}}</li>
+        </ul>
+      </div>
       <p>Please review this request in the admin dashboard.</p>
     `),
     defaultTemplate: true
@@ -163,16 +164,18 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Password Reset Request</h2>
       <p>A password reset has been requested for your account.</p>
-      <div class="content-box">
-        <p class="heading">Your New Temporary Password:</p>
-        <div class="code-block">{{tempPassword}}</div>
+      <div class="details">
+        <ul>
+          <li><strong>Temporary Password:</strong> {{tempPassword}}</li>
+          <li><strong>Account:</strong> {{username}}</li>
+          <li><strong>Time:</strong> {{timestamp}}</li>
+        </ul>
       </div>
-      <div class="information">
-        <p>For security reasons, you will be required to change this password when you next log in.</p>
-        <div class="alert">
-          <strong>Important:</strong> If you did not request this password reset, please contact your administrator immediately.
-        </div>
+      <div class="alert">
+        <strong>Important:</strong> For security reasons, you will be required to change this password when you next log in.
+        If you did not request this password reset, please contact your administrator immediately.
       </div>
+      <p>Please use this temporary password to log in to your account.</p>
     `),
     defaultTemplate: true
   },
@@ -182,16 +185,18 @@ const templates = [
     template: baseTemplate.replace("{{content}}", `
       <h2>Password Reset by Administrator</h2>
       <p>Your password has been reset by an administrator.</p>
-      <div class="content-box">
-        <p class="heading">Your New Temporary Password:</p>
-        <div class="code-block">{{tempPassword}}</div>
+      <div class="details">
+        <ul>
+          <li><strong>Temporary Password:</strong> {{tempPassword}}</li>
+          <li><strong>Account:</strong> {{username}}</li>
+          <li><strong>Time:</strong> {{timestamp}}</li>
+        </ul>
       </div>
-      <div class="information">
-        <p>For security reasons, you will be required to change this password when you next log in.</p>
-        <div class="alert">
-          <strong>Important:</strong> If you did not expect this password reset, please contact your administrator immediately.
-        </div>
+      <div class="alert">
+        <strong>Important:</strong> For security reasons, you will be required to change this password when you next log in.
+        If you did not expect this password reset, please contact your administrator immediately.
       </div>
+      <p>Please use this temporary password to log in to your account.</p>
     `),
     defaultTemplate: true
   }

@@ -345,14 +345,17 @@ export function setupAuth(app: Express) {
           temp_password: true // Set temp_password flag
         });
 
+        const template = await storage.getEmailTemplateByName("Password Reset"); //Added to get template
         await sendEmail({
           to: user.email,
-          subject: "Password Reset",
-          html: `
-            <p>Your password has been reset as requested.</p>
-            <p>Your new temporary password is: ${tempPassword}</p>
-            <p>Please log in with this password. You will be required to change your password upon login.</p>
-          `
+          templateId: template?.id,
+          templateData: {
+            tempPassword,
+            username: user.username,
+            timestamp: new Date().toLocaleString(),
+            appName: process.env.APP_NAME || 'Homelab Monitor',
+            logoUrl: '/logo.png'
+          }
         });
       }
 
@@ -397,9 +400,11 @@ export function setupAuth(app: Express) {
 
       await sendEmail({
         to: user.email,
-        templateId: template?.id, // Use the template ID
+        templateId: template?.id,
         templateData: {
           tempPassword,
+          username: user.username,
+          timestamp: new Date().toLocaleString(),
           appName: process.env.APP_NAME || 'Homelab Monitor',
           logoUrl: '/logo.png'
         }
