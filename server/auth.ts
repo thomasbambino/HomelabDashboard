@@ -598,6 +598,7 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "No token provided" });
       }
 
+      const clientIp = await getClientIp(req);
       console.log('Attempting to verify Firebase token');
 
       // Verify the Firebase ID token
@@ -609,6 +610,23 @@ export function setupAuth(app: Express) {
 
       if (!decodedToken.email) {
         console.error('No email in decoded token:', decodedToken);
+
+        try {
+          const ipInfo = await getIpInfo(clientIp);
+          await storage.addLoginAttempt({
+            identifier: 'Unknown Google User',
+            ip: ipInfo.ip || clientIp,
+            type: 'failed',
+            timestamp: new Date(),
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+        } catch (error) {
+          console.error('Failed to record failed login attempt:', error);
+        }
+
         return res.status(401).json({ message: "Invalid token: no email found" });
       }
 
@@ -635,6 +653,22 @@ export function setupAuth(app: Express) {
 
       // Check if user is approved
       if (!user.approved) {
+        try {
+          const ipInfo = await getIpInfo(clientIp);
+          await storage.addLoginAttempt({
+            identifier: decodedToken.email,
+            ip: ipInfo.ip || clientIp,
+            type: 'failed',
+            timestamp: new Date(),
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+        } catch (error) {
+          console.error('Failed to record failed login attempt:', error);
+        }
+
         return res.status(403).json({
           message: "Account pending approval",
           requiresApproval: true,
@@ -647,16 +681,58 @@ export function setupAuth(app: Express) {
         });
       }
 
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) {
           console.error('Login error:', err);
           return res.status(500).json({ message: "Error logging in" });
         }
+
+        try {
+          const ipInfo = await getIpInfo(clientIp);
+
+          await storage.addLoginAttempt({
+            identifier: decodedToken.email,
+            ip: ipInfo.ip || clientIp,
+            type: 'success',
+            timestamp: new Date(),
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+
+          await storage.updateUser({
+            id: user.id,
+            last_ip: ipInfo.ip || clientIp
+          });
+
+        } catch (error) {
+          console.error('Failed to record successful login attempt:', error);
+        }
+
         res.json(user);
       });
 
     } catch (error) {
       console.error('Google auth error:', error);
+
+      try {
+        const clientIp = await getClientIp(req);
+        const ipInfo = await getIpInfo(clientIp);
+        await storage.addLoginAttempt({
+          identifier: 'Unknown Google User',
+          ip: ipInfo.ip || clientIp,
+          type: 'failed',
+          timestamp: new Date(),
+          isp: ipInfo.isp || null,
+          city: ipInfo.city || null,
+          region: ipInfo.region || null,
+          country: ipInfo.country || null
+        });
+      } catch (recordError) {
+        console.error('Failed to record failed login attempt:', recordError);
+      }
+
       res.status(401).json({
         message: "Authentication failed",
         details: error instanceof Error ? error.message : "Unknown error"
