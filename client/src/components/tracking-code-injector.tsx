@@ -1,67 +1,31 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Settings } from "@shared/schema";
 
 export function TrackingCodeInjector() {
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ["/api/settings"],
-  });
-
   useEffect(() => {
-    console.log("Current settings tracking code:", settings?.tracking_code);
-
     // Remove any existing tracking script
     const existingScript = document.querySelector('script[data-tracking-script]');
     if (existingScript) {
-      console.log("Removing existing tracking script");
       existingScript.remove();
     }
 
-    // If there's a tracking code in settings, inject it
-    if (settings?.tracking_code) {
-      try {
-        // Create a temporary container to parse the HTML
-        const container = document.createElement('div');
-        container.innerHTML = settings.tracking_code;
+    // Create and inject the tracking script
+    const script = document.createElement('script');
+    script.defer = true;
+    script.src = "http://192.168.0.124:3000/script.js";
+    script.setAttribute('data-website-id', '8ad305e2-bee6-4306-a498-f1b8486dc77e');
+    script.setAttribute('data-tracking-script', 'true');
 
-        // Get the script element from the parsed HTML
-        const scriptElement = container.querySelector('script');
+    // Insert the script into the document
+    document.body.appendChild(script);
 
-        if (scriptElement) {
-          // Create a new script element
-          const script = document.createElement('script');
-
-          // Copy all attributes from the original script
-          Array.from(scriptElement.attributes).forEach(attr => {
-            script.setAttribute(attr.name, attr.value);
-          });
-
-          // Set the inner content if any
-          if (scriptElement.innerHTML) {
-            script.innerHTML = scriptElement.innerHTML;
-          }
-
-          // Mark it as our tracking script
-          script.setAttribute('data-tracking-script', 'true');
-
-          // Get the first script in the document
-          const firstScript = document.getElementsByTagName('script')[0];
-
-          // Insert before the first script to ensure early loading
-          if (firstScript && firstScript.parentNode) {
-            firstScript.parentNode.insertBefore(script, firstScript);
-            console.log('Tracking script injected successfully');
-          } else {
-            // Fallback to appending to head if no script found
-            document.head.appendChild(script);
-            console.log('Tracking script appended to head');
-          }
-        }
-      } catch (error) {
-        console.error('Error injecting tracking script:', error);
+    // Cleanup on unmount
+    return () => {
+      const scriptToRemove = document.querySelector('script[data-tracking-script]');
+      if (scriptToRemove) {
+        scriptToRemove.remove();
       }
-    }
-  }, [settings?.tracking_code]);
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   return null;
 }
