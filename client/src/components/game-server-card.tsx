@@ -168,8 +168,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
           {server.icon ? (
             <div className="relative">
               {isAdmin ? (
-                <label 
-                  htmlFor={`icon-upload-${server.instanceId}`} 
+                <label
+                  htmlFor={`icon-upload-${server.instanceId}`}
                   className="cursor-pointer"
                   title="Click to change icon"
                 >
@@ -190,8 +190,8 @@ export function GameServerCard({ server }: GameServerCardProps) {
           ) : (
             <div className="relative">
               {isAdmin ? (
-                <label 
-                  htmlFor={`icon-upload-${server.instanceId}`} 
+                <label
+                  htmlFor={`icon-upload-${server.instanceId}`}
                   className="cursor-pointer"
                   title="Click to add icon"
                 >
@@ -212,9 +212,6 @@ export function GameServerCard({ server }: GameServerCardProps) {
           )}
           <CardTitle className="text-sm font-medium">
             {server.displayName || server.name}
-            <span className="text-xs text-muted-foreground ml-2">
-              {capitalizeGameType(server.type)}
-            </span>
           </CardTitle>
         </div>
         <div className="flex items-center gap-2">
