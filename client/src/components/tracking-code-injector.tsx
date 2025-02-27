@@ -8,9 +8,12 @@ export function TrackingCodeInjector() {
   });
 
   useEffect(() => {
+    console.log("Current settings tracking code:", settings?.tracking_code);
+
     // Remove any existing tracking script
     const existingScript = document.querySelector('script[data-tracking-script]');
     if (existingScript) {
+      console.log("Removing existing tracking script");
       existingScript.remove();
     }
 
