@@ -51,22 +51,16 @@ export class AMPService {
     });
   }
 
-  public reinitialize(url: string, username: string, password: string) {
-    console.log('Reinitializing AMP service with new credentials');
-    this.baseUrl = url.replace(/\/$/, '');
-    this.username = username;
-    this.password = password;
-    this.sessionId = null;
-    this.sessionExpiry = null;
-  }
-
   private async makeAPICall(endpoint: string, parameters: any = {}, requiresAuth: boolean = true) {
     try {
       console.log(`Making API call to ${endpoint}`, { ...parameters, password: '[REDACTED]' });
 
       const response = await axios.post(
         `${this.baseUrl}/API/${endpoint}`,
-        parameters,
+        {
+          ...parameters,
+          ...(requiresAuth && this.sessionId ? { SESSIONID: this.sessionId } : {})
+        },
         {
           headers: {
             'Accept': 'application/json',
@@ -119,7 +113,7 @@ export class AMPService {
 
   private async callAPI(endpoint: string, parameters: any = {}): Promise<any> {
     await this.ensureAuthenticated();
-    return this.makeAPICall(endpoint, { ...parameters, SESSIONID: this.sessionId }, true);
+    return this.makeAPICall(endpoint, parameters, true);
   }
 
   // Server control methods
@@ -139,16 +133,16 @@ export class AMPService {
     await this.callAPI(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
   }
 
+  // Status and metrics methods
   async getInstances(): Promise<AMPInstance[]> {
     try {
       console.log('Fetching AMP instances');
       const result = await this.callAPI('ADSModule/GetInstances', {});
-      console.log('Raw instance response:', result);
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
         const instances = result[0].AvailableInstances;
         console.log('Found instances with metrics:', instances);
-        return instances.map(instance => ({
+        return instances.map((instance: any) => ({
           ...instance,
           Metrics: instance.Metrics || {
             'CPU Usage': { RawValue: 0, MaxValue: 100 },
