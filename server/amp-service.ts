@@ -136,42 +136,40 @@ export class AMPService {
     }
   }
 
-  // Server control methods with fallbacks
+  // Server control methods
   async startInstance(instanceId: string): Promise<void> {
     try {
-      // Try first with instance name
-      await this.makeAPICall(`Core/Start`, { InstanceName: instanceId });
-    } catch (error) {
-      console.log(`Failed with direct method, trying alternative path for start: ${error}`);
-      // Fallback to the old method
       await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Start`, {});
+    } catch (error) {
+      console.error(`Failed to start instance ${instanceId}:`, error);
+      throw error;
     }
   }
 
   async stopInstance(instanceId: string): Promise<void> {
     try {
-      await this.makeAPICall(`Core/Stop`, { InstanceName: instanceId });
-    } catch (error) {
-      console.log(`Failed with direct method, trying alternative path for stop: ${error}`);
       await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Stop`, {});
+    } catch (error) {
+      console.error(`Failed to stop instance ${instanceId}:`, error);
+      throw error;
     }
   }
 
   async restartInstance(instanceId: string): Promise<void> {
     try {
-      await this.makeAPICall(`Core/Restart`, { InstanceName: instanceId });
-    } catch (error) {
-      console.log(`Failed with direct method, trying alternative path for restart: ${error}`);
       await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Restart`, {});
+    } catch (error) {
+      console.error(`Failed to restart instance ${instanceId}:`, error);
+      throw error;
     }
   }
 
   async killInstance(instanceId: string): Promise<void> {
     try {
-      await this.makeAPICall(`Core/Kill`, { InstanceName: instanceId });
-    } catch (error) {
-      console.log(`Failed with direct method, trying alternative path for kill: ${error}`);
       await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/Kill`, {});
+    } catch (error) {
+      console.error(`Failed to kill instance ${instanceId}:`, error);
+      throw error;
     }
   }
 
@@ -212,7 +210,6 @@ export class AMPService {
       throw error;
     }
   }
-
   async getMetrics(instanceId: string): Promise<{
     TPS: string;
     Users: [string, string];
