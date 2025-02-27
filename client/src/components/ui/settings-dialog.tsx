@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { EmailTemplateDialog } from "../email-template-dialog";
-import { Textarea } from "@/components/ui/textarea"; // Added import for Textarea
+import { Textarea } from "@/components/ui/textarea";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -24,9 +24,11 @@ export function SettingsDialog() {
   const { user } = useAuth();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const isSuperAdmin = user?.role === 'superadmin';
+  const [currentTab, setCurrentTab] = useState("general"); // Added state for current tab
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
+    enabled: open, // Only fetch when dialog is open
   });
 
   const form = useForm({
@@ -35,7 +37,7 @@ export function SettingsDialog() {
       id: settings?.id ?? 1,
       favicon_url: settings?.favicon_url ?? "",
       favicon_label: settings?.favicon_label ?? "",
-      tracking_code: settings?.tracking_code ?? "",  // Added tracking code default
+      tracking_code: settings?.tracking_code ?? "",
       default_role: settings?.default_role ?? "pending",
       site_title: settings?.site_title ?? "",
       font_family: settings?.font_family ?? "",
@@ -56,22 +58,72 @@ export function SettingsDialog() {
     },
   });
 
+  // Reset form when settings are loaded or dialog is opened
   useEffect(() => {
-    const faviconLabel = form.watch("favicon_label");
-    if (faviconLabel) {
-      document.title = faviconLabel;
+    if (settings && open) {
+      form.reset({
+        id: settings.id,
+        favicon_url: settings.favicon_url,
+        favicon_label: settings.favicon_label,
+        tracking_code: settings.tracking_code,
+        default_role: settings.default_role,
+        site_title: settings.site_title,
+        font_family: settings.font_family,
+        login_description: settings.login_description,
+        online_color: settings.online_color,
+        offline_color: settings.offline_color,
+        discord_url: settings.discord_url,
+        show_refresh_interval: settings.show_refresh_interval,
+        show_last_checked: settings.show_last_checked,
+        show_service_url: settings.show_service_url,
+        show_status_badge: settings.show_status_badge,
+        admin_show_refresh_interval: settings.admin_show_refresh_interval,
+        admin_show_last_checked: settings.admin_show_last_checked,
+        admin_show_service_url: settings.admin_show_service_url,
+        admin_show_status_badge: settings.admin_show_status_badge,
+        logo_url: settings.logo_url,
+        logo_url_large: settings.logo_url_large,
+      });
     }
-  }, [form.watch("favicon_label")]);
+  }, [settings, open, form]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const res = await apiRequest("PATCH", "/api/settings", {
-        ...data,
-        logo_url: data.logo_url,
-        logo_url_large: data.logo_url_large,
-        favicon_url: data.favicon_url,
-        favicon_label: data.favicon_label
-      });
+      // Only send the fields that are relevant to the current tab
+      const relevantData = { id: data.id };
+
+      if (currentTab === "general") {
+        Object.assign(relevantData, {
+          site_title: data.site_title,
+          default_role: data.default_role,
+          discord_url: data.discord_url,
+          font_family: data.font_family,
+          login_description: data.login_description,
+        });
+      } else if (currentTab === "branding") {
+        Object.assign(relevantData, {
+          logo_url: data.logo_url,
+          logo_url_large: data.logo_url_large,
+          favicon_url: data.favicon_url,
+          favicon_label: data.favicon_label,
+          tracking_code: data.tracking_code,
+          online_color: data.online_color,
+          offline_color: data.offline_color,
+        });
+      } else if (currentTab === "visibility") {
+        Object.assign(relevantData, {
+          show_refresh_interval: data.show_refresh_interval,
+          show_last_checked: data.show_last_checked,
+          show_service_url: data.show_service_url,
+          show_status_badge: data.show_status_badge,
+          admin_show_refresh_interval: data.admin_show_refresh_interval,
+          admin_show_last_checked: data.admin_show_last_checked,
+          admin_show_service_url: data.admin_show_service_url,
+          admin_show_status_badge: data.admin_show_status_badge,
+        });
+      }
+
+      const res = await apiRequest("PATCH", "/api/settings", relevantData);
       return res.json();
     },
     onSuccess: () => {
@@ -80,7 +132,6 @@ export function SettingsDialog() {
         title: "Settings updated",
         description: "UI settings have been updated successfully",
       });
-      setOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -155,11 +206,11 @@ export function SettingsDialog() {
           <SettingsIcon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Admin Settings</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="general">
+        <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}> {/* Added onValueChange */}
           <TabsList className="w-full flex space-x-1">
             <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
             <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
@@ -175,7 +226,7 @@ export function SettingsDialog() {
             )}
           </TabsList>
 
-          <TabsContent value="general">
+          <TabsContent value="general" className="mt-0">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
                 <FormField

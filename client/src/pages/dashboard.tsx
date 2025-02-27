@@ -34,7 +34,7 @@ export default function Dashboard() {
     localStorage.setItem('isServicesExpanded', JSON.stringify(isServicesExpanded));
   }, [isServicesExpanded]);
 
-  const { data: settings } = useQuery<Settings>({
+  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
@@ -45,6 +45,22 @@ export default function Dashboard() {
 
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
+
+  // Show loading skeleton while settings are being fetched
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <header className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-primary/20 animate-pulse rounded" />
+              <div className="h-8 w-48 bg-primary/20 animate-pulse rounded" />
+            </div>
+          </header>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -84,7 +100,7 @@ export default function Dashboard() {
 
         <div className="grid gap-8">
           <section className="relative">
-            <div 
+            <div
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServersExpanded(!isServersExpanded)}
               role="button"
@@ -116,7 +132,7 @@ export default function Dashboard() {
           </section>
 
           <section className="relative">
-            <div 
+            <div
               className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
               onClick={() => setIsServicesExpanded(!isServicesExpanded)}
               role="button"
