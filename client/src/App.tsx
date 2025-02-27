@@ -12,6 +12,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 function Router() {
   return (
@@ -27,19 +28,21 @@ function Router() {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <div className="min-h-screen bg-background text-foreground">
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <FaviconUpdater />
-            <Router />
-            <Toaster />
-            <div className="fixed bottom-4 right-4 z-50">
-              <DiscordButton />
-            </div>
-          </AuthProvider>
-        </QueryClientProvider>
-      </div>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <div className="min-h-screen bg-background text-foreground">
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <FaviconUpdater />
+              <Router />
+              <Toaster />
+              <div className="fixed bottom-4 right-4 z-50">
+                <DiscordButton />
+              </div>
+            </AuthProvider>
+          </QueryClientProvider>
+        </div>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
