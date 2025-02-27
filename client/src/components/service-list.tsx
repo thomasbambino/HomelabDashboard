@@ -1,7 +1,7 @@
 import { Service } from "@shared/schema";
 import { ServiceCard } from "./service-card";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +43,23 @@ export function ServiceList({ services }: ServiceListProps) {
 
     return sortedServices;
   });
+
+  // Add state for admin controls visibility
+  const [showAdminControls, setShowAdminControls] = useState(true);
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  // Add keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isAdmin && e.ctrlKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setShowAdminControls(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdmin]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async (serviceOrder: number[]) => {
@@ -92,7 +109,11 @@ export function ServiceList({ services }: ServiceListProps) {
                       snapshot.isDragging ? "scale-105 rotate-2 z-50" : ""
                     }`}
                   >
-                    <ServiceCard service={service} isDragging={snapshot.isDragging} />
+                    <ServiceCard 
+                      service={service} 
+                      isDragging={snapshot.isDragging} 
+                      showAdminControls={showAdminControls}
+                    />
                   </div>
                 )}
               </Draggable>

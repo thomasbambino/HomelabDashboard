@@ -47,9 +47,10 @@ type PlexAccountFormData = z.infer<typeof plexAccountSchema>;
 interface ServiceCardProps {
   service: Service;
   isDragging?: boolean;
+  showAdminControls?: boolean;
 }
 
-export function ServiceCard({ service, isDragging }: ServiceCardProps) {
+export function ServiceCard({ service, isDragging, showAdminControls = true }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showPlexDialog, setShowPlexDialog] = useState(false);
   const { user } = useAuth();
@@ -226,7 +227,7 @@ export function ServiceCard({ service, isDragging }: ServiceCardProps) {
               </DialogContent>
             </Dialog>
           )}
-          {isAdmin && (
+          {isAdmin && showAdminControls && (
             <>
               <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
                 <Settings className="h-4 w-4" />
