@@ -8,23 +8,21 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
 import { getIpInfo } from './utils/ip';
+import { OAuth2Client } from 'google-auth-library';
 
 const scryptAsync = promisify(scrypt);
 
-// Add rate limiting configuration
 const RATE_LIMIT = {
   MAX_ATTEMPTS: 5,
   WINDOW_MS: 10 * 60 * 1000, // 10 minutes
 };
 
-// Add rate limiting middleware
 async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
   const identifier = req.body.username || req.body.identifier || req.body.email;
   const ip = req.ip;
   const type = req.path.includes('reset') ? 'reset' : 'login';
 
   try {
-    // Get attempts within the time window
     const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
 
     if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
@@ -40,7 +38,6 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
         return res.sendStatus(429);
       }
 
-      // If window has passed, clear old attempts
       await storage.clearLoginAttempts(identifier, ip, type);
     }
 
@@ -51,55 +48,45 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// Middleware updates for role checks
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   if (req.user.role !== 'admin' && req.user.role !== 'superadmin') return res.sendStatus(403);
   next();
 }
 
-// Add a new middleware for superadmin-only routes
 export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   if (req.user.role !== 'superadmin') return res.sendStatus(403);
   next();
 }
 
-// Middleware to check if user is approved
 export function isApproved(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   if (!req.user.approved) return res.sendStatus(403);
   next();
 }
 
-// Add this helper function at the top
 function canModifyUser(requestingUser: any, targetUserId: number) {
-  // Superadmins can modify anyone except other superadmins
   if (requestingUser.role === 'superadmin') {
     const targetUser = storage.getUser(targetUserId);
-    // Only allow superadmin to modify other superadmins
     if (targetUser && targetUser.role === 'superadmin' && requestingUser.id !== targetUserId) {
       return false;
     }
     return true;
   }
 
-  // Regular admins cannot modify superadmins
   if (requestingUser.role === 'admin') {
     const targetUser = storage.getUser(targetUserId);
     if (targetUser && targetUser.role === 'superadmin') return false;
     return true;
   }
 
-  // Regular users can only modify themselves
   return requestingUser.id === targetUserId;
 }
 
 async function getClientIp(req: Request) {
-  // Check for forwarded IP first (for proxied requests)
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
-    // Get the first IP if multiple are present
     const ip = Array.isArray(forwardedFor)
       ? forwardedFor[0].split(',')[0].trim()
       : forwardedFor.split(',')[0].trim();
@@ -107,7 +94,6 @@ async function getClientIp(req: Request) {
     return ip;
   }
 
-  // Check other common proxy headers
   const proxyHeaders = [
     'x-real-ip',
     'cf-connecting-ip', // Cloudflare
@@ -125,6 +111,8 @@ async function getClientIp(req: Request) {
   console.log('Using direct IP:', req.ip);
   return req.ip;
 }
+
+const googleClient = new OAuth2Client();
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -144,7 +132,6 @@ export function setupAuth(app: Express) {
       try {
         console.log("Attempting login for username:", username);
 
-        // Try to find user by username first, then by email
         let user = await storage.getUserByUsername(username);
         if (!user) {
           user = await storage.getUserByEmail(username);
@@ -162,7 +149,6 @@ export function setupAuth(app: Express) {
           return done(null, false);
         }
 
-        // Check if the user account is enabled and approved
         if (!user.approved) {
           console.log("User not approved:", username);
           return done(null, false);
@@ -225,7 +211,6 @@ export function setupAuth(app: Express) {
 
         if (!user) {
           try {
-            // Get IP info and log failed attempt with location data
             const ipInfo = await getIpInfo(clientIp);
             await storage.addLoginAttempt({
               identifier,
@@ -239,7 +224,6 @@ export function setupAuth(app: Express) {
             });
           } catch (error) {
             console.error('Failed to record login attempt with geolocation:', error);
-            // Still record the attempt, but without geolocation data
             await storage.addLoginAttempt({
               identifier,
               ip: clientIp,
@@ -255,10 +239,8 @@ export function setupAuth(app: Express) {
           if (err) return next(err);
 
           try {
-            // Update user's last IP and record successful login
             const ipInfo = await getIpInfo(clientIp);
 
-            // Record successful login attempt
             await storage.addLoginAttempt({
               identifier,
               ip: ipInfo.ip || clientIp,
@@ -270,20 +252,17 @@ export function setupAuth(app: Express) {
               country: ipInfo.country || null
             });
 
-            // Update user's last IP
             await storage.updateUser({
               id: user.id,
               last_ip: ipInfo.ip || clientIp
             });
 
-            // Include temp_password status in response
             res.json({
               ...user,
               requires_password_change: user.temp_password
             });
           } catch (error) {
             console.error('Failed to update user IP with geolocation:', error);
-            // Still complete the login even if IP update fails
             res.json({
               ...user,
               requires_password_change: user.temp_password
@@ -417,14 +396,12 @@ export function setupAuth(app: Express) {
   app.patch("/api/users/:id", isSuperAdmin, async (req, res) => {
     const targetUserId = parseInt(req.params.id);
 
-    // Check if the requesting admin can modify this user
     if (!canModifyUser(req.user, targetUserId)) {
       return res.status(403).json({
         message: "Regular admins cannot modify superadmin users"
       });
     }
 
-    // Check if trying to set role to superadmin
     if (req.body.role === 'superadmin' && req.user.role !== 'superadmin') {
       return res.status(403).json({
         message: "Only superadmins can grant superadmin privileges"
@@ -448,7 +425,6 @@ export function setupAuth(app: Express) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Prevent deletion of superadmin users
     if (targetUser.role === 'superadmin') {
       return res.status(403).json({ message: "Cannot delete superadmin users" });
     }
@@ -592,6 +568,49 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to send test email" });
     }
   });
+
+  // Add new route to handle Google authentication
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.VITE_FIREBASE_PROJECT_ID
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+
+      const { email, name: username } = payload;
+
+      let user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        const randomPassword = randomBytes(32).toString('hex');
+        user = await storage.createUser({
+          username: username || email.split('@')[0],
+          email,
+          password: await hashPassword(randomPassword),
+          approved: true // Auto-approve Google authenticated users
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.status(500).json({ message: "Error logging in" });
+        }
+        res.json(user);
+      });
+
+    } catch (error) {
+      console.error('Google auth error:', error);
+      res.status(401).json({ message: "Authentication failed" });
+    }
+  });
 }
 
 async function hashPassword(password: string) {
@@ -621,7 +640,6 @@ async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
-// Update the generateHashForTest and IIFE to be more detailed
 async function generateHashForTest() {
   const password = "admin123";
   const hashedPassword = await hashPassword(password);
@@ -629,10 +647,8 @@ async function generateHashForTest() {
   return hashedPassword;
 }
 
-// Update createAdminUser function to check for existing superadmins
 async function createAdminUser(username: string, password: string, email: string) {
   try {
-    // First check if any superadmin exists in the system
     const users = await storage.getAllUsers();
     const hasSuperAdmin = users.some(user => user.role === 'superadmin');
 
@@ -641,7 +657,6 @@ async function createAdminUser(username: string, password: string, email: string
       return null;
     }
 
-    // If no superadmin exists, check if this specific user exists
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
       console.log("Admin user already exists, skipping creation");
@@ -665,6 +680,5 @@ async function createAdminUser(username: string, password: string, email: string
 }
 
 function compileTemplate(template: string, data: any): string {
-  // Implement your templating engine here (e.g., using Handlebars, EJS, etc.)
-  return template; // Replace with actual compiled template
+  return template; 
 }

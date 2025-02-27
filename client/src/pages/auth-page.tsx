@@ -13,6 +13,7 @@ import { Settings } from "@shared/schema";
 import * as z from 'zod';
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -187,6 +188,19 @@ export default function AuthPage() {
                       {loginMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Login
                     </Button>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          Or continue with
+                        </span>
+                      </div>
+                    </div>
+
+                    <GoogleAuthButton />
 
                     <div className="space-y-2 text-center">
                       <button 
