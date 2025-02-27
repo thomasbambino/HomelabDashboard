@@ -49,7 +49,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <header className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
           <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
             {settings?.logo_url ? (
               <img
@@ -60,25 +60,29 @@ export default function Dashboard() {
             ) : (
               <ServerCog className="h-8 w-8 text-primary" />
             )}
-            <h1 className="text-2xl sm:text-3xl font-bold truncate">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate max-w-[200px] sm:max-w-none">
               {settings?.site_title || "Homelab Dashboard"}
             </h1>
           </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
             <ThemeToggle />
             {(isAdmin || isSuperAdmin) && <SettingsDialog />}
             <NotificationPreferencesDialog />
             {(isAdmin || isSuperAdmin) && <UptimeLogDialog />}
             {(isAdmin || isSuperAdmin) && (
               <Link href="/users">
-                <Button variant="outline" className="sm:flex items-center">
-                  <Users className="h-4 w-4 sm:mr-2" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
                   <span className="hidden sm:inline">Manage Users</span>
                 </Button>
               </Link>
             )}
-            <Button variant="outline" onClick={() => logoutMutation.mutate()} className="sm:flex items-center">
-              <LogOut className="h-4 w-4 sm:mr-2" />
+            <Button 
+              variant="outline" 
+              onClick={() => logoutMutation.mutate()} 
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
