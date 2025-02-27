@@ -1,36 +1,32 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { AlertCircle, Home } from "lucide-react";
 import { Link } from "wouter";
 
-function NotFound() {
+export default function NotFound() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <svg 
-          viewBox="0 0 24 24" 
-          className="h-12 w-12 text-destructive mx-auto"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12" y2="16" />
-        </svg>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold">404 Page Not Found</h1>
-          <p className="text-sm text-muted-foreground">
-            The page you're looking for doesn't exist or has been moved.
-          </p>
-        </div>
-        <div>
+      <Card className="w-full max-w-md mx-4 border-destructive/20">
+        <CardContent className="pt-6 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">404 Page Not Found</h1>
+              <p className="text-sm text-muted-foreground">
+                The page you're looking for doesn't exist or has been moved.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center pb-6">
           <Link href="/">
-            <span className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 cursor-pointer">
+            <Button>
+              <Home className="mr-2 h-4 w-4" />
               Back to Home
-            </span>
+            </Button>
           </Link>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
-
-export default NotFound;
