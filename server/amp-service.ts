@@ -142,6 +142,7 @@ export class AMPService {
     try {
       console.log('Fetching AMP instances');
       await this.ensureAuthenticated();
+      // Keep the original path format for getting instances
       const result = await this.makeAPICall('ADSModule/GetInstances');
 
       if (result && Array.isArray(result) && result.length > 0 && result[0].AvailableInstances) {
@@ -168,7 +169,8 @@ export class AMPService {
     try {
       console.log(`Getting status for instance ${instanceId}`);
       await this.ensureAuthenticated();
-      const status = await this.makeAPICall('Core/GetStatus', { InstanceName: instanceId });
+      // Keep the original path format for status
+      const status = await this.makeAPICall(`ADSModule/Servers/${instanceId}/API/Core/GetStatus`);
       console.log(`Status for instance ${instanceId}:`, status);
       return status;
     } catch (error) {
