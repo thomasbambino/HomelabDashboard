@@ -13,7 +13,9 @@ const firebaseConfig = {
 
 console.log('Initializing Firebase with config:', {
   ...firebaseConfig,
-  apiKey: firebaseConfig.apiKey ? '[REDACTED]' : undefined
+  apiKey: firebaseConfig.apiKey ? '[REDACTED]' : undefined,
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain
 });
 
 // Initialize Firebase
@@ -26,4 +28,13 @@ googleProvider.addScope('email');
 googleProvider.addScope('profile');
 googleProvider.setCustomParameters({
   prompt: 'select_account'
+});
+
+// Log auth state changes for debugging
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    console.log('Firebase Auth: User signed in', { email: user.email });
+  } else {
+    console.log('Firebase Auth: User signed out');
+  }
 });

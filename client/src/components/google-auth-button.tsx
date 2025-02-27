@@ -72,6 +72,8 @@ export function GoogleAuthButton() {
           errorMessage = "Network error occurred. Please check your connection and try again.";
         } else if (error.message.includes('popup-blocked')) {
           errorMessage = "Pop-up was blocked. Please allow pop-ups for this site and try again.";
+        } else if (error.message.includes('auth/unauthorized-domain')) {
+          errorMessage = "This domain is not authorized for Google Sign-In. Please contact the administrator.";
         } else if (error.message.includes('Failed to authenticate')) {
           errorMessage = error.message;
         }

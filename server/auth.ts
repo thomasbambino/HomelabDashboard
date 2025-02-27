@@ -116,6 +116,8 @@ const googleClient = new OAuth2Client({
   clientId: process.env.VITE_FIREBASE_PROJECT_ID
 });
 
+console.log('Google OAuth client initialized with project ID:', process.env.VITE_FIREBASE_PROJECT_ID);
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
