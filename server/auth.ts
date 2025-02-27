@@ -113,10 +113,10 @@ async function getClientIp(req: Request) {
 }
 
 const googleClient = new OAuth2Client({
-  clientId: process.env.VITE_FIREBASE_PROJECT_ID
+  clientId: "779648554838",  // Use the messagingSenderId as the client ID
 });
 
-console.log('Google OAuth client initialized with project ID:', process.env.VITE_FIREBASE_PROJECT_ID);
+console.log('Google OAuth client initialized with client ID:', '[REDACTED]');
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -366,11 +366,9 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "No token provided" });
       }
 
-      console.log('Verifying Google token with project ID:', process.env.VITE_FIREBASE_PROJECT_ID);
-
       const ticket = await googleClient.verifyIdToken({
         idToken: token,
-        audience: process.env.VITE_FIREBASE_PROJECT_ID
+        audience: "779648554838"  // Use the messagingSenderId as the audience
       }).catch(error => {
         console.error('Token verification failed:', error);
         throw error;
