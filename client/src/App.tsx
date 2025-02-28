@@ -8,6 +8,7 @@ import { AuthProvider } from "./hooks/use-auth";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
+import UptimeLogPage from "@/pages/uptime-log-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -26,6 +27,7 @@ export default function App() {
               <Switch>
                 <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
                 <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
+                <Route path="/uptime" component={() => <ProtectedRoute component={UptimeLogPage} />} />
                 <Route path="/auth" component={AuthPage} />
                 <Route path="/pending" component={PendingPage} />
                 <Route component={NotFound} />

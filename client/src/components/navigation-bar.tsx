@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog"
-import { UptimeLogDialog } from "@/components/uptime-log-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { ThemeToggle } from "./theme-toggle"
@@ -73,12 +72,12 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
                       </DropdownMenuItem>
                     </Link>
 
-                    <UptimeLogDialog>
+                    <Link href="/uptime">
                       <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                         <Activity className="h-4 w-4" />
                         <span>Uptime Log</span>
                       </DropdownMenuItem>
-                    </UptimeLogDialog>
+                    </Link>
 
                     <SettingsDialog>
                       <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
