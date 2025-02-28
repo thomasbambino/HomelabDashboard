@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Textarea } from "@/components/ui/textarea";
+import { EmailTemplateDialog } from "@/components/email-template-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
 
@@ -140,6 +144,63 @@ export default function SettingsPage() {
     },
   });
 
+  const ampForm = useForm({
+    defaultValues: {
+      amp_url: "",
+      amp_username: "",
+      amp_password: "",
+    },
+  });
+
+  const updateAMPCredentialsMutation = useMutation({
+    mutationFn: async (data: { amp_url: string; amp_username: string; amp_password: string }) => {
+      const res = await apiRequest("POST", "/api/update-amp-credentials", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "AMP Credentials Updated",
+        description: "Your AMP credentials have been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update AMP credentials",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testAMPConnection = async () => {
+    try {
+      setIsTestingConnection(true);
+      const res = await apiRequest("GET", "/api/amp-test");
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Connection Successful",
+          description: `Connected to AMP. Found ${data.instanceCount} instances.`,
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: data.message || "Could not connect to AMP server.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Test Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
@@ -158,10 +219,19 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="branding">Branding</TabsTrigger>
                   <TabsTrigger value="visibility">Visibility</TabsTrigger>
+                  {isSuperAdmin && (
+                    <>
+                      <TabsTrigger value="amp">AMP</TabsTrigger>
+                      <TabsTrigger value="email">
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </TabsTrigger>
+                    </>
+                  )}
                 </TabsList>
 
                 <TabsContent value="general">
@@ -497,6 +567,95 @@ export default function SettingsPage() {
                     </form>
                   </Form>
                 </TabsContent>
+
+                {isSuperAdmin && (
+                  <>
+                    <TabsContent value="amp">
+                      <Form {...ampForm}>
+                        <form onSubmit={ampForm.handleSubmit((data) => updateAMPCredentialsMutation.mutate(data))} className="space-y-4">
+                          <FormField
+                            control={ampForm.control}
+                            name="amp_url"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>AMP Server URL</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="https://amp.example.com" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={ampForm.control}
+                            name="amp_username"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>AMP Username</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={ampForm.control}
+                            name="amp_password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>AMP Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex gap-2">
+                            <Button type="submit" className="flex-1" disabled={updateAMPCredentialsMutation.isPending}>
+                              {updateAMPCredentialsMutation.isPending && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Save Credentials
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={testAMPConnection}
+                              disabled={isTestingConnection}
+                            >
+                              {isTestingConnection ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                              )}
+                              Test Connection
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
+
+                    <TabsContent value="email">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-medium">Email Templates</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Customize the email templates used for notifications and user communications
+                            </p>
+                          </div>
+                          <Button onClick={() => setShowEmailTemplates(true)}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Manage Templates
+                          </Button>
+                        </div>
+                      </div>
+                      <EmailTemplateDialog
+                        open={showEmailTemplates}
+                        onOpenChange={setShowEmailTemplates}
+                      />
+                    </TabsContent>
+                  </>
+                )}
               </Tabs>
             </CardContent>
           </Card>
