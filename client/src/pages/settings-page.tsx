@@ -683,101 +683,97 @@ export default function SettingsPage() {
 
                     <TabsContent value="email">
                       <div className="space-y-6">
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-lg font-medium">Email Templates</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Customize the email templates used for notifications and user communications
-                            </p>
-                          </div>
+                        <div>
+                          <h3 className="text-lg font-medium">Email Templates</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Manage email templates used for notifications and user communications
+                          </p>
+                        </div>
 
-                          <div className="grid gap-4">
-                            {emailTemplates.map((template) => (
-                              <Card key={template.id} className="border shadow-sm">
-                                <CardHeader className="p-4">
+                        <div className="space-y-6">
+                          {selectedTemplate ? (
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label>Subject</Label>
+                                <Input
+                                  value={editingSubject}
+                                  onChange={(e) => setEditingSubject(e.target.value)}
+                                  placeholder="Email subject..."
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Body</Label>
+                                <Textarea
+                                  value={editingBody}
+                                  onChange={(e) => setEditingBody(e.target.value)}
+                                  placeholder="Email body..."
+                                  className="min-h-[200px]"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  onClick={() => {
+                                    updateTemplateMutation.mutate({
+                                      id: selectedTemplate.id,
+                                      subject: editingSubject,
+                                      body: editingBody,
+                                    });
+                                  }}
+                                  disabled={updateTemplateMutation.isPending}
+                                >
+                                  {updateTemplateMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Save className="h-4 w-4 mr-2" />
+                                  )}
+                                  Save Changes
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedTemplate(null);
+                                    setEditingSubject("");
+                                    setEditingBody("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid gap-4">
+                              {emailTemplates.map((template) => (
+                                <div
+                                  key={template.id}
+                                  className="flex flex-col space-y-1.5 p-6 bg-card text-card-foreground rounded-lg border shadow-sm"
+                                >
                                   <div className="flex items-center justify-between">
-                                    <CardTitle className="text-base">{template.name}</CardTitle>
-                                    {selectedTemplate?.id === template.id ? (
-                                      <div className="flex items-center gap-2">
-                                        <Button
-                                          onClick={() => {
-                                            updateTemplateMutation.mutate({
-                                              id: template.id,
-                                              subject: editingSubject,
-                                              body: editingBody,
-                                            });
-                                          }}
-                                          disabled={updateTemplateMutation.isPending}
-                                        >
-                                          {updateTemplateMutation.isPending ? (
-                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                          ) : (
-                                            <Save className="h-4 w-4 mr-2" />
-                                          )}
-                                          Save Changes
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            setSelectedTemplate(null);
-                                            setEditingSubject("");
-                                            setEditingBody("");
-                                          }}
-                                        >
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                          setSelectedTemplate(template);
-                                          setEditingSubject(template.subject);
-                                          setEditingBody(template.body);
-                                        }}
-                                      >
-                                        Edit Template
-                                      </Button>
-                                    )}
+                                    <h3 className="text-lg font-semibold leading-none tracking-tight">
+                                      {template.name}
+                                    </h3>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedTemplate(template);
+                                        setEditingSubject(template.subject);
+                                        setEditingBody(template.body);
+                                      }}
+                                    >
+                                      Edit Template
+                                    </Button>
                                   </div>
-                                </CardHeader>
-                                {selectedTemplate?.id === template.id ? (
-                                  <CardContent className="p-4 pt-0">
-                                    <div className="space-y-4">
-                                      <div className="space-y-2">
-                                        <Label>Subject</Label>
-                                        <Input
-                                          value={editingSubject}
-                                          onChange={(e) => setEditingSubject(e.target.value)}
-                                          placeholder="Email subject..."
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label>Body</Label>
-                                        <Textarea
-                                          value={editingBody}
-                                          onChange={(e) => setEditingBody(e.target.value)}
-                                          placeholder="Email body..."
-                                          className="min-h-[200px]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                ) : (
-                                  <CardContent className="p-4 pt-0">
-                                    <div className="space-y-2">
-                                      <p className="text-sm font-medium">Subject:</p>
-                                      <p className="text-sm text-muted-foreground">{template.subject}</p>
-                                      <p className="text-sm font-medium mt-4">Body:</p>
-                                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                        {template.body}
-                                      </p>
-                                    </div>
-                                  </CardContent>
-                                )}
-                              </Card>
-                            ))}
-                          </div>
+                                  <div className="space-y-2 mt-4">
+                                    <p className="text-sm font-medium">Subject:</p>
+                                    <p className="text-sm text-muted-foreground">{template.subject}</p>
+                                    <p className="text-sm font-medium mt-4">Body:</p>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                      {template.body}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
