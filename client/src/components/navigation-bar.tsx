@@ -25,8 +25,8 @@ export function NavigationBar({ settings }: NavigationBarProps) {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
-      <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-6 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-3">
+      <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-3 pl-2">
           {settings?.logo_url ? (
             <img
               src={settings.logo_url}
@@ -41,7 +41,7 @@ export function NavigationBar({ settings }: NavigationBarProps) {
           </span>
         </div>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4 pr-2">
           <ThemeToggle />
           <NotificationPreferencesDialog />
 
