@@ -23,11 +23,6 @@ export default function Dashboard() {
     return saved ? JSON.parse(saved) : true;
   });
 
-  // Layout debug state
-  const [horizontalPadding, setHorizontalPadding] = useState(32);
-  const [verticalPadding, setVerticalPadding] = useState(24);
-  const [maxWidth, setMaxWidth] = useState(1400);
-
   useEffect(() => {
     localStorage.setItem('isServersExpanded', JSON.stringify(isServersExpanded));
   }, [isServersExpanded]);
@@ -52,7 +47,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main style={{ maxWidth: maxWidth, padding: `${verticalPadding}px ${horizontalPadding}px` }} className="mx-auto mt-24 pb-6">
+        <main className="container mx-auto mt-24 pb-6">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
@@ -66,13 +61,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
 
-        <main 
-          style={{ 
-            maxWidth: `${maxWidth}px`,
-            padding: `${verticalPadding}px ${horizontalPadding}px`
-          }} 
-          className="mx-auto mt-24 pb-6 space-y-8"
-        >
+        <main className="container mx-auto mt-24 pb-6 space-y-8">
           <section className="relative">
             <div
               className="flex items-center justify-between mb-4"
@@ -144,11 +133,13 @@ export default function Dashboard() {
           </section>
         </main>
 
-        <LayoutDebugger
-          onPaddingChange={setHorizontalPadding}
-          onVerticalPaddingChange={setVerticalPadding}
-          onWidthChange={setMaxWidth}
-        />
+        {settings?.show_layout_debugger && (
+          <LayoutDebugger
+            onPaddingChange={setHorizontalPadding}
+            onVerticalPaddingChange={setVerticalPadding}
+            onWidthChange={setMaxWidth}
+          />
+        )}
       </div>
     </PageTransition>
   );
