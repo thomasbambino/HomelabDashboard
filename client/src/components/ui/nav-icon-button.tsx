@@ -14,8 +14,8 @@ const NavIconButton = React.forwardRef<HTMLButtonElement, NavIconButtonProps>(
         className={cn(
           "inline-flex h-8 w-8 items-center justify-center rounded-md",
           "border-0 border-none outline-none",
-          "bg-transparent text-muted-foreground",
-          "hover:bg-transparent hover:text-foreground",
+          "bg-transparent text-foreground",
+          "hover:bg-transparent hover:text-foreground/80",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
           className

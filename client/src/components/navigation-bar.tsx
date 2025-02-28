@@ -36,20 +36,19 @@ export function NavigationBar({ settings }: NavigationBarProps) {
           ) : (
             <ServerCog className="h-8 w-8 text-primary" />
           )}
-          <span className="font-bold sm:inline-block">
+          <span className="font-bold text-foreground sm:inline-block">
             {settings?.site_title || "Homelab Dashboard"}
           </span>
         </div>
 
         <div className="flex items-center justify-end gap-4 pr-2">
           <ThemeToggle />
-
           <NotificationPreferencesDialog />
 
           <DropdownMenu>
             <DropdownMenuTrigger>
               <NavIconButton className="gap-2 px-2 w-auto">
-                <span className="max-w-[100px] truncate">{user?.username || "User"}</span>
+                <span className="max-w-[100px] truncate text-foreground">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />
               </NavIconButton>
             </DropdownMenuTrigger>
@@ -57,21 +56,21 @@ export function NavigationBar({ settings }: NavigationBarProps) {
               {(isAdmin || isSuperAdmin) && (
                 <>
                   <Link href="/users">
-                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                       <Users className="h-4 w-4" />
                       <span>Manage Users</span>
                     </DropdownMenuItem>
                   </Link>
 
                   <UptimeLogDialog>
-                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                       <Activity className="h-4 w-4" />
                       <span>Uptime Log</span>
                     </DropdownMenuItem>
                   </UptimeLogDialog>
 
                   <SettingsDialog>
-                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                       <SettingsIcon className="h-4 w-4" />
                       <span>Settings</span>
                     </DropdownMenuItem>
@@ -80,7 +79,7 @@ export function NavigationBar({ settings }: NavigationBarProps) {
               )}
 
               <DropdownMenuItem 
-                className="flex items-center gap-2 cursor-pointer" 
+                className="flex items-center gap-2 cursor-pointer text-foreground" 
                 onSelect={() => logoutMutation.mutate()}
               >
                 <LogOut className="h-4 w-4" />
