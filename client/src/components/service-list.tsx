@@ -89,10 +89,7 @@ export function ServiceList({ services }: ServiceListProps) {
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="flex flex-wrap"
-            style={{
-              margin: '-0.5rem', // Compensate for item padding
-            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
           >
             {orderedServices.map((service, index) => (
               <Draggable
@@ -105,7 +102,7 @@ export function ServiceList({ services }: ServiceListProps) {
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`w-full md:w-1/2 lg:w-1/3 p-2 transition-all duration-200 ${
+                    className={`transition-all duration-200 ${
                       snapshot.isDragging ? "scale-105 rotate-2 z-50" : ""
                     }`}
                   >
