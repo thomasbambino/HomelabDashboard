@@ -45,7 +45,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="container mt-24 pb-6">
+        <main className="container px-8 mt-24 pb-6">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
@@ -58,17 +58,17 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <NavigationBar settings={settings} />
 
-      <main className="container mt-24 pb-6 space-y-8">
+      <main className="container px-8 mt-24 pb-6 space-y-8">
         <section className="relative">
           <div
-            className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+            className="flex items-center justify-between mb-4"
             onClick={() => setIsServersExpanded(!isServersExpanded)}
             role="button"
             aria-expanded={isServersExpanded}
             aria-controls="game-servers-section"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">Game Servers</h2>
+              <h2 className="text-xl font-semibold text-foreground">Game Servers</h2>
               <ChevronDown
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
@@ -93,14 +93,14 @@ export default function Dashboard() {
 
         <section className="relative">
           <div
-            className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+            className="flex items-center justify-between mb-4"
             onClick={() => setIsServicesExpanded(!isServicesExpanded)}
             role="button"
             aria-expanded={isServicesExpanded}
             aria-controls="services-section"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">Services</h2>
+              <h2 className="text-xl font-semibold text-foreground">Services</h2>
               <ChevronDown
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
