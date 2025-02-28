@@ -43,11 +43,12 @@ export function NavigationBar({ settings }: NavigationBarProps) {
 
         <div className="flex items-center justify-end gap-4 pr-2">
           <ThemeToggle />
-          <NotificationPreferencesDialog>
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-transparent p-0 border-none">
+
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-transparent p-0 border-none">
+            <NotificationPreferencesDialog>
               <Bell className="h-5 w-5" />
-            </Button>
-          </NotificationPreferencesDialog>
+            </NotificationPreferencesDialog>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
