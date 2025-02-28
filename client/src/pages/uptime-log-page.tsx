@@ -78,7 +78,7 @@ export default function UptimeLogPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Uptime Log" />
 
-        <main className="container mx-auto px-4 py-6 space-y-6">
+        <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Uptime Log</h1>
             <Link href="/">
