@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, ServerCog } from "lucide-react"
+import { Bell, ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut } from "lucide-react"
 import { Link } from "wouter"
 import { Settings } from "@shared/schema"
 import { NavIconButton } from "@/components/ui/nav-icon-button"
@@ -61,28 +61,34 @@ export function NavigationBar({ settings }: NavigationBarProps) {
               {(isAdmin || isSuperAdmin) && (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link href="/users" className="w-full">Manage Users</Link>
+                    <Link href="/users" className="flex items-center gap-2 w-full">
+                      <Users className="h-4 w-4" />
+                      <span>Manage Users</span>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <UptimeLogDialog>
-                      <NavIconButton className="w-full text-left justify-start">
-                        Uptime Log
-                      </NavIconButton>
+                      <div className="flex items-center gap-2 w-full">
+                        <Activity className="h-4 w-4" />
+                        <span>Uptime Log</span>
+                      </div>
                     </UptimeLogDialog>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <SettingsDialog>
-                      <NavIconButton className="w-full text-left justify-start">
-                        Settings
-                      </NavIconButton>
+                      <div className="flex items-center gap-2 w-full">
+                        <SettingsIcon className="h-4 w-4" />
+                        <span>Settings</span>
+                      </div>
                     </SettingsDialog>
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuItem onSelect={() => logoutMutation.mutate()}>
-                <NavIconButton className="w-full text-left justify-start">
-                  Logout
-                </NavIconButton>
+                <div className="flex items-center gap-2 w-full">
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { NavIconButton } from "@/components/ui/nav-icon-button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { EmailTemplateDialog } from "../email-template-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import React from 'react';
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -220,9 +221,9 @@ export function SettingsDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
+        <NavIconButton>
           <SettingsIcon className="h-4 w-4" />
-        </Button>
+        </NavIconButton>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -737,6 +738,26 @@ export function SettingsDialog() {
             </>
           )}
         </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function SettingsDialog2({ children }: { children?: React.ReactNode }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children || (
+          <NavIconButton>
+            <SettingsIcon className="h-4 w-4" />
+          </NavIconButton>
+        )}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Settings</DialogTitle>
+        </DialogHeader>
+        {/* Dialog content */}
       </DialogContent>
     </Dialog>
   );
