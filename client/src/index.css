@@ -19,6 +19,6 @@
 
   .container {
     @apply px-[var(--layout-horizontal-padding)] py-[var(--layout-vertical-padding)] mx-auto;
-    max-width: var(--layout-max-width);
+    max-width: var(--layout-max-width) !important;
   }
 }
