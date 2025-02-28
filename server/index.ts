@@ -42,43 +42,65 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Set up default email templates
-  await setupDefaultTemplates();
+  try {
+    log("Starting application setup...");
 
-  const server = await registerRoutes(app);
+    // Set up default email templates
+    await setupDefaultTemplates();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const server = await registerRoutes(app);
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-  // Start the service checker
-  startServiceChecker();
+      res.status(status).json({ message });
+      throw err;
+    });
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Start the service checker
+    startServiceChecker();
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = 5000;
+    log(`Attempting to start server on port ${port}...`);
+
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        log(`Error: Port ${port} is already in use. Please ensure no other instance is running.`);
+      } else {
+        log(`Server error: ${error.message}`);
+      }
+      process.exit(1);
+    });
+
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`Server successfully started on port ${port}`);
+    });
+
+    // Handle graceful shutdown
+    const cleanup = () => {
+      log("Shutting down server...");
+      server.close(() => {
+        log("Server shutdown complete");
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+
+  } catch (error) {
+    log(`Fatal error during startup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-
-  // Handle graceful shutdown
-  const cleanup = () => {
-    server.close();
-    process.exit(0);
-  };
-
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
 })();
