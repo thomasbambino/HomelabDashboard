@@ -165,10 +165,10 @@ export default function UsersPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="User Management" />
 
-        <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-4">
+        <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
           <Card className="border-0 shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Settings</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle>Users</CardTitle>
               <Link href="/">
                 <Button variant="outline" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
