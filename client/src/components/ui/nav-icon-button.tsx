@@ -13,7 +13,7 @@ const NavIconButton = React.forwardRef<HTMLButtonElement, NavIconButtonProps>(
       <Comp
         className={cn(
           "inline-flex items-center justify-center rounded-md",
-          "h-8 w-8 sm:h-10 sm:w-10",
+          "h-8 w-8 sm:h-12 sm:w-12",
           "border-0 border-none outline-none",
           "bg-transparent text-foreground",
           "hover:bg-transparent hover:text-foreground/80",
