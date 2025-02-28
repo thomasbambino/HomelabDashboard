@@ -25,7 +25,6 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
 import { Switch } from "@/components/ui/switch";
 
 
-
 export default function Dashboard() {
   const { user } = useAuth();
   const [isServersExpanded, setIsServersExpanded] = useState(() => {
@@ -76,7 +75,7 @@ export default function Dashboard() {
         <NavigationBar settings={settings} />
 
         <div className="mx-auto max-w-screen-xl px-4 mt-24 pb-6">
-          <div className="max-w-[800px] mx-auto space-y-8">
+          <div className="max-w-[600px] mx-auto space-y-8">
             <section className="relative">
               <div
                 className="flex items-center justify-between mb-4"
