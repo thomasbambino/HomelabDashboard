@@ -174,7 +174,7 @@ export default function UptimeLogPage() {
             </CardContent>
           </Card>
 
-          <Separator className="my-6" />
+          <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
 
           <Card className="border-0 shadow-none">
             <CardHeader>
