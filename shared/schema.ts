@@ -54,6 +54,9 @@ export const settings = pgTable("settings", {
   admin_show_uptime_log: boolean("admin_show_uptime_log").default(false),
   admin_show_status_badge: boolean("admin_show_status_badge").default(true),
   show_layout_debugger: boolean("show_layout_debugger").default(false),
+  layout_horizontal_padding: integer("layout_horizontal_padding").default(32),
+  layout_vertical_padding: integer("layout_vertical_padding").default(24),
+  layout_max_width: integer("layout_max_width").default(1400),
 });
 
 export const services = pgTable("services", {

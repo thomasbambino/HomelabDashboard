@@ -30,6 +30,9 @@ export default function SettingsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
+  const [horizontalPadding, setHorizontalPadding] = useState(settings?.layout_horizontal_padding ?? 32);
+  const [verticalPadding, setVerticalPadding] = useState(settings?.layout_vertical_padding ?? 24);
+  const [maxWidth, setMaxWidth] = useState(settings?.layout_max_width ?? 1400);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -60,6 +63,9 @@ export default function SettingsPage() {
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
       show_layout_debugger: settings?.show_layout_debugger ?? false,
+      layout_horizontal_padding: settings?.layout_horizontal_padding ?? 32,
+      layout_vertical_padding: settings?.layout_vertical_padding ?? 24,
+      layout_max_width: settings?.layout_max_width ?? 1400,
     },
   });
 
@@ -88,7 +94,13 @@ export default function SettingsPage() {
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
         show_layout_debugger: settings.show_layout_debugger,
+        layout_horizontal_padding: settings.layout_horizontal_padding ?? 32,
+        layout_vertical_padding: settings.layout_vertical_padding ?? 24,
+        layout_max_width: settings.layout_max_width ?? 1400,
       });
+      setHorizontalPadding(settings.layout_horizontal_padding ?? 32);
+      setVerticalPadding(settings.layout_vertical_padding ?? 24);
+      setMaxWidth(settings.layout_max_width ?? 1400);
     }
   }, [settings, form]);
 
@@ -128,6 +140,9 @@ export default function SettingsPage() {
       } else if (currentTab === "debug") {
         Object.assign(relevantData, {
           show_layout_debugger: data.show_layout_debugger,
+          layout_horizontal_padding: horizontalPadding,
+          layout_vertical_padding: verticalPadding,
+          layout_max_width: maxWidth,
         });
       }
 
@@ -225,18 +240,18 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="w-full flex justify-start gap-1 rounded-md bg-muted p-1">
-                  <TabsTrigger value="general" className="px-4">General</TabsTrigger>
-                  <TabsTrigger value="branding" className="px-4">Branding</TabsTrigger>
-                  <TabsTrigger value="visibility" className="px-4">Visibility</TabsTrigger>
+                <TabsList className="w-full flex justify-start gap-2 rounded-md bg-muted p-2">
+                  <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
+                  <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
+                  <TabsTrigger value="visibility" className="flex-1">Visibility</TabsTrigger>
                   {isSuperAdmin && (
                     <>
-                      <TabsTrigger value="amp" className="px-4">AMP</TabsTrigger>
-                      <TabsTrigger value="email" className="px-4 flex items-center gap-2">
+                      <TabsTrigger value="amp" className="flex-1">AMP</TabsTrigger>
+                      <TabsTrigger value="email" className="flex-1 flex items-center justify-center gap-2">
                         <Mail className="h-4 w-4" />
                         Email
                       </TabsTrigger>
-                      <TabsTrigger value="debug" className="px-4">Debug</TabsTrigger>
+                      <TabsTrigger value="debug" className="flex-1">Debug</TabsTrigger>
                     </>
                   )}
                 </TabsList>
@@ -705,6 +720,24 @@ export default function SettingsPage() {
                                     </FormItem>
                                   )}
                                 />
+
+                                <div className="mt-4 pt-4 border-t">
+                                  <h4 className="text-sm font-medium mb-2">Current Layout Values</h4>
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                      <Label>Horizontal</Label>
+                                      <p className="text-sm text-muted-foreground">{horizontalPadding}px</p>
+                                    </div>
+                                    <div>
+                                      <Label>Vertical</Label>
+                                      <p className="text-sm text-muted-foreground">{verticalPadding}px</p>
+                                    </div>
+                                    <div>
+                                      <Label>Max Width</Label>
+                                      <p className="text-sm text-muted-foreground">{maxWidth}px</p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
