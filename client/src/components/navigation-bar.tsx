@@ -1,16 +1,17 @@
-import { ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut } from "lucide-react";
-import { Link } from "wouter";
-import { Settings } from "@shared/schema";
+import { Bell, ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut } from "lucide-react"
+import { Link } from "wouter"
+import { Settings } from "@shared/schema"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog";
-import { SettingsDialog } from "@/components/settings-dialog";
-import { useAuth } from "@/hooks/use-auth";
-import { ThemeToggle } from "./theme-toggle";
+} from "@/components/ui/dropdown-menu"
+import { Separator } from "@/components/ui/separator"
+import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog"
+import { SettingsDialog } from "@/components/settings-dialog"
+import { useAuth } from "@/hooks/use-auth"
+import { ThemeToggle } from "./theme-toggle"
 
 interface NavigationBarProps {
   settings?: Settings;
@@ -23,34 +24,41 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const isSuperAdmin = user?.role === 'superadmin';
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-sm">
-      <div className="container py-4">
-        <nav className="flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-[1400px] mx-auto px-8 py-4">
+        <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3">
-            {settings?.logo_url ? (
-              <img
-                src={settings.logo_url}
-                alt="Site Logo"
-                className="h-8 w-8 object-contain"
-              />
-            ) : (
-              <ServerCog className="h-8 w-8 text-primary" />
+            <div className="flex items-center gap-3">
+              {settings?.logo_url ? (
+                <img
+                  src={settings.logo_url}
+                  alt="Site Logo"
+                  className="h-8 w-8 object-contain fixed-logo"
+                />
+              ) : (
+                <ServerCog className="h-8 w-8 text-primary" />
+              )}
+              <span className="font-bold text-foreground sm:inline-block">
+                {settings?.site_title || "Homelab Dashboard"}
+              </span>
+            </div>
+
+            {pageTitle && (
+              <>
+                <Separator orientation="vertical" className="h-6 mx-2" />
+                <span className="font-medium text-foreground">{pageTitle}</span>
+              </>
             )}
-            <span className="font-bold text-foreground">
-              {settings?.site_title || "Homelab Dashboard"}
-            </span>
           </div>
 
-          <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center justify-end gap-4 pr-2">
             <ThemeToggle />
             <NotificationPreferencesDialog />
 
             <DropdownMenu>
               <DropdownMenuTrigger>
                 <div className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent cursor-pointer">
-                  <span className="max-w-[100px] truncate text-foreground">
-                    {user?.username || "User"}
-                  </span>
+                  <span className="max-w-[100px] truncate text-foreground">{user?.username || "User"}</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </DropdownMenuTrigger>
