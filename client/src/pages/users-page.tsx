@@ -189,14 +189,8 @@ export default function UsersPage() {
                     <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
+                {isSuperAdmin && <LoginAttemptsDialog />}
               </div>
-
-              {isSuperAdmin && (
-                <div className="flex items-center gap-4">
-                  <Label>Login Attempts:</Label>
-                  <LoginAttemptsDialog />
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
