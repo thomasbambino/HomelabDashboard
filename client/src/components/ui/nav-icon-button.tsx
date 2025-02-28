@@ -12,14 +12,12 @@ const NavIconButton = React.forwardRef<HTMLButtonElement, NavIconButtonProps>(
     return (
       <Comp
         className={cn(
-          "inline-flex items-center justify-center rounded-md",
-          "h-8 w-8 md:h-12 md:w-12 lg:h-16 lg:w-16",
+          "inline-flex h-8 w-8 items-center justify-center rounded-md",
           "border-0 border-none outline-none",
           "bg-transparent text-foreground",
           "hover:bg-transparent hover:text-foreground/80",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
-          "transition-all duration-200",
           className
         )}
         ref={ref}
