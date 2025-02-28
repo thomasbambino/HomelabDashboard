@@ -44,14 +44,14 @@ export function NavigationBar({ settings }: NavigationBarProps) {
         <div className="flex items-center justify-end gap-4">
           <ThemeToggle />
           <NotificationPreferencesDialog>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-transparent">
               <Bell className="h-5 w-5" />
             </Button>
           </NotificationPreferencesDialog>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 h-8 px-2">
+              <Button variant="ghost" className="gap-2 h-8 px-2 hover:bg-transparent">
                 <span className="max-w-[100px] truncate">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />
               </Button>

@@ -45,7 +45,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="container py-6">
+        <main className="container pt-24 pb-6">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
@@ -58,7 +58,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <NavigationBar settings={settings} />
 
-      <main className="container py-6 space-y-8">
+      <main className="container pt-24 pb-6 space-y-8">
         <section className="relative">
           <div
             className="flex items-center justify-between mb-4 py-2 px-4 rounded-lg hover:bg-accent cursor-pointer transition-colors"
