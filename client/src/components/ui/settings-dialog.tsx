@@ -18,7 +18,6 @@ import { ImageUpload } from "./image-upload";
 import { EmailTemplateDialog } from "../email-template-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import React from 'react';
-import { LayoutDebugger } from "@/components/layout-debugger";
 
 export function SettingsDialog() {
   const { toast } = useToast();
@@ -58,7 +57,6 @@ export function SettingsDialog() {
       admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
-      show_layout_debugger: settings?.show_layout_debugger ?? false,
     },
   });
 
@@ -95,7 +93,6 @@ export function SettingsDialog() {
         admin_show_status_badge: settings.admin_show_status_badge,
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
-        show_layout_debugger: settings.show_layout_debugger,
       });
 
       // Set the document title when settings are loaded
@@ -143,7 +140,6 @@ export function SettingsDialog() {
           admin_show_last_checked: data.admin_show_last_checked,
           admin_show_service_url: data.admin_show_service_url,
           admin_show_status_badge: data.admin_show_status_badge,
-          show_layout_debugger: data.show_layout_debugger,
         });
       }
 
@@ -594,22 +590,6 @@ export function SettingsDialog() {
                               <FormLabel htmlFor="show_service_url" className="text-sm cursor-pointer">Show Service URL</FormLabel>
                               <Switch
                                 id="show_service_url"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="show_layout_debugger"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <FormLabel htmlFor="show_layout_debugger" className="text-sm cursor-pointer">Layout Debugger</FormLabel>
-                              <Switch
-                                id="show_layout_debugger"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />

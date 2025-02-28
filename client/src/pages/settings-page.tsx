@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, updateSettingsSchema } from "@shared/schema";
+import { Service, Settings, updateSettingsSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
@@ -19,8 +19,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Textarea } from "@/components/ui/textarea";
 import { EmailTemplateDialog } from "@/components/email-template-dialog";
-import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -29,94 +30,99 @@ export default function SettingsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
-  const [horizontalPadding, setHorizontalPadding] = useState(32);
-  const [verticalPadding, setVerticalPadding] = useState(24);
-  const [maxWidth, setMaxWidth] = useState(1250);
 
-  // Add console log to debug initial settings load
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
-    onSuccess: (data) => {
-      console.log("Settings loaded, max-width:", data?.layout_max_width);
-      if (data) {
-        // Apply CSS variables immediately when settings load
-        document.documentElement.style.setProperty('--layout-horizontal-padding', `${data.layout_horizontal_padding}px`);
-        document.documentElement.style.setProperty('--layout-vertical-padding', `${data.layout_vertical_padding}px`);
-        document.documentElement.style.setProperty('--layout-max-width', '1250px'); // Force 1250px
-      }
-    }
   });
 
   const form = useForm({
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
-      id: 1,
-      show_layout_debugger: false,
-      layout_horizontal_padding: 32,
-      layout_vertical_padding: 24,
-      layout_max_width: 1250,
-      favicon_url: "",
-      favicon_label: "",
-      tracking_code: "",
-      default_role: "pending",
-      site_title: "",
-      font_family: "",
-      login_description: "",
-      online_color: "#22c55e",
-      offline_color: "#ef4444",
-      discord_url: "https://discord.gg/YhGnr92Bep",
-      show_refresh_interval: true,
-      show_last_checked: true,
-      show_service_url: true,
-      show_status_badge: true,
-      admin_show_refresh_interval: true,
-      admin_show_last_checked: true,
-      admin_show_service_url: true,
-      admin_show_status_badge: true,
-      logo_url: "",
-      logo_url_large: "",
+      id: settings?.id ?? 1,
+      favicon_url: settings?.favicon_url ?? "",
+      favicon_label: settings?.favicon_label ?? "",
+      tracking_code: settings?.tracking_code ?? "",
+      default_role: settings?.default_role ?? "pending",
+      site_title: settings?.site_title ?? "",
+      font_family: settings?.font_family ?? "",
+      login_description: settings?.login_description ?? "",
+      online_color: settings?.online_color ?? "#22c55e",
+      offline_color: settings?.offline_color ?? "#ef4444",
+      discord_url: settings?.discord_url ?? "https://discord.gg/YhGnr92Bep",
+      show_refresh_interval: settings?.show_refresh_interval ?? true,
+      show_last_checked: settings?.show_last_checked ?? true,
+      show_service_url: settings?.show_service_url ?? true,
+      show_status_badge: settings?.show_status_badge ?? true,
+      admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
+      admin_show_last_checked: settings?.admin_show_last_checked ?? true,
+      admin_show_service_url: settings?.admin_show_service_url ?? true,
+      admin_show_status_badge: settings?.admin_show_status_badge ?? true,
+      logo_url: settings?.logo_url ?? "",
+      logo_url_large: settings?.logo_url_large ?? "",
     },
   });
 
   useEffect(() => {
     if (settings) {
       form.reset({
-        ...settings,
-        id: settings.id ?? 1,
+        id: settings.id,
+        favicon_url: settings.favicon_url,
+        favicon_label: settings.favicon_label,
+        tracking_code: settings.tracking_code,
+        default_role: settings.default_role,
+        site_title: settings.site_title,
+        font_family: settings.font_family,
+        login_description: settings.login_description,
+        online_color: settings.online_color,
+        offline_color: settings.offline_color,
+        discord_url: settings.discord_url,
+        show_refresh_interval: settings.show_refresh_interval,
+        show_last_checked: settings.show_last_checked,
+        show_service_url: settings.show_service_url,
+        show_status_badge: settings.show_status_badge,
+        admin_show_refresh_interval: settings.admin_show_refresh_interval,
+        admin_show_last_checked: settings.admin_show_last_checked,
+        admin_show_service_url: settings.admin_show_service_url,
+        admin_show_status_badge: settings.admin_show_status_badge,
+        logo_url: settings.logo_url,
+        logo_url_large: settings.logo_url_large,
       });
-
-      // Update the state values and apply CSS when settings are loaded
-      setHorizontalPadding(settings.layout_horizontal_padding);
-      setVerticalPadding(settings.layout_vertical_padding);
-      setMaxWidth(settings.layout_max_width);
-
-      // Apply CSS variables when settings are loaded
-      document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
-      document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
-      document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);
     }
   }, [settings, form]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const relevantData: any = { id: data.id };
+      const relevantData = { id: data.id };
 
-      if (currentTab === "debug") {
-        // For debug tab, include both the layout debugger toggle and the current layout values
+      if (currentTab === "general") {
         Object.assign(relevantData, {
-          show_layout_debugger: data.show_layout_debugger,
-          layout_horizontal_padding: horizontalPadding,
-          layout_vertical_padding: verticalPadding,
-          layout_max_width: maxWidth,
+          site_title: data.site_title,
+          default_role: data.default_role,
+          discord_url: data.discord_url,
+          font_family: data.font_family,
+          login_description: data.login_description,
         });
-
-        // Apply CSS variables immediately when saving
-        document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontalPadding}px`);
-        document.documentElement.style.setProperty('--layout-vertical-padding', `${verticalPadding}px`);
-        document.documentElement.style.setProperty('--layout-max-width', `${maxWidth}px`);
-      } else {
-        // For other tabs, include only the relevant fields
-        Object.assign(relevantData, data);
+      } else if (currentTab === "branding") {
+        Object.assign(relevantData, {
+          logo_url: data.logo_url,
+          logo_url_large: data.logo_url_large,
+          favicon_url: data.favicon_url,
+          favicon_label: data.favicon_label,
+          tracking_code: data.tracking_code,
+          online_color: data.online_color,
+          offline_color: data.offline_color,
+        });
+      } else if (currentTab === "visibility") {
+        Object.assign(relevantData, {
+          show_refresh_interval: data.show_refresh_interval,
+          show_last_checked: data.show_last_checked,
+          show_service_url: data.show_service_url,
+          show_status_badge: data.show_status_badge,
+          admin_show_refresh_interval: data.admin_show_refresh_interval,
+          admin_show_last_checked: data.admin_show_last_checked,
+          admin_show_service_url: data.admin_show_service_url,
+          admin_show_status_badge: data.admin_show_status_badge,
+        });
       }
 
       const res = await apiRequest("PATCH", "/api/settings", relevantData);
@@ -126,7 +132,7 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
         title: "Settings updated",
-        description: "Your settings have been saved successfully",
+        description: "Settings have been updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -200,7 +206,7 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Settings" />
 
-        <main className="container mx-auto pt-24 pb-6 space-y-6">
+        <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
           <Card className="border-0 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Settings</CardTitle>
@@ -213,18 +219,17 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="w-full flex justify-start gap-2 rounded-md bg-muted p-2">
-                  <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-                  <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
-                  <TabsTrigger value="visibility" className="flex-1">Visibility</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="branding">Branding</TabsTrigger>
+                  <TabsTrigger value="visibility">Visibility</TabsTrigger>
                   {isSuperAdmin && (
                     <>
-                      <TabsTrigger value="amp" className="flex-1">AMP</TabsTrigger>
-                      <TabsTrigger value="email" className="flex-1 flex items-center justify-center gap-2">
-                        <Mail className="h-4 w-4" />
+                      <TabsTrigger value="amp">AMP</TabsTrigger>
+                      <TabsTrigger value="email">
+                        <Mail className="h-4 w-4 mr-2" />
                         Email
                       </TabsTrigger>
-                      <TabsTrigger value="debug" className="flex-1">Debug</TabsTrigger>
                     </>
                   )}
                 </TabsList>
@@ -666,105 +671,13 @@ export default function SettingsPage() {
                         onOpenChange={setShowEmailTemplates}
                       />
                     </TabsContent>
-                    <TabsContent value="debug">
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="text-lg font-medium">Debug Tools</h3>
-                              <p className="text-sm text-muted-foreground mb-4">Configure development and debugging tools</p>
-                              <div className="space-y-4">
-                                <FormField
-                                  control={form.control}
-                                  name="show_layout_debugger"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <div className="flex items-center justify-between">
-                                        <Label htmlFor="show_layout_debugger" className="text-sm cursor-pointer">Layout Debugger</Label>
-                                        <Switch
-                                          id="show_layout_debugger"
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                        />
-                                      </div>
-                                      <p className="text-sm text-muted-foreground mt-1">
-                                        Shows a tool to adjust page layout spacing in real-time
-                                      </p>
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <div className="mt-4 pt-4 border-t">
-                                  <h4 className="text-sm font-medium mb-4">Layout Configuration</h4>
-                                  <div className="space-y-6">
-                                    <div>
-                                      <div className="flex justify-between items-center mb-2">
-                                        <Label>Horizontal Padding</Label>
-                                        <span className="text-sm text-muted-foreground">{horizontalPadding}px</span>
-                                      </div>
-                                      <Slider
-                                        defaultValue={[horizontalPadding]}
-                                        max={200}
-                                        step={4}
-                                        value={[horizontalPadding]}
-                                        onValueChange={([value]) => {
-                                          setHorizontalPadding(value);
-                                          document.documentElement.style.setProperty('--layout-horizontal-padding', `${value}px`);
-                                        }}
-                                      />
-                                    </div>
-                                    <div>
-                                      <div className="flex justify-between items-center mb-2">
-                                        <Label>Vertical Padding</Label>
-                                        <span className="text-sm text-muted-foreground">{verticalPadding}px</span>
-                                      </div>
-                                      <Slider
-                                        defaultValue={[verticalPadding]}
-                                        max={200}
-                                        step={4}
-                                        value={[verticalPadding]}
-                                        onValueChange={([value]) => {
-                                          setVerticalPadding(value);
-                                          document.documentElement.style.setProperty('--layout-vertical-padding', `${value}px`);
-                                        }}
-                                      />
-                                    </div>
-                                    <div>
-                                      <div className="flex justify-between items-center mb-2">
-                                        <Label>Max Content Width</Label>
-                                        <span className="text-sm text-muted-foreground">{maxWidth}px</span>
-                                      </div>
-                                      <Slider
-                                        defaultValue={[maxWidth]}
-                                        min={800}
-                                        max={2000}
-                                        step={50}
-                                        value={[maxWidth]}
-                                        onValueChange={([value]) => {
-                                          setMaxWidth(value);
-                                          document.documentElement.style.setProperty('--layout-max-width', `${value}px`);
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <Button type="submit" className="w-full mt-6" disabled={updateSettingsMutation.isPending}>
-                            {updateSettingsMutation.isPending && (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Save Changes
-                          </Button>
-                        </form>
-                      </Form>
-                    </TabsContent>
                   </>
                 )}
               </Tabs>
             </CardContent>
           </Card>
+
+          <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
         </main>
       </div>
     </PageTransition>
