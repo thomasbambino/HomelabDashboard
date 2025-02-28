@@ -1,3 +1,4 @@
+import * as React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -28,8 +29,8 @@ function Router() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <ErrorBoundary>
         <div className="min-h-screen bg-background text-foreground">
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
@@ -42,7 +43,7 @@ export default function App() {
             </AuthProvider>
           </QueryClientProvider>
         </div>
-      </ThemeProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
