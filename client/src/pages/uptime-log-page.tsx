@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UptimeLogPage() {
   const { user } = useAuth();
@@ -29,15 +30,15 @@ export default function UptimeLogPage() {
     return { from: start, to: end };
   });
 
-  const { data: settings } = useQuery<Settings>({
+  const { data: settings, isLoading: isLoadingSettings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const { data: services = [] } = useQuery<Service[]>({
+  const { data: services = [], isLoading: isLoadingServices } = useQuery<Service[]>({
     queryKey: ["/api/services"],
   });
 
-  const { data: logs = [] } = useQuery<(ServiceStatusLog & { service: Service })[]>({
+  const { data: logs = [], isLoading: isLoadingLogs } = useQuery<(ServiceStatusLog & { service: Service })[]>({
     queryKey: ["/api/services/status-logs", selectedService, selectedStatus, date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -77,32 +78,42 @@ export default function UptimeLogPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Uptime Log" />
 
-        <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-4">
-          <Card className="border-0 shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <main className="container mx-auto px-4 py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">Uptime Log</h1>
+            <Link href="/">
+              <Button variant="outline" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+
+          <Separator className="my-6" />
+
+          <Card>
+            <CardHeader>
               <CardTitle>Filters</CardTitle>
-              <Link href="/">
-                <Button variant="outline" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Dashboard
-                </Button>
-              </Link>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Services</SelectItem>
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={String(service.id)}>
-                        {service.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingServices ? (
+                  <Skeleton className="h-10 w-[180px]" />
+                ) : (
+                  <Select value={selectedService} onValueChange={setSelectedService}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Services</SelectItem>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={String(service.id)}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger className="w-[180px]">
@@ -139,7 +150,7 @@ export default function UptimeLogPage() {
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         initialFocus
                         mode="range"
@@ -169,47 +180,57 @@ export default function UptimeLogPage() {
             </CardContent>
           </Card>
 
-          <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
-
-          <Card className="border-0 shadow-none">
-            <CardContent className="pt-6">
-              <ScrollArea className="h-[calc(100vh-280px)]">
-                <div className="space-y-2">
-                  {logs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between p-4 rounded-lg border"
-                    >
-                      <div className="space-y-1">
-                        <div>
-                          <span className="font-medium">{log.service.name}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {format(new Date(log.timestamp), "PPp")}
-                          </span>
-                        </div>
-                        {log.responseTime && (
-                          <div className="text-sm text-muted-foreground">
-                            Response time: {log.responseTime}ms
-                          </div>
-                        )}
-                      </div>
-                      <Badge
-                        variant="default"
-                        style={{
-                          backgroundColor: log.status ? "#22c55e" : "#ef4444",
-                          color: "white"
-                        }}
+          <Card>
+            <CardHeader>
+              <CardTitle>Log Entries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[calc(100vh-420px)] rounded-md border">
+                {isLoadingLogs ? (
+                  <div className="space-y-2 p-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2 p-4">
+                    {logs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-4 rounded-lg border"
                       >
-                        {log.status ? "Online" : "Offline"}
-                      </Badge>
-                    </div>
-                  ))}
-                  {logs.length === 0 && (
-                    <div className="text-center text-muted-foreground py-4">
-                      No status changes found
-                    </div>
-                  )}
-                </div>
+                        <div className="space-y-1">
+                          <div>
+                            <span className="font-medium">{log.service.name}</span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              {format(new Date(log.timestamp), "PPp")}
+                            </span>
+                          </div>
+                          {log.responseTime && (
+                            <div className="text-sm text-muted-foreground">
+                              Response time: {log.responseTime}ms
+                            </div>
+                          )}
+                        </div>
+                        <Badge
+                          variant="default"
+                          className={cn(
+                            "px-2 py-1",
+                            log.status ? "bg-green-500" : "bg-red-500",
+                            "text-white"
+                          )}
+                        >
+                          {log.status ? "Online" : "Offline"}
+                        </Badge>
+                      </div>
+                    ))}
+                    {logs.length === 0 && (
+                      <div className="text-center text-muted-foreground py-4">
+                        No status changes found
+                      </div>
+                    )}
+                  </div>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
