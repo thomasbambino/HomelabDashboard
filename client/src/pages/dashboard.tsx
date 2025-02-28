@@ -24,7 +24,8 @@ export default function Dashboard() {
   });
 
   // Layout debug state
-  const [horizontalPadding, setHorizontalPadding] = useState(32); // 32px = 8rem
+  const [horizontalPadding, setHorizontalPadding] = useState(32);
+  const [verticalPadding, setVerticalPadding] = useState(24);
   const [maxWidth, setMaxWidth] = useState(1400);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main style={{ maxWidth: maxWidth, padding: `0 ${horizontalPadding}px` }} className="mx-auto mt-24 pb-6">
+        <main style={{ maxWidth: maxWidth, padding: `${verticalPadding}px ${horizontalPadding}px` }} className="mx-auto mt-24 pb-6">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
@@ -68,8 +69,7 @@ export default function Dashboard() {
         <main 
           style={{ 
             maxWidth: `${maxWidth}px`,
-            paddingLeft: `${horizontalPadding}px`,
-            paddingRight: `${horizontalPadding}px`
+            padding: `${verticalPadding}px ${horizontalPadding}px`
           }} 
           className="mx-auto mt-24 pb-6 space-y-8"
         >
@@ -146,6 +146,7 @@ export default function Dashboard() {
 
         <LayoutDebugger
           onPaddingChange={setHorizontalPadding}
+          onVerticalPaddingChange={setVerticalPadding}
           onWidthChange={setMaxWidth}
         />
       </div>
