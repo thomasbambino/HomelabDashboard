@@ -24,34 +24,34 @@ export function NavigationBar({ settings }: NavigationBarProps) {
   const isSuperAdmin = user?.role === 'superadmin';
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 px-2 sm:px-4 py-2 sm:py-4">
-      <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-3 sm:px-8 py-2 sm:py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2">
+    <div className="fixed top-0 left-0 right-0 z-50 px-2 sm:px-4 py-2 sm:py-6">
+      <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-3 sm:px-10 py-2 sm:py-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-2 sm:gap-4 pl-1 sm:pl-3">
           {settings?.logo_url ? (
             <img
               src={settings.logo_url}
               alt="Site Logo"
-              className="h-6 w-6 sm:h-8 sm:w-8 object-contain fixed-logo"
+              className="h-6 w-6 sm:h-10 sm:w-10 object-contain fixed-logo"
             />
           ) : (
-            <ServerCog className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            <ServerCog className="h-6 w-6 sm:h-10 sm:w-10 text-primary" />
           )}
-          <span className="font-bold text-sm sm:text-base text-foreground truncate">
+          <span className="font-bold text-sm sm:text-lg text-foreground truncate">
             {settings?.site_title || "Homelab Dashboard"}
           </span>
         </div>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-4 pr-1 sm:pr-2">
+        <div className="flex items-center justify-end gap-2 sm:gap-6 pr-1 sm:pr-3">
           <ThemeToggle />
           <NotificationPreferencesDialog />
 
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <NavIconButton className="gap-1 sm:gap-2 px-1 sm:px-2 w-auto">
-                <span className="max-w-[60px] sm:max-w-[100px] truncate text-foreground text-sm sm:text-base">
+              <NavIconButton className="gap-1 sm:gap-2 px-1 sm:px-3 w-auto">
+                <span className="max-w-[60px] sm:max-w-[120px] truncate text-foreground text-sm sm:text-base">
                   {user?.username || "User"}
                 </span>
-                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                <ChevronDown className="h-3 w-3 sm:h-5 sm:w-5" />
               </NavIconButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
