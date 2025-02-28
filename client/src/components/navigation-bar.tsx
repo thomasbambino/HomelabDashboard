@@ -60,18 +60,28 @@ export function NavigationBar({ settings }: NavigationBarProps) {
               {(isAdmin || isSuperAdmin) && (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link href="/users" className="w-full border-none">Manage Users</Link>
+                    <Link href="/users" className="w-full">Manage Users</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <UptimeLogDialog className="w-full border-none" />
+                  <DropdownMenuItem>
+                    <UptimeLogDialog>
+                      <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                        Uptime Log
+                      </Button>
+                    </UptimeLogDialog>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <SettingsDialog className="w-full border-none" />
+                  <DropdownMenuItem>
+                    <SettingsDialog>
+                      <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                        Settings
+                      </Button>
+                    </SettingsDialog>
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onSelect={() => logoutMutation.mutate()} className="border-none">
-                Logout
+              <DropdownMenuItem onSelect={() => logoutMutation.mutate()}>
+                <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                  Logout
+                </Button>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
