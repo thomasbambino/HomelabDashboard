@@ -28,6 +28,11 @@ export default function SettingsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<{
+    subject: string;
+    body: string;
+  } | null>(null);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -222,6 +227,34 @@ export default function SettingsPage() {
       });
     } finally {
       setIsTestingConnection(false);
+    }
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setEditingTemplateId(template.id);
+    setEditingTemplate({
+      subject: template.subject,
+      body: template.body,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTemplateId(null);
+    setEditingTemplate(null);
+  };
+
+  const handleSaveTemplate = (templateId: number) => {
+    if (editingTemplate) {
+      updateEmailTemplateMutation.mutate({
+        id: templateId,
+        subject: editingTemplate.subject,
+        body: editingTemplate.body,
+      }, {
+        onSuccess: () => {
+          setEditingTemplateId(null);
+          setEditingTemplate(null);
+        }
+      });
     }
   };
 
@@ -687,36 +720,73 @@ export default function SettingsPage() {
                           <div key={template.id} className="space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-medium">{template.name}</h4>
+                              {editingTemplateId !== template.id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditTemplate(template)}
+                                >
+                                  Edit Template
+                                </Button>
+                              )}
                             </div>
-                            <div className="space-y-4">
-                              <div>
-                                <Label className="text-sm">Subject</Label>
-                                <Input
-                                  value={template.subject}
-                                  onChange={(e) =>
-                                    updateEmailTemplateMutation.mutate({
-                                      id: template.id,
-                                      subject: e.target.value,
-                                      body: template.body,
-                                    })
-                                  }
-                                />
+                            {editingTemplateId === template.id ? (
+                              <div className="space-y-4">
+                                <div>
+                                  <Label className="text-sm">Subject</Label>
+                                  <Input
+                                    value={editingTemplate?.subject || ''}
+                                    onChange={(e) =>
+                                      setEditingTemplate(prev => ({
+                                        ...prev!,
+                                        subject: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Body</Label>
+                                  <Textarea
+                                    value={editingTemplate?.body || ''}
+                                    onChange={(e) =>
+                                      setEditingTemplate(prev => ({
+                                        ...prev!,
+                                        body: e.target.value,
+                                      }))
+                                    }
+                                    className="min-h-[200px]"
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={handleCancelEdit}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleSaveTemplate(template.id)}
+                                    disabled={updateEmailTemplateMutation.isPending}
+                                  >
+                                    {updateEmailTemplateMutation.isPending && (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
+                                    Save Changes
+                                  </Button>
+                                </div>
                               </div>
-                              <div>
-                                <Label className="text-sm">Body</Label>
-                                <Textarea
-                                  value={template.body}
-                                  onChange={(e) =>
-                                    updateEmailTemplateMutation.mutate({
-                                      id: template.id,
-                                      subject: template.subject,
-                                      body: e.target.value,
-                                    })
-                                  }
-                                  className="min-h-[200px]"
-                                />
+                            ) : (
+                              <div className="space-y-4">
+                                <div>
+                                  <Label className="text-sm">Subject</Label>
+                                  <p className="text-sm mt-1">{template.subject}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Body</Label>
+                                  <p className="text-sm mt-1 whitespace-pre-wrap">{template.body}</p>
+                                </div>
                               </div>
-                            </div>
+                            )}
                             <Separator />
                           </div>
                         ))}
