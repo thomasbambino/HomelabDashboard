@@ -21,21 +21,18 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { EmailTemplateDialog } from "@/components/email-template-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
-  });
-
-  const { data: emailTemplates } = useQuery({
-    queryKey: ["/api/email-templates"],
-    enabled: currentTab === "email" && isSuperAdmin,
   });
 
   const form = useForm({
@@ -175,27 +172,6 @@ export default function SettingsPage() {
     },
   });
 
-  const updateEmailTemplateMutation = useMutation({
-    mutationFn: async (data: { id: number; subject: string; body: string }) => {
-      const res = await apiRequest("PATCH", `/api/email-templates/${data.id}`, data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
-      toast({
-        title: "Template Updated",
-        description: "Email template has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update template",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const testAMPConnection = async () => {
     try {
       setIsTestingConnection(true);
@@ -230,7 +206,7 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Settings" />
 
-        <main className="max-w-[833px] mx-auto px-4 pt-24 pb-6 space-y-6">
+        <main className="max-w-[980px] mx-auto px-4 pt-24 pb-6 space-y-6">
           <Card className="border-0 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Settings</CardTitle>
@@ -676,51 +652,24 @@ export default function SettingsPage() {
                     </TabsContent>
 
                     <TabsContent value="email">
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="text-lg font-medium">Email Templates</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Customize the email templates used for notifications and user communications
-                          </p>
-                        </div>
-                        {emailTemplates?.map((template) => (
-                          <div key={template.id} className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-medium">{template.name}</h4>
-                            </div>
-                            <div className="space-y-4">
-                              <div>
-                                <Label className="text-sm">Subject</Label>
-                                <Input
-                                  value={template.subject}
-                                  onChange={(e) =>
-                                    updateEmailTemplateMutation.mutate({
-                                      id: template.id,
-                                      subject: e.target.value,
-                                      body: template.body,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-sm">Body</Label>
-                                <Textarea
-                                  value={template.body}
-                                  onChange={(e) =>
-                                    updateEmailTemplateMutation.mutate({
-                                      id: template.id,
-                                      subject: template.subject,
-                                      body: e.target.value,
-                                    })
-                                  }
-                                  className="min-h-[200px]"
-                                />
-                              </div>
-                            </div>
-                            <Separator />
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-medium">Email Templates</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Customize the email templates used for notifications and user communications
+                            </p>
                           </div>
-                        ))}
+                          <Button onClick={() => setShowEmailTemplates(true)}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Manage Templates
+                          </Button>
+                        </div>
                       </div>
+                      <EmailTemplateDialog
+                        open={showEmailTemplates}
+                        onOpenChange={setShowEmailTemplates}
+                      />
                     </TabsContent>
                   </>
                 )}
