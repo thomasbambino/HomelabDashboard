@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -173,6 +174,8 @@ export default function UptimeLogPage() {
             </CardContent>
           </Card>
 
+          <Separator className="my-6" />
+
           <Card className="border-0 shadow-none">
             <CardHeader>
               <CardTitle>Log Entries</CardTitle>
@@ -190,7 +193,7 @@ export default function UptimeLogPage() {
                     {logs.map((log) => (
                       <div
                         key={log.id}
-                        className="flex items-center justify-between p-4 rounded-lg border"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card"
                       >
                         <div className="space-y-1">
                           <div>
