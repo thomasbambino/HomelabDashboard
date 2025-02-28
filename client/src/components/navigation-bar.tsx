@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog"
 import { UptimeLogDialog } from "@/components/uptime-log-dialog"
-import { SettingsDialog } from "@/components/ui/settings-dialog"
+import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
 
 interface NavigationBarProps {
@@ -44,14 +44,10 @@ export function NavigationBar({ settings }: NavigationBarProps) {
         <div className="flex items-center justify-end gap-4 pr-2">
           <ThemeToggle />
 
-          <NotificationPreferencesDialog>
-            <NavIconButton>
-              <Bell className="h-5 w-5" />
-            </NavIconButton>
-          </NotificationPreferencesDialog>
+          <NotificationPreferencesDialog />
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger>
               <NavIconButton className="gap-2 px-2 w-auto">
                 <span className="max-w-[100px] truncate">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />

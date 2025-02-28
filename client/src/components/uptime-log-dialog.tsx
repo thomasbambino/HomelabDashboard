@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NavIconButton } from "@/components/ui/nav-icon-button";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
@@ -15,10 +14,13 @@ import { DateRange } from "react-day-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/use-auth";
 
-export function UptimeLogDialog() {
+interface UptimeLogDialogProps {
+  children?: React.ReactNode;
+}
+
+export function UptimeLogDialog({ children }: UptimeLogDialogProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [date, setDate] = useState<DateRange | undefined>(() => {
@@ -74,10 +76,12 @@ export function UptimeLogDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <NavIconButton>
-          <Activity className="h-4 w-4 mr-2" />
-          Uptime Log
-        </NavIconButton>
+        {children || (
+          <NavIconButton>
+            <Activity className="h-4 w-4" />
+            Uptime Log
+          </NavIconButton>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>

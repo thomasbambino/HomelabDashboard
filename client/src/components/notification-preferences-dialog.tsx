@@ -12,18 +12,16 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { EmailTemplateDialog } from "./email-template-dialog";
 import { Button } from "@/components/ui/button";
 
-
-interface ServiceNotificationState {
-  email: string;
-  enabled: boolean;
+interface NotificationPreferencesDialogProps {
+  children?: React.ReactNode;
 }
 
-export function NotificationPreferencesDialog() {
+export function NotificationPreferencesDialog({ children }: NotificationPreferencesDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';
   const [showTemplates, setShowTemplates] = useState(false);
-  const [notifications, setNotifications] = useState<Record<number, ServiceNotificationState>>({});
+  const [notifications, setNotifications] = useState<Record<number, { email: string; enabled: boolean }>>({});
 
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
@@ -33,8 +31,7 @@ export function NotificationPreferencesDialog() {
     queryKey: ["/api/notification-preferences"],
     gcTime: 0,
     onSuccess: (prefs: NotificationPreference[]) => {
-      // Initialize state from existing preferences
-      const newState: Record<number, ServiceNotificationState> = {};
+      const newState: Record<number, { email: string; enabled: boolean }> = {};
       prefs.forEach(pref => {
         newState[pref.serviceId] = {
           email: pref.email,
@@ -88,7 +85,7 @@ export function NotificationPreferencesDialog() {
 
   const handlePreferenceChange = async (
     serviceId: number,
-    field: keyof ServiceNotificationState,
+    field: keyof { email: string; enabled: boolean },
     value: string | boolean
   ) => {
     const currentState = notifications[serviceId] || { email: "", enabled: true };
@@ -98,7 +95,6 @@ export function NotificationPreferencesDialog() {
     };
     setNotifications(prev => ({ ...prev, [serviceId]: newState }));
 
-    // Only update if we have both email and enabled state
     if (newState.email) {
       updatePreferenceMutation.mutate({
         serviceId,
@@ -111,9 +107,11 @@ export function NotificationPreferencesDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <NavIconButton>
-          <Bell className="h-4 w-4" />
-        </NavIconButton>
+        {children || (
+          <NavIconButton>
+            <Bell className="h-4 w-4" />
+          </NavIconButton>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
