@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -42,7 +42,7 @@ export default function SettingsPage() {
     queryKey: ["/api/settings"],
   });
 
-  const { data: emailTemplates } = useQuery({
+  const { data: emailTemplates = [] } = useQuery({
     queryKey: ["/api/email-templates"],
     enabled: currentTab === "email" && isSuperAdmin,
   });
@@ -250,21 +250,19 @@ export default function SettingsPage() {
     setPreviewHtml(null);
   };
 
-  const handleSaveTemplate = (templateId: number) => {
+  const handleSaveTemplate = async (templateId: number) => {
     if (editingTemplate) {
-      updateEmailTemplateMutation.mutate({
-        id: templateId,
-        name: editingTemplate.name,
-        subject: editingTemplate.subject,
-        body: editingTemplate.body,
-        logo_url: editingTemplate.logo_url,
-      }, {
-        onSuccess: () => {
-          setEditingTemplateId(null);
-          setEditingTemplate(null);
-          setPreviewHtml(null);
-        }
-      });
+      try {
+        await updateEmailTemplateMutation.mutateAsync({
+          id: templateId,
+          name: editingTemplate.name,
+          subject: editingTemplate.subject,
+          body: editingTemplate.body,
+          logo_url: editingTemplate.logo_url,
+        });
+      } catch (error) {
+        // Error is handled by the mutation
+      }
     }
   };
 
@@ -272,12 +270,17 @@ export default function SettingsPage() {
     if (editingTemplate) {
       try {
         const res = await apiRequest("POST", `/api/email-templates/${templateId}/preview`, {
+          name: editingTemplate.name,
           subject: editingTemplate.subject,
           body: editingTemplate.body,
           logo_url: editingTemplate.logo_url,
         });
         const data = await res.json();
-        setPreviewHtml(data.html);
+        if (data.html) {
+          setPreviewHtml(data.html);
+        } else {
+          throw new Error("Failed to generate preview");
+        }
       } catch (error) {
         toast({
           title: "Preview Failed",
@@ -746,7 +749,7 @@ export default function SettingsPage() {
                             Customize the email templates used for notifications and user communications
                           </p>
                         </div>
-                        {emailTemplates?.map((template) => (
+                        {emailTemplates.map((template: any) => (
                           <div key={template.id} className="space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-medium">{template.name}</h4>
@@ -873,6 +876,9 @@ export default function SettingsPage() {
 
       <Dialog open={!!previewHtml} onOpenChange={() => setPreviewHtml(null)}>
         <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Email Preview</DialogTitle>
+          </DialogHeader>
           <div
             className="prose prose-sm max-h-[600px] overflow-y-auto"
             dangerouslySetInnerHTML={{ __html: previewHtml || '' }}
