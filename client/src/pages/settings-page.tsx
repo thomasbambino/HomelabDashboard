@@ -334,9 +334,14 @@ export default function SettingsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Logo URL</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://example.com/logo.png" {...field} value={field.value || ""} />
-                            </FormControl>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input placeholder="https://example.com/logo.png" {...field} value={field.value || ""} />
+                              </FormControl>
+                              <Button variant="outline" type="button" className="shrink-0">
+                                Upload
+                              </Button>
+                            </div>
                           </FormItem>
                         )}
                       />
@@ -346,9 +351,14 @@ export default function SettingsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Large Logo URL</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://example.com/logo-large.png" {...field} value={field.value || ""} />
-                            </FormControl>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input placeholder="https://example.com/logo-large.png" {...field} value={field.value || ""} />
+                              </FormControl>
+                              <Button variant="outline" type="button" className="shrink-0">
+                                Upload
+                              </Button>
+                            </div>
                           </FormItem>
                         )}
                       />
@@ -358,9 +368,14 @@ export default function SettingsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Favicon URL</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://example.com/favicon.ico" {...field} value={field.value || ""} />
-                            </FormControl>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input placeholder="https://example.com/favicon.ico" {...field} value={field.value || ""} />
+                              </FormControl>
+                              <Button variant="outline" type="button" className="shrink-0">
+                                Upload
+                              </Button>
+                            </div>
                           </FormItem>
                         )}
                       />
@@ -376,30 +391,32 @@ export default function SettingsPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="online_color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Online Status Color</FormLabel>
-                            <FormControl>
-                              <Input type="color" {...field} value={field.value || "#22c55e"} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="offline_color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Offline Status Color</FormLabel>
-                            <FormControl>
-                              <Input type="color" {...field} value={field.value || "#ef4444"} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="online_color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Online Status Color</FormLabel>
+                              <FormControl>
+                                <Input type="color" {...field} value={field.value || "#22c55e"} className="h-10 px-2" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="offline_color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Offline Status Color</FormLabel>
+                              <FormControl>
+                                <Input type="color" {...field} value={field.value || "#ef4444"} className="h-10 px-2" />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                       <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
                         {updateSettingsMutation.isPending && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
