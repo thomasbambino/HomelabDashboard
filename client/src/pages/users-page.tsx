@@ -199,7 +199,7 @@ export default function UsersPage() {
             </CardContent>
           </Card>
 
-          <Separator className="my-4" />
+          <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
 
           <div className="grid gap-4">
             {[...users]
