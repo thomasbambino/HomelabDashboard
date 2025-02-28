@@ -5,17 +5,20 @@ import { eq } from "drizzle-orm";
 import { services, gameServers } from "@shared/schema";
 
 // Cache to store the last known status of each service
-const statusCache = new Map<number, { status: boolean; lastCheck: number }>();
+const statusCache = new Map<number, { status: boolean; lastCheck: number; consecutiveFailures: number }>();
 
-async function checkHttpService(url: string): Promise<{ status: boolean; responseTime?: number }> {
+async function checkHttpService(url: string): Promise<{ status: boolean; responseTime?: number; error?: string }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     const startTime = Date.now();
     const response = await fetch(url, {
-      method: 'HEAD',  // Use HEAD request to minimize data transfer
-      signal: controller.signal
+      method: 'GET',  // Using GET instead of HEAD as it's more widely supported
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'ServiceHealthChecker/1.0'
+      }
     });
     const endTime = Date.now();
 
@@ -25,10 +28,19 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
       responseTime: endTime - startTime
     };
   } catch (error) {
-    console.log(`Service check failed for URL ${url}:`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.log(`Service check failed for URL ${url}:`, errorMessage);
+
+    // Categorize the error
+    const isNetworkError = errorMessage.includes('fetch failed') || 
+                          errorMessage.includes('network') ||
+                          errorMessage.includes('ECONNREFUSED') ||
+                          errorMessage.includes('ETIMEDOUT');
+
     return {
       status: false,
-      responseTime: undefined
+      responseTime: undefined,
+      error: isNetworkError ? 'network_error' : 'service_error'
     };
   }
 }
@@ -36,32 +48,52 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
 async function updateServiceStatus(service: Service) {
   console.log(`Checking service ${service.name} (${service.url})`);
 
-  // Skip check if service was checked recently based on its refreshInterval
-  const cachedStatus = statusCache.get(service.id);
+  // Get cached status
+  const cachedStatus = statusCache.get(service.id) || { 
+    status: false, 
+    lastCheck: 0,
+    consecutiveFailures: 0 
+  };
+
   const now = Date.now();
-  if (cachedStatus && service.refreshInterval && 
+
+  // Skip check if service was checked recently based on its refreshInterval
+  if (service.refreshInterval && 
       (now - cachedStatus.lastCheck) < (service.refreshInterval * 1000)) {
     return;
   }
 
-  const { status, responseTime } = await checkHttpService(service.url);
-  console.log(`Service ${service.name} status: ${status}, response time: ${responseTime}ms`);
+  // Perform the service check
+  const { status, responseTime, error } = await checkHttpService(service.url);
+  console.log(`Service ${service.name} status check:`, { status, responseTime, error });
 
-  // Only update database and create log if status has changed
-  const hasStatusChanged = !cachedStatus || cachedStatus.status !== status;
+  // Update consecutive failures count
+  if (!status) {
+    cachedStatus.consecutiveFailures++;
+  } else {
+    cachedStatus.consecutiveFailures = 0;
+  }
+
+  // Only consider a service truly offline after 2 consecutive failures
+  // This helps prevent false offline notifications due to temporary issues
+  const isOffline = !status && cachedStatus.consecutiveFailures >= 2;
+
+  // Only update database and create log if status has significantly changed
+  const hasStatusChanged = cachedStatus.status !== !isOffline;
 
   if (hasStatusChanged) {
     try {
-      // Only log status changes (transitions between online and offline)
-      await storage.createServiceStatusLog(service.id, status, responseTime);
-      console.log(`Status change logged for service ${service.name}: ${status ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
+      // Log the status change
+      await storage.createServiceStatusLog(service.id, !isOffline, responseTime);
+      console.log(`Status change logged for service ${service.name}: ${!isOffline ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
 
       // Update service status in database
       await db
         .update(services)
         .set({ 
-          status, 
-          lastChecked: new Date().toISOString() 
+          status: !isOffline, 
+          lastChecked: new Date().toISOString(),
+          lastError: error ? `${error} at ${new Date().toISOString()}` : null
         })
         .where(eq(services.id, service.id));
 
@@ -74,7 +106,7 @@ async function updateServiceStatus(service: Service) {
           stack: error.stack,
           serviceId: service.id,
           serviceName: service.name,
-          status,
+          status: !isOffline,
           responseTime
         });
       }
@@ -84,7 +116,10 @@ async function updateServiceStatus(service: Service) {
     try {
       await db
         .update(services)
-        .set({ lastChecked: new Date().toISOString() })
+        .set({ 
+          lastChecked: new Date().toISOString(),
+          lastError: error ? `${error} at ${new Date().toISOString()}` : null
+        })
         .where(eq(services.id, service.id));
     } catch (error) {
       console.error('Error updating lastChecked timestamp:', error);
@@ -93,8 +128,9 @@ async function updateServiceStatus(service: Service) {
 
   // Update cache
   statusCache.set(service.id, {
-    status,
-    lastCheck: now
+    status: !isOffline,
+    lastCheck: now,
+    consecutiveFailures: cachedStatus.consecutiveFailures
   });
 }
 
