@@ -58,8 +58,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <NavigationBar settings={settings} />
 
-      <main className="container mx-auto px-4 pt-24 pb-6 space-y-8">
-        <section className="relative">
+      <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
+        <section className="relative border-0 shadow-none">
           <div
             className="flex items-center justify-between mb-4"
             onClick={() => setIsServersExpanded(!isServersExpanded)}
@@ -91,7 +91,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="relative">
+        <section className="relative border-0 shadow-none">
           <div
             className="flex items-center justify-between mb-4"
             onClick={() => setIsServicesExpanded(!isServicesExpanded)}
