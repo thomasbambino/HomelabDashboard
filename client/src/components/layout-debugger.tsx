@@ -3,6 +3,8 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useQuery } from "@tanstack/react-query";
+import { Settings } from "@shared/schema";
 
 interface LayoutDebuggerProps {
   onPaddingChange: (value: number) => void;
@@ -11,29 +13,12 @@ interface LayoutDebuggerProps {
 }
 
 export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddingChange }: LayoutDebuggerProps) {
-  const [isVisible, setIsVisible] = useState(() => {
-    const saved = localStorage.getItem('layoutDebuggerVisible');
-    return saved ? JSON.parse(saved) : true;
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
   });
 
-  useEffect(() => {
-    localStorage.setItem('layoutDebuggerVisible', JSON.stringify(isVisible));
-  }, [isVisible]);
-
-  if (!isVisible) {
-    return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <Card className="w-auto">
-          <CardContent className="p-4">
-            <Switch
-              checked={isVisible}
-              onCheckedChange={setIsVisible}
-              size="sm"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!settings?.show_layout_debugger) {
+    return null;
   }
 
   return (
@@ -41,11 +26,6 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
       <Card className="w-80">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Layout Debugger</CardTitle>
-          <Switch
-            checked={isVisible}
-            onCheckedChange={setIsVisible}
-            size="sm"
-          />
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

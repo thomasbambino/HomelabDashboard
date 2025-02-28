@@ -53,6 +53,7 @@ export const settings = pgTable("settings", {
   admin_show_service_url: boolean("admin_show_service_url").default(true),
   admin_show_uptime_log: boolean("admin_show_uptime_log").default(false),
   admin_show_status_badge: boolean("admin_show_status_badge").default(true),
+  show_layout_debugger: boolean("show_layout_debugger").default(false),
 });
 
 export const services = pgTable("services", {
