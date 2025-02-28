@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { EmailTemplateDialog } from "@/components/email-template-dialog";
+import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -724,19 +725,56 @@ export default function SettingsPage() {
                                 />
 
                                 <div className="mt-4 pt-4 border-t">
-                                  <h4 className="text-sm font-medium mb-2">Current Layout Values</h4>
-                                  <div className="grid grid-cols-3 gap-4">
+                                  <h4 className="text-sm font-medium mb-2">Layout Settings</h4>
+                                  <div className="grid grid-cols-1 gap-4">
                                     <div>
-                                      <Label>Horizontal</Label>
-                                      <p className="text-sm text-muted-foreground">{horizontalPadding}px</p>
+                                      <div className="flex justify-between items-center mb-2">
+                                        <Label>Horizontal Padding</Label>
+                                        <span className="text-sm text-muted-foreground">{horizontalPadding}px</span>
+                                      </div>
+                                      <Slider
+                                        defaultValue={[horizontalPadding]}
+                                        max={200}
+                                        step={4}
+                                        value={[horizontalPadding]}
+                                        onValueChange={([value]) => {
+                                          setHorizontalPadding(value);
+                                          document.documentElement.style.setProperty('--layout-horizontal-padding', `${value}px`);
+                                        }}
+                                      />
                                     </div>
                                     <div>
-                                      <Label>Vertical</Label>
-                                      <p className="text-sm text-muted-foreground">{verticalPadding}px</p>
+                                      <div className="flex justify-between items-center mb-2">
+                                        <Label>Vertical Padding</Label>
+                                        <span className="text-sm text-muted-foreground">{verticalPadding}px</span>
+                                      </div>
+                                      <Slider
+                                        defaultValue={[verticalPadding]}
+                                        max={200}
+                                        step={4}
+                                        value={[verticalPadding]}
+                                        onValueChange={([value]) => {
+                                          setVerticalPadding(value);
+                                          document.documentElement.style.setProperty('--layout-vertical-padding', `${value}px`);
+                                        }}
+                                      />
                                     </div>
                                     <div>
-                                      <Label>Max Width</Label>
-                                      <p className="text-sm text-muted-foreground">{maxWidth}px</p>
+                                      <div className="flex justify-between items-center mb-2">
+                                        <Label>Max Content Width</Label>
+                                        <span className="text-sm text-muted-foreground">{maxWidth}px</span>
+                                      </div>
+                                      <Slider
+                                        defaultValue={[maxWidth]}
+                                        min={800}
+                                        max={2000}
+                                        step={50}
+                                        value={[maxWidth]}
+                                        onValueChange={([value]) => {
+                                          setMaxWidth(value);
+                                          document.documentElement.style.setProperty('--layout-max-width', `${value}px`);
+                                        }}
+                                      />
                                     </div>
                                   </div>
                                 </div>

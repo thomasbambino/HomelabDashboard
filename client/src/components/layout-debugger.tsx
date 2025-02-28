@@ -28,6 +28,11 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
       setHorizontalValue(settings.layout_horizontal_padding);
       setVerticalValue(settings.layout_vertical_padding);
       setWidthValue(settings.layout_max_width);
+
+      // Apply the CSS variables when settings are loaded
+      document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
+      document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
+      document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);
     }
   }, [settings]);
 
@@ -53,6 +58,12 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
   }
 
   const saveLayoutSettings = (horizontal: number, vertical: number, width: number) => {
+    // Apply CSS variables immediately
+    document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontal}px`);
+    document.documentElement.style.setProperty('--layout-vertical-padding', `${vertical}px`);
+    document.documentElement.style.setProperty('--layout-max-width', `${width}px`);
+
+    // Save to database
     updateSettingsMutation.mutate({
       layout_horizontal_padding: horizontal,
       layout_vertical_padding: vertical,
