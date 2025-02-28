@@ -17,6 +17,8 @@ import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
 import { format } from 'date-fns';
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
+import { Separator } from "@/components/ui/separator"; // Import Separator
+
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -196,6 +198,8 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Separator className="my-4" />
 
           <div className="grid gap-4">
             {[...users]
