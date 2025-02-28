@@ -6,11 +6,15 @@ import type { ThemeProviderProps } from "next-themes/dist/types"
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
-    <NextThemesProvider
+    <NextThemesProvider 
       attribute="class"
       defaultTheme="dark"
       enableSystem={false}
-      disableTransitionOnChange
+      value={{
+        light: "light",
+        dark: "dark",
+        system: "system",
+      }}
       {...props}
     >
       {children}

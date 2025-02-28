@@ -29,21 +29,21 @@ function Router() {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <ErrorBoundary>
-        <div className="min-h-screen bg-background text-foreground">
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
+    <ThemeProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ErrorBoundary>
               <FaviconUpdater />
               <Router />
               <Toaster />
               <div className="fixed bottom-4 right-4 z-50">
                 <DiscordButton />
               </div>
-            </AuthProvider>
-          </QueryClientProvider>
-        </div>
-      </ErrorBoundary>
+            </ErrorBoundary>
+          </AuthProvider>
+        </QueryClientProvider>
+      </div>
     </ThemeProvider>
   );
 }
