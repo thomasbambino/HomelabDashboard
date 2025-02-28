@@ -24,9 +24,9 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const isSuperAdmin = user?.role === 'superadmin';
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-[1400px] mx-auto px-8 py-4">
-        <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container">
+        <nav className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">
               {settings?.logo_url ? (
@@ -51,7 +51,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-4 pr-2">
+          <div className="flex items-center justify-end gap-4">
             <ThemeToggle />
             <NotificationPreferencesDialog />
 
