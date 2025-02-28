@@ -66,29 +66,27 @@ export function NavigationBar({ settings }: NavigationBarProps) {
                       <span>Manage Users</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <UptimeLogDialog>
-                      <div className="flex items-center gap-2 w-full">
-                        <Activity className="h-4 w-4" />
+                  <DropdownMenuItem asChild>
+                    <div className="flex items-center gap-2 w-full cursor-pointer">
+                      <Activity className="h-4 w-4" />
+                      <UptimeLogDialog>
                         <span>Uptime Log</span>
-                      </div>
-                    </UptimeLogDialog>
+                      </UptimeLogDialog>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <SettingsDialog>
-                      <div className="flex items-center gap-2 w-full">
-                        <SettingsIcon className="h-4 w-4" />
+                  <DropdownMenuItem asChild>
+                    <div className="flex items-center gap-2 w-full cursor-pointer">
+                      <SettingsIcon className="h-4 w-4" />
+                      <SettingsDialog>
                         <span>Settings</span>
-                      </div>
-                    </SettingsDialog>
+                      </SettingsDialog>
+                    </div>
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onSelect={() => logoutMutation.mutate()}>
-                <div className="flex items-center gap-2 w-full">
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
-                </div>
+              <DropdownMenuItem className="flex items-center gap-2" onSelect={() => logoutMutation.mutate()}>
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
