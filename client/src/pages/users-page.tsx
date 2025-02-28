@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { KeyRound, Loader2, Save, Shield, Trash2 } from "lucide-react";
+import { Redirect, Link } from "wouter";
+import { KeyRound, Loader2, Save, Shield, Trash2, ArrowLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -162,32 +162,44 @@ export default function UsersPage() {
       <NavigationBar settings={settings} pageTitle="User Management" />
 
       <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6 space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isSuperAdmin && <LoginAttemptsDialog />}
-          </div>
+        <div className="flex items-center justify-end">
+          <Link href="/">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Registration Settings</CardTitle>
+            <CardTitle>Settings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <Label>Default role for new users:</Label>
-              <Select
-                value={settings?.default_role}
-                onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-4">
+                <Label>Default role for new users:</Label>
+                <Select
+                  value={settings?.default_role}
+                  onValueChange={(value) => updateSettingsMutation.mutate({ defaultRole: value })}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isSuperAdmin && (
+                <div className="flex items-center gap-4">
+                  <Label>Login Attempts:</Label>
+                  <LoginAttemptsDialog />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
