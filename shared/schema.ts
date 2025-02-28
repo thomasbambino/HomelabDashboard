@@ -9,26 +9,6 @@ export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('superadmin', 'admin', '
 // Create enum columns
 const role = sql`"role"`;
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email"),
-  role: text("role", { enum: ['superadmin', 'admin', 'user', 'pending'] }).notNull().default('pending'),
-  enabled: boolean("enabled").notNull().default(true),
-  approved: boolean("approved").notNull().default(false),
-  can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
-  show_uptime_log: boolean("show_uptime_log").notNull().default(false),
-  show_service_url: boolean("show_service_url").notNull().default(true),
-  show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
-  show_last_checked: boolean("show_last_checked").notNull().default(true),
-  service_order: integer("service_order").array().default([]),
-  isOnline: boolean("is_online").notNull().default(false),
-  last_login: timestamp("last_login"),
-  last_ip: text("last_ip"),
-  temp_password: boolean("temp_password").notNull().default(false),
-});
-
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   default_role: text("default_role", { enum: ['admin', 'user', 'pending'] }).notNull().default('pending'),
@@ -56,7 +36,27 @@ export const settings = pgTable("settings", {
   show_layout_debugger: boolean("show_layout_debugger").default(false),
   layout_horizontal_padding: integer("layout_horizontal_padding").default(32),
   layout_vertical_padding: integer("layout_vertical_padding").default(24),
-  layout_max_width: integer("layout_max_width").default(1400),
+  layout_max_width: integer("layout_max_width").default(1250), // Changed default to 1250
+});
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  email: text("email"),
+  role: text("role", { enum: ['superadmin', 'admin', 'user', 'pending'] }).notNull().default('pending'),
+  enabled: boolean("enabled").notNull().default(true),
+  approved: boolean("approved").notNull().default(false),
+  can_view_nsfw: boolean("can_view_nsfw").notNull().default(false),
+  show_uptime_log: boolean("show_uptime_log").notNull().default(false),
+  show_service_url: boolean("show_service_url").notNull().default(true),
+  show_refresh_interval: boolean("show_refresh_interval").notNull().default(true),
+  show_last_checked: boolean("show_last_checked").notNull().default(true),
+  service_order: integer("service_order").array().default([]),
+  isOnline: boolean("is_online").notNull().default(false),
+  last_login: timestamp("last_login"),
+  last_ip: text("last_ip"),
+  temp_password: boolean("temp_password").notNull().default(false),
 });
 
 export const services = pgTable("services", {

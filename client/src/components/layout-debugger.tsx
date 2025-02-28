@@ -19,20 +19,25 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
     queryKey: ["/api/settings"],
   });
 
-  const [horizontalValue, setHorizontalValue] = useState(settings?.layout_horizontal_padding ?? 32);
-  const [verticalValue, setVerticalValue] = useState(settings?.layout_vertical_padding ?? 24);
-  const [widthValue, setWidthValue] = useState(settings?.layout_max_width ?? 1400);
+  const [horizontalValue, setHorizontalValue] = useState(32);
+  const [verticalValue, setVerticalValue] = useState(24);
+  const [widthValue, setWidthValue] = useState(1250); // Set default to 1250px
 
   useEffect(() => {
     if (settings) {
-      setHorizontalValue(settings.layout_horizontal_padding);
-      setVerticalValue(settings.layout_vertical_padding);
-      setWidthValue(settings.layout_max_width);
+      // When settings load, update state and apply CSS variables
+      const horizontal = settings.layout_horizontal_padding ?? 32;
+      const vertical = settings.layout_vertical_padding ?? 24;
+      const width = settings.layout_max_width ?? 1250; // Default to 1250px if not set
 
-      // Apply CSS variables when settings are loaded
-      document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
-      document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
-      document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);
+      setHorizontalValue(horizontal);
+      setVerticalValue(vertical);
+      setWidthValue(width);
+
+      // Apply CSS variables
+      document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontal}px`);
+      document.documentElement.style.setProperty('--layout-vertical-padding', `${vertical}px`);
+      document.documentElement.style.setProperty('--layout-max-width', `${width}px`);
     }
   }, [settings]);
 
