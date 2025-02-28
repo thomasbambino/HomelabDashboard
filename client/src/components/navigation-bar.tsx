@@ -60,31 +60,33 @@ export function NavigationBar({ settings }: NavigationBarProps) {
             <DropdownMenuContent align="end" className="w-48">
               {(isAdmin || isSuperAdmin) && (
                 <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/users" className="flex items-center gap-2 w-full">
+                  <Link href="/users">
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
                       <Users className="h-4 w-4" />
                       <span>Manage Users</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <UptimeLogDialog>
-                      <div className="flex items-center gap-2 w-full cursor-pointer">
-                        <Activity className="h-4 w-4" />
-                        <span>Uptime Log</span>
-                      </div>
-                    </UptimeLogDialog>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <SettingsDialog>
-                      <div className="flex items-center gap-2 w-full cursor-pointer">
-                        <SettingsIcon className="h-4 w-4" />
-                        <span>Settings</span>
-                      </div>
-                    </SettingsDialog>
-                  </DropdownMenuItem>
+                    </DropdownMenuItem>
+                  </Link>
+
+                  <UptimeLogDialog>
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                      <Activity className="h-4 w-4" />
+                      <span>Uptime Log</span>
+                    </DropdownMenuItem>
+                  </UptimeLogDialog>
+
+                  <SettingsDialog>
+                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                      <SettingsIcon className="h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                  </SettingsDialog>
                 </>
               )}
-              <DropdownMenuItem className="flex items-center gap-2" onSelect={() => logoutMutation.mutate()}>
+
+              <DropdownMenuItem 
+                className="flex items-center gap-2 cursor-pointer" 
+                onSelect={() => logoutMutation.mutate()}
+              >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
               </DropdownMenuItem>
