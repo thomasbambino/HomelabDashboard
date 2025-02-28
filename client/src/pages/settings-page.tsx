@@ -206,7 +206,7 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Settings" />
 
-        <main className="max-w-[980px] mx-auto px-4 pt-24 pb-6 space-y-6">
+        <main className="max-w-[833px] mx-auto px-4 pt-24 pb-6 space-y-6">
           <Card className="border-0 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Settings</CardTitle>
