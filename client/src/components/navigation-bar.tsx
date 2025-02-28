@@ -66,21 +66,21 @@ export function NavigationBar({ settings }: NavigationBarProps) {
                       <span>Manage Users</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <div className="flex items-center gap-2 w-full cursor-pointer">
-                      <Activity className="h-4 w-4" />
-                      <UptimeLogDialog>
+                  <DropdownMenuItem>
+                    <UptimeLogDialog>
+                      <div className="flex items-center gap-2 w-full cursor-pointer">
+                        <Activity className="h-4 w-4" />
                         <span>Uptime Log</span>
-                      </UptimeLogDialog>
-                    </div>
+                      </div>
+                    </UptimeLogDialog>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <div className="flex items-center gap-2 w-full cursor-pointer">
-                      <SettingsIcon className="h-4 w-4" />
-                      <SettingsDialog>
+                  <DropdownMenuItem>
+                    <SettingsDialog>
+                      <div className="flex items-center gap-2 w-full cursor-pointer">
+                        <SettingsIcon className="h-4 w-4" />
                         <span>Settings</span>
-                      </SettingsDialog>
-                    </div>
+                      </div>
+                    </SettingsDialog>
                   </DropdownMenuItem>
                 </>
               )}
