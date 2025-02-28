@@ -29,7 +29,7 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
       setVerticalValue(settings.layout_vertical_padding);
       setWidthValue(settings.layout_max_width);
 
-      // Apply the CSS variables when settings are loaded
+      // Apply CSS variables when settings are loaded
       document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
       document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
       document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);

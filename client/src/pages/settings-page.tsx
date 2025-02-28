@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Service, Settings, updateSettingsSchema } from "@shared/schema";
+import { Settings, updateSettingsSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
@@ -19,20 +19,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ImageUpload } from "@/components/ui/image-upload";
-import { Textarea } from "@/components/ui/textarea";
-import { EmailTemplateDialog } from "@/components/email-template-dialog";
 import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
-
-  // Initialize state with default values
   const [horizontalPadding, setHorizontalPadding] = useState(32);
   const [verticalPadding, setVerticalPadding] = useState(24);
   const [maxWidth, setMaxWidth] = useState(1400);
@@ -45,6 +38,10 @@ export default function SettingsPage() {
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
       id: 1,
+      show_layout_debugger: false,
+      layout_horizontal_padding: 32,
+      layout_vertical_padding: 24,
+      layout_max_width: 1400,
       favicon_url: "",
       favicon_label: "",
       tracking_code: "",
@@ -65,88 +62,48 @@ export default function SettingsPage() {
       admin_show_status_badge: true,
       logo_url: "",
       logo_url_large: "",
-      show_layout_debugger: false,
-      layout_horizontal_padding: 32,
-      layout_vertical_padding: 24,
-      layout_max_width: 1400,
     },
   });
 
   useEffect(() => {
     if (settings) {
       form.reset({
-        id: settings.id,
-        favicon_url: settings.favicon_url,
-        favicon_label: settings.favicon_label,
-        tracking_code: settings.tracking_code,
-        default_role: settings.default_role,
-        site_title: settings.site_title,
-        font_family: settings.font_family,
-        login_description: settings.login_description,
-        online_color: settings.online_color,
-        offline_color: settings.offline_color,
-        discord_url: settings.discord_url,
-        show_refresh_interval: settings.show_refresh_interval,
-        show_last_checked: settings.show_last_checked,
-        show_service_url: settings.show_service_url,
-        show_status_badge: settings.show_status_badge,
-        admin_show_refresh_interval: settings.admin_show_refresh_interval,
-        admin_show_last_checked: settings.admin_show_last_checked,
-        admin_show_service_url: settings.admin_show_service_url,
-        admin_show_status_badge: settings.admin_show_status_badge,
-        logo_url: settings.logo_url,
-        logo_url_large: settings.logo_url_large,
-        show_layout_debugger: settings.show_layout_debugger,
-        layout_horizontal_padding: settings.layout_horizontal_padding,
-        layout_vertical_padding: settings.layout_vertical_padding,
-        layout_max_width: settings.layout_max_width,
+        ...settings,
+        id: settings.id ?? 1,
       });
+
+      // Update the state values and apply CSS when settings are loaded
       setHorizontalPadding(settings.layout_horizontal_padding);
       setVerticalPadding(settings.layout_vertical_padding);
       setMaxWidth(settings.layout_max_width);
+
+      // Apply CSS variables when settings are loaded
+      document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
+      document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
+      document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);
     }
   }, [settings, form]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Parameters<typeof updateSettingsSchema.parse>[0]) => {
-      const relevantData = { id: data.id };
+      const relevantData: any = { id: data.id };
 
-      if (currentTab === "general") {
-        Object.assign(relevantData, {
-          site_title: data.site_title,
-          default_role: data.default_role,
-          discord_url: data.discord_url,
-          font_family: data.font_family,
-          login_description: data.login_description,
-        });
-      } else if (currentTab === "branding") {
-        Object.assign(relevantData, {
-          logo_url: data.logo_url,
-          logo_url_large: data.logo_url_large,
-          favicon_url: data.favicon_url,
-          favicon_label: data.favicon_label,
-          tracking_code: data.tracking_code,
-          online_color: data.online_color,
-          offline_color: data.offline_color,
-        });
-      } else if (currentTab === "visibility") {
-        Object.assign(relevantData, {
-          show_refresh_interval: data.show_refresh_interval,
-          show_last_checked: data.show_last_checked,
-          show_service_url: data.show_service_url,
-          show_status_badge: data.show_status_badge,
-          admin_show_refresh_interval: data.admin_show_refresh_interval,
-          admin_show_last_checked: data.admin_show_last_checked,
-          admin_show_service_url: data.admin_show_service_url,
-          admin_show_status_badge: data.admin_show_status_badge,
-        });
-      } else if (currentTab === "debug") {
+      if (currentTab === "debug") {
+        // For debug tab, include both the layout debugger toggle and the current layout values
         Object.assign(relevantData, {
           show_layout_debugger: data.show_layout_debugger,
           layout_horizontal_padding: horizontalPadding,
           layout_vertical_padding: verticalPadding,
           layout_max_width: maxWidth,
         });
+
+        // Apply CSS variables immediately when saving
+        document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontalPadding}px`);
+        document.documentElement.style.setProperty('--layout-vertical-padding', `${verticalPadding}px`);
+        document.documentElement.style.setProperty('--layout-max-width', `${maxWidth}px`);
+      } else {
+        // For other tabs, include only the relevant fields
+        Object.assign(relevantData, data);
       }
 
       const res = await apiRequest("PATCH", "/api/settings", relevantData);
@@ -156,7 +113,7 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
         title: "Settings updated",
-        description: "Settings have been updated successfully",
+        description: "Your settings have been saved successfully",
       });
     },
     onError: (error: Error) => {
@@ -230,7 +187,7 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="Settings" />
 
-        <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
+        <main className="container mx-auto pt-24 pb-6 space-y-6">
           <Card className="border-0 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Settings</CardTitle>
@@ -725,8 +682,8 @@ export default function SettingsPage() {
                                 />
 
                                 <div className="mt-4 pt-4 border-t">
-                                  <h4 className="text-sm font-medium mb-2">Layout Settings</h4>
-                                  <div className="grid grid-cols-1 gap-4">
+                                  <h4 className="text-sm font-medium mb-4">Layout Configuration</h4>
+                                  <div className="space-y-6">
                                     <div>
                                       <div className="flex justify-between items-center mb-2">
                                         <Label>Horizontal Padding</Label>
@@ -795,7 +752,6 @@ export default function SettingsPage() {
               </Tabs>
             </CardContent>
           </Card>
-
           <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
         </main>
       </div>

@@ -3,11 +3,22 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --layout-horizontal-padding: 32px;
+    --layout-vertical-padding: 24px;
+    --layout-max-width: 1400px;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  .container {
+    @apply px-[var(--layout-horizontal-padding)] py-[var(--layout-vertical-padding)] mx-auto;
+    max-width: var(--layout-max-width);
   }
 }
