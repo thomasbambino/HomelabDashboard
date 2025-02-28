@@ -1,7 +1,7 @@
 import { Bell, ChevronDown, ServerCog } from "lucide-react"
 import { Link } from "wouter"
-import { Settings } from "@/lib/types"
-import { Button } from "@/components/ui/button"
+import { Settings } from "@shared/schema"
+import { NavIconButton } from "@/components/ui/nav-icon-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
   DropdownMenu,
@@ -45,17 +45,17 @@ export function NavigationBar({ settings }: NavigationBarProps) {
           <ThemeToggle />
 
           <NotificationPreferencesDialog>
-            <Button variant="ghost" className="h-8 w-8 hover:bg-transparent p-0 border-none">
+            <NavIconButton>
               <Bell className="h-5 w-5" />
-            </Button>
+            </NavIconButton>
           </NotificationPreferencesDialog>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 h-8 px-2 hover:bg-transparent p-0 border-none">
+              <NavIconButton className="gap-2 px-2 w-auto">
                 <span className="max-w-[100px] truncate">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />
-              </Button>
+              </NavIconButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               {(isAdmin || isSuperAdmin) && (
@@ -65,24 +65,24 @@ export function NavigationBar({ settings }: NavigationBarProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <UptimeLogDialog>
-                      <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                      <NavIconButton className="w-full text-left justify-start">
                         Uptime Log
-                      </Button>
+                      </NavIconButton>
                     </UptimeLogDialog>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <SettingsDialog>
-                      <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                      <NavIconButton className="w-full text-left justify-start">
                         Settings
-                      </Button>
+                      </NavIconButton>
                     </SettingsDialog>
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuItem onSelect={() => logoutMutation.mutate()}>
-                <Button variant="ghost" className="w-full hover:bg-transparent p-0 border-none">
+                <NavIconButton className="w-full text-left justify-start">
                   Logout
-                </Button>
+                </NavIconButton>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
