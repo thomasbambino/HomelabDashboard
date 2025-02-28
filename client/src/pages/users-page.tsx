@@ -159,7 +159,7 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NavigationBar pageTitle="User Management" />
+      <NavigationBar settings={settings} pageTitle="User Management" />
 
       <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6 space-y-8">
         <div className="flex items-center justify-between">

@@ -1,8 +1,6 @@
 import { Bell, ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut } from "lucide-react"
 import { Link } from "wouter"
 import { Settings } from "@shared/schema"
-import { NavIconButton } from "@/components/ui/nav-icon-button"
-import { ThemeToggle } from "@/components/theme-toggle"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +12,7 @@ import { NotificationPreferencesDialog } from "@/components/notification-prefere
 import { UptimeLogDialog } from "@/components/uptime-log-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
+import { ThemeToggle } from "./theme-toggle"
 
 interface NavigationBarProps {
   settings?: Settings;
@@ -47,7 +46,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
           {pageTitle && (
             <>
               <Separator orientation="vertical" className="h-6 mx-2" />
-              <span className="text-muted-foreground font-medium">{pageTitle}</span>
+              <span className="font-medium text-foreground">{pageTitle}</span>
             </>
           )}
         </div>
@@ -58,10 +57,10 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <NavIconButton className="gap-2 px-2 w-auto">
+              <div className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent cursor-pointer">
                 <span className="max-w-[100px] truncate text-foreground">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />
-              </NavIconButton>
+              </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               {(isAdmin || isSuperAdmin) && (
