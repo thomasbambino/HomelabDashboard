@@ -3,7 +3,8 @@ import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { Service, Settings, ServiceStatusLog } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarIcon, Activity, X } from "lucide-react";
+import { Link } from "wouter";
+import { ArrowLeft, CalendarIcon, X } from "lucide-react";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,9 +78,15 @@ export default function UptimeLogPage() {
         <NavigationBar settings={settings} pageTitle="Uptime Log" />
 
         <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
-          <Card>
-            <CardHeader>
+          <Card className="border-0 shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Filters</CardTitle>
+              <Link href="/">
+                <Button variant="outline" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
@@ -166,7 +173,7 @@ export default function UptimeLogPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-none">
             <CardHeader>
               <CardTitle>Log Entries</CardTitle>
             </CardHeader>
