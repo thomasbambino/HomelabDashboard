@@ -46,11 +46,11 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <div className="max-w-[1250px] mx-auto px-8 mt-24">
-          <div className="animate-pulse space-y-8">
+        <main className="container py-20">
+          <div className="animate-pulse">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -59,12 +59,13 @@ export default function Dashboard() {
     <PageTransition>
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
-        <div className="max-w-[1250px] mx-auto px-8 mt-24">
-          <section className="relative">
-            <div
-              className="flex items-center justify-between mb-4"
+
+        <main className="container py-20">
+          {/* Game Servers Section */}
+          <section className="mb-8">
+            <button
+              className="flex items-center justify-between w-full mb-4"
               onClick={() => setIsServersExpanded(!isServersExpanded)}
-              role="button"
               aria-expanded={isServersExpanded}
               aria-controls="game-servers-section"
             >
@@ -80,7 +81,8 @@ export default function Dashboard() {
               <div className="flex gap-2">
                 <RequestServerDialog />
               </div>
-            </div>
+            </button>
+
             <div
               id="game-servers-section"
               className={cn(
@@ -92,11 +94,11 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <section className="relative mt-8">
-            <div
-              className="flex items-center justify-between mb-4"
+          {/* Services Section */}
+          <section>
+            <button
+              className="flex items-center justify-between w-full mb-4"
               onClick={() => setIsServicesExpanded(!isServicesExpanded)}
-              role="button"
               aria-expanded={isServicesExpanded}
               aria-controls="services-section"
             >
@@ -110,7 +112,8 @@ export default function Dashboard() {
                 />
               </div>
               {(isAdmin || isSuperAdmin) && <AddServiceDialog />}
-            </div>
+            </button>
+
             <div
               id="services-section"
               className={cn(
@@ -129,7 +132,7 @@ export default function Dashboard() {
               )}
             </div>
           </section>
-        </div>
+        </main>
       </div>
     </PageTransition>
   );
