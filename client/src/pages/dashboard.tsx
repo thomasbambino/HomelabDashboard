@@ -58,7 +58,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <NavigationBar settings={settings} />
 
-      <main className="max-w-[1120px] mx-auto px-16 md:px-24 lg:px-32 mt-24 pb-6 space-y-8">
+      <main className="max-w-[900px] mx-auto px-8 mt-24 pb-6 space-y-8">
         <section className="relative">
           <div
             className="flex items-center justify-between mb-4"
