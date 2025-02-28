@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Separator } from "@/components/ui/separator"
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog"
 import { UptimeLogDialog } from "@/components/uptime-log-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -16,9 +17,10 @@ import { useAuth } from "@/hooks/use-auth"
 
 interface NavigationBarProps {
   settings?: Settings;
+  pageTitle?: string;
 }
 
-export function NavigationBar({ settings }: NavigationBarProps) {
+export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const { user, logoutMutation } = useAuth();
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
@@ -26,19 +28,28 @@ export function NavigationBar({ settings }: NavigationBarProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
       <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-3 pl-2">
-          {settings?.logo_url ? (
-            <img
-              src={settings.logo_url}
-              alt="Site Logo"
-              className="h-8 w-8 object-contain fixed-logo"
-            />
-          ) : (
-            <ServerCog className="h-8 w-8 text-primary" />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            {settings?.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt="Site Logo"
+                className="h-8 w-8 object-contain fixed-logo"
+              />
+            ) : (
+              <ServerCog className="h-8 w-8 text-primary" />
+            )}
+            <span className="font-bold text-foreground sm:inline-block">
+              {settings?.site_title || "Homelab Dashboard"}
+            </span>
+          </div>
+
+          {pageTitle && (
+            <>
+              <Separator orientation="vertical" className="h-6 mx-2" />
+              <span className="text-muted-foreground font-medium">{pageTitle}</span>
+            </>
           )}
-          <span className="font-bold text-foreground sm:inline-block">
-            {settings?.site_title || "Homelab Dashboard"}
-          </span>
         </div>
 
         <div className="flex items-center justify-end gap-4 pr-2">

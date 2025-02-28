@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect, Link } from "wouter";
-import { Users, Settings as SettingsIcon, ArrowLeft, KeyRound, Loader2, Save, Shield, Trash2 } from "lucide-react";
+import { Redirect } from "wouter";
+import { KeyRound, Loader2, Save, Shield, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
 import { format } from 'date-fns';
+import { NavigationBar } from "@/components/navigation-bar";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -157,30 +158,19 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">User Management</h1>
-          </div>
+    <div className="min-h-screen bg-background">
+      <NavigationBar pageTitle="User Management" />
+
+      <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6 space-y-8">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isSuperAdmin && <LoginAttemptsDialog />}
-            <Link href="/">
-              <Button variant="outline">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
           </div>
-        </header>
+        </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
-              Registration Settings
-            </CardTitle>
+            <CardTitle>Registration Settings</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -346,7 +336,7 @@ export default function UsersPage() {
               </Card>
             ))}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
