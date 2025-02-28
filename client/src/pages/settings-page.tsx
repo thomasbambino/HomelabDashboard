@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Mail, RefreshCw, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -30,9 +31,12 @@ export default function SettingsPage() {
   const isSuperAdmin = user?.role === 'superadmin';
   const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<{
+    name: string;
     subject: string;
     body: string;
+    logo_url: string;
   } | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -181,7 +185,7 @@ export default function SettingsPage() {
   });
 
   const updateEmailTemplateMutation = useMutation({
-    mutationFn: async (data: { id: number; subject: string; body: string }) => {
+    mutationFn: async (data: { id: number; name: string; subject: string; body: string; logo_url: string }) => {
       const res = await apiRequest("PATCH", `/api/email-templates/${data.id}`, data);
       return res.json();
     },
@@ -233,28 +237,54 @@ export default function SettingsPage() {
   const handleEditTemplate = (template: any) => {
     setEditingTemplateId(template.id);
     setEditingTemplate({
+      name: template.name,
       subject: template.subject,
       body: template.body,
+      logo_url: template.logo_url || "",
     });
   };
 
   const handleCancelEdit = () => {
     setEditingTemplateId(null);
     setEditingTemplate(null);
+    setPreviewHtml(null);
   };
 
   const handleSaveTemplate = (templateId: number) => {
     if (editingTemplate) {
       updateEmailTemplateMutation.mutate({
         id: templateId,
+        name: editingTemplate.name,
         subject: editingTemplate.subject,
         body: editingTemplate.body,
+        logo_url: editingTemplate.logo_url,
       }, {
         onSuccess: () => {
           setEditingTemplateId(null);
           setEditingTemplate(null);
+          setPreviewHtml(null);
         }
       });
+    }
+  };
+
+  const handlePreviewTemplate = async (templateId: number) => {
+    if (editingTemplate) {
+      try {
+        const res = await apiRequest("POST", `/api/email-templates/${templateId}/preview`, {
+          subject: editingTemplate.subject,
+          body: editingTemplate.body,
+          logo_url: editingTemplate.logo_url,
+        });
+        const data = await res.json();
+        setPreviewHtml(data.html);
+      } catch (error) {
+        toast({
+          title: "Preview Failed",
+          description: error instanceof Error ? error.message : "Failed to generate preview",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -733,7 +763,37 @@ export default function SettingsPage() {
                             {editingTemplateId === template.id ? (
                               <div className="space-y-4">
                                 <div>
-                                  <Label className="text-sm">Subject</Label>
+                                  <Label className="text-sm">Template Name</Label>
+                                  <Input
+                                    value={editingTemplate?.name || ''}
+                                    onChange={(e) =>
+                                      setEditingTemplate(prev => ({
+                                        ...prev!,
+                                        name: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Template Logo</Label>
+                                  <div className="flex gap-2">
+                                    <Input
+                                      placeholder="https://example.com/logo.png"
+                                      value={editingTemplate?.logo_url || ''}
+                                      onChange={(e) =>
+                                        setEditingTemplate(prev => ({
+                                          ...prev!,
+                                          logo_url: e.target.value,
+                                        }))
+                                      }
+                                    />
+                                    <Button variant="outline" type="button" className="shrink-0">
+                                      Upload
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label className="text-sm">Email Subject</Label>
                                   <Input
                                     value={editingTemplate?.subject || ''}
                                     onChange={(e) =>
@@ -745,7 +805,7 @@ export default function SettingsPage() {
                                   />
                                 </div>
                                 <div>
-                                  <Label className="text-sm">Body</Label>
+                                  <Label className="text-sm">Template Content (HTML)</Label>
                                   <Textarea
                                     value={editingTemplate?.body || ''}
                                     onChange={(e) =>
@@ -754,7 +814,7 @@ export default function SettingsPage() {
                                         body: e.target.value,
                                       }))
                                     }
-                                    className="min-h-[200px]"
+                                    className="min-h-[200px] font-mono"
                                   />
                                 </div>
                                 <div className="flex justify-end gap-2">
@@ -765,13 +825,22 @@ export default function SettingsPage() {
                                     Cancel
                                   </Button>
                                   <Button
+                                    variant="outline"
+                                    onClick={() => handlePreviewTemplate(template.id)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Preview
+                                  </Button>
+                                  <Button
                                     onClick={() => handleSaveTemplate(template.id)}
                                     disabled={updateEmailTemplateMutation.isPending}
                                   >
-                                    {updateEmailTemplateMutation.isPending && (
+                                    {updateEmailTemplateMutation.isPending ? (
                                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Save className="h-4 w-4 mr-2" />
                                     )}
-                                    Save Changes
+                                    Update Template
                                   </Button>
                                 </div>
                               </div>
@@ -801,6 +870,15 @@ export default function SettingsPage() {
           <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
         </main>
       </div>
+
+      <Dialog open={!!previewHtml} onOpenChange={() => setPreviewHtml(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <div
+            className="prose prose-sm max-h-[600px] overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: previewHtml || '' }}
+          />
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }
