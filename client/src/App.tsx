@@ -27,7 +27,7 @@ export default function App() {
               <Switch>
                 <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
                 <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
-                <Route path="/uptime" component={() => <ProtectedRoute component={UptimeLogPage} />} />
+                <Route path="/uptime-log" component={() => <ProtectedRoute component={UptimeLogPage} />} />
                 <Route path="/auth" component={AuthPage} />
                 <Route path="/pending" component={PendingPage} />
                 <Route component={NotFound} />
