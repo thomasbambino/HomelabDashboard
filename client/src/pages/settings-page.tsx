@@ -59,6 +59,7 @@ export default function SettingsPage() {
       admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
+      show_layout_debugger: settings?.show_layout_debugger ?? false, // Added default value
     },
   });
 
@@ -86,6 +87,7 @@ export default function SettingsPage() {
         admin_show_status_badge: settings.admin_show_status_badge,
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
+        show_layout_debugger: settings.show_layout_debugger, // Added to reset
       });
     }
   }, [settings, form]);
@@ -122,6 +124,10 @@ export default function SettingsPage() {
           admin_show_last_checked: data.admin_show_last_checked,
           admin_show_service_url: data.admin_show_service_url,
           admin_show_status_badge: data.admin_show_status_badge,
+        });
+      } else if (currentTab === "debug") {
+        Object.assign(relevantData, {
+          show_layout_debugger: data.show_layout_debugger,
         });
       }
 
@@ -219,7 +225,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="branding">Branding</TabsTrigger>
                   <TabsTrigger value="visibility">Visibility</TabsTrigger>
@@ -230,6 +236,7 @@ export default function SettingsPage() {
                         <Mail className="h-4 w-4 mr-2" />
                         Email
                       </TabsTrigger>
+                      <TabsTrigger value="debug">Debug</TabsTrigger>
                     </>
                   )}
                 </TabsList>
@@ -670,6 +677,45 @@ export default function SettingsPage() {
                         open={showEmailTemplates}
                         onOpenChange={setShowEmailTemplates}
                       />
+                    </TabsContent>
+                    <TabsContent value="debug">
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-lg font-medium">Debug Tools</h3>
+                              <p className="text-sm text-muted-foreground mb-4">Configure development and debugging tools</p>
+                              <div className="space-y-4">
+                                <FormField
+                                  control={form.control}
+                                  name="show_layout_debugger"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <div className="flex items-center justify-between">
+                                        <Label htmlFor="show_layout_debugger" className="text-sm cursor-pointer">Layout Debugger</Label>
+                                        <Switch
+                                          id="show_layout_debugger"
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                        />
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Shows a tool to adjust page layout spacing in real-time
+                                      </p>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                            {updateSettingsMutation.isPending && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Save Changes
+                          </Button>
+                        </form>
+                      </Form>
                     </TabsContent>
                   </>
                 )}
