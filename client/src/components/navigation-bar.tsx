@@ -79,12 +79,12 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
                       </DropdownMenuItem>
                     </Link>
 
-                    <SettingsDialog>
+                    <Link href="/settings">
                       <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                         <SettingsIcon className="h-4 w-4" />
                         <span>Settings</span>
                       </DropdownMenuItem>
-                    </SettingsDialog>
+                    </Link>
                   </>
                 )}
 

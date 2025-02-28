@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
 import UptimeLogPage from "@/pages/uptime-log-page";
+import SettingsPage from "@/pages/settings-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -28,6 +29,7 @@ export default function App() {
                 <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
                 <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
                 <Route path="/uptime-log" component={() => <ProtectedRoute component={UptimeLogPage} />} />
+                <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
                 <Route path="/auth" component={AuthPage} />
                 <Route path="/pending" component={PendingPage} />
                 <Route component={NotFound} />
