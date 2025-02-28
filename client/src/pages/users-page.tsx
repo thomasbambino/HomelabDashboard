@@ -162,21 +162,18 @@ export default function UsersPage() {
       <NavigationBar settings={settings} pageTitle="User Management" />
 
       <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6 space-y-8">
-        <div className="flex items-center justify-end">
-          <Link href="/">
-            <Button variant="outline" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Settings</CardTitle>
+            <Link href="/">
+              <Button variant="outline" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Label>Default role for new users:</Label>
                 <Select
