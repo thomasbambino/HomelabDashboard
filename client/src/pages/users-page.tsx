@@ -17,7 +17,8 @@ import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
 import { format } from 'date-fns';
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@/components/ui/separator"; // Import Separator
+
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -164,7 +165,7 @@ export default function UsersPage() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} pageTitle="User Management" />
 
-        <main className="max-w-[833px] mx-auto px-4 pt-24 pb-6 space-y-6">
+        <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-4">
           <Card className="border-0 shadow-none">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Settings</CardTitle>
