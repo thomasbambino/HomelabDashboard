@@ -24,15 +24,6 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
-  // Apply layout settings whenever they change
-  useEffect(() => {
-    if (settings) {
-      document.documentElement.style.setProperty('--layout-horizontal-padding', `${settings.layout_horizontal_padding}px`);
-      document.documentElement.style.setProperty('--layout-vertical-padding', `${settings.layout_vertical_padding}px`);
-      document.documentElement.style.setProperty('--layout-max-width', `${settings.layout_max_width}px`);
-    }
-  }, [settings]);
-
   return (
     <div className="fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto py-4">
