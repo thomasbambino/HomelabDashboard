@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Service, Settings, updateSettingsSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/navigation-bar";
@@ -19,7 +20,6 @@ import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { EmailTemplateDialog } from "@/components/email-template-dialog";
 
@@ -63,7 +63,7 @@ export default function SettingsPage() {
   });
 
   // Reset form when settings are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (settings) {
       form.reset({
         id: settings.id,
@@ -145,63 +145,6 @@ export default function SettingsPage() {
     },
   });
 
-  const ampForm = useForm({
-    defaultValues: {
-      amp_url: "",
-      amp_username: "",
-      amp_password: "",
-    },
-  });
-
-  const updateAMPCredentialsMutation = useMutation({
-    mutationFn: async (data: { amp_url: string; amp_username: string; amp_password: string }) => {
-      const res = await apiRequest("POST", "/api/update-amp-credentials", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "AMP Credentials Updated",
-        description: "Your AMP credentials have been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to update AMP credentials",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const testAMPConnection = async () => {
-    try {
-      setIsTestingConnection(true);
-      const res = await apiRequest("GET", "/api/amp-test");
-      const data = await res.json();
-
-      if (data.success) {
-        toast({
-          title: "Connection Successful",
-          description: `Connected to AMP. Found ${data.instanceCount} instances.`,
-        });
-      } else {
-        toast({
-          title: "Connection Failed",
-          description: data.message || "Could not connect to AMP server.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Connection Test Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
@@ -258,7 +201,19 @@ export default function SettingsPage() {
                             <FormItem>
                               <FormLabel>Default User Role</FormLabel>
                               <FormControl>
-                                <Input placeholder="pending" {...field} value={field.value || ""} />
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select default role" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="user">User</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </FormControl>
                             </FormItem>
                           )}
@@ -314,15 +269,12 @@ export default function SettingsPage() {
                   </Form>
                 </TabsContent>
 
-                {/* Rest of the tabs content */}
-                {/* Add similar content for branding, visibility, AMP, and email tabs */}
-
+                {/* Add content for other tabs here */}
               </Tabs>
             </CardContent>
           </Card>
 
           <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
-
         </main>
       </div>
     </PageTransition>
