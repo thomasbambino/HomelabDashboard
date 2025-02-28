@@ -59,7 +59,7 @@ export default function SettingsPage() {
       admin_show_status_badge: settings?.admin_show_status_badge ?? true,
       logo_url: settings?.logo_url ?? "",
       logo_url_large: settings?.logo_url_large ?? "",
-      show_layout_debugger: settings?.show_layout_debugger ?? false, // Added default value
+      show_layout_debugger: settings?.show_layout_debugger ?? false,
     },
   });
 
@@ -87,7 +87,7 @@ export default function SettingsPage() {
         admin_show_status_badge: settings.admin_show_status_badge,
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
-        show_layout_debugger: settings.show_layout_debugger, // Added to reset
+        show_layout_debugger: settings.show_layout_debugger,
       });
     }
   }, [settings, form]);
@@ -225,18 +225,18 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="branding">Branding</TabsTrigger>
-                  <TabsTrigger value="visibility">Visibility</TabsTrigger>
+                <TabsList className="w-full flex justify-start gap-1 rounded-md bg-muted p-1">
+                  <TabsTrigger value="general" className="px-4">General</TabsTrigger>
+                  <TabsTrigger value="branding" className="px-4">Branding</TabsTrigger>
+                  <TabsTrigger value="visibility" className="px-4">Visibility</TabsTrigger>
                   {isSuperAdmin && (
                     <>
-                      <TabsTrigger value="amp">AMP</TabsTrigger>
-                      <TabsTrigger value="email">
-                        <Mail className="h-4 w-4 mr-2" />
+                      <TabsTrigger value="amp" className="px-4">AMP</TabsTrigger>
+                      <TabsTrigger value="email" className="px-4 flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
                         Email
                       </TabsTrigger>
-                      <TabsTrigger value="debug">Debug</TabsTrigger>
+                      <TabsTrigger value="debug" className="px-4">Debug</TabsTrigger>
                     </>
                   )}
                 </TabsList>
