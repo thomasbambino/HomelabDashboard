@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Service, GameServer, Settings } from "@shared/schema";
+import { Service, Settings } from "@shared/schema";
 import { ServiceList } from "@/components/service-list";
 import { GameServerList } from "@/components/game-server-list";
 import { AddServiceDialog } from "@/components/add-service-dialog";
@@ -10,19 +10,6 @@ import { cn } from "@/lib/utils";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { LoginAttemptsDialog } from "@/components/login-attempts-dialog";
-import { Shield, KeyRound, Trash2, Save, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -59,11 +46,11 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6">
+        <div className="max-w-[1250px] mx-auto px-8 mt-24">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -72,8 +59,7 @@ export default function Dashboard() {
     <PageTransition>
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
-
-        <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6">
+        <div className="max-w-[1250px] mx-auto px-8 mt-24">
           <section className="relative">
             <div
               className="flex items-center justify-between mb-4"
@@ -143,7 +129,7 @@ export default function Dashboard() {
               )}
             </div>
           </section>
-        </main>
+        </div>
       </div>
     </PageTransition>
   );
