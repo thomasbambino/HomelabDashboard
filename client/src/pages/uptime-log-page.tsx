@@ -3,8 +3,7 @@ import { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { Service, Settings, ServiceStatusLog } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { ArrowLeft, CalendarIcon, Activity, X } from "lucide-react";
+import { CalendarIcon, Activity, X } from "lucide-react";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,21 +74,9 @@ export default function UptimeLogPage() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
-        <NavigationBar settings={settings} />
+        <NavigationBar settings={settings} pageTitle="Uptime Log" />
 
         <main className="container mx-auto px-4 pt-24 pb-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">Uptime Log</h1>
-            <Link href="/">
-              <Button variant="outline" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-
-          <Separator className="my-6" />
-
           <Card>
             <CardHeader>
               <CardTitle>Filters</CardTitle>
