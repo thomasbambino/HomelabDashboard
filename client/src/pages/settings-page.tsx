@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Service, Settings, updateSettingsSchema } from "@shared/schema";
+import { Service, Settings, updateSettingsSchema, EmailTemplate } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, RefreshCw, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -21,18 +21,48 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { EmailTemplateDialog } from "@/components/email-template-dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [editingSubject, setEditingSubject] = useState("");
+  const [editingBody, setEditingBody] = useState("");
   const isSuperAdmin = user?.role === 'superadmin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
+  });
+
+  const { data: emailTemplates = [] } = useQuery<EmailTemplate[]>({
+    queryKey: ["/api/email-templates"],
+    enabled: isSuperAdmin,
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (data: { id: number; subject: string; body: string }) => {
+      const res = await apiRequest("PATCH", `/api/email-templates/${data.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({
+        title: "Template updated",
+        description: "Email template has been updated successfully",
+      });
+      setSelectedTemplate(null);
+      setEditingSubject("");
+      setEditingBody("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update template",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const form = useForm({
@@ -652,24 +682,104 @@ export default function SettingsPage() {
                     </TabsContent>
 
                     <TabsContent value="email">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                      <div className="space-y-6">
+                        <div className="space-y-4">
                           <div>
                             <h3 className="text-lg font-medium">Email Templates</h3>
                             <p className="text-sm text-muted-foreground">
                               Customize the email templates used for notifications and user communications
                             </p>
                           </div>
-                          <Button onClick={() => setShowEmailTemplates(true)}>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Manage Templates
-                          </Button>
+
+                          <div className="grid gap-4">
+                            {emailTemplates.map((template) => (
+                              <Card key={template.id} className="border shadow-sm">
+                                <CardHeader className="p-4">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base">{template.name}</CardTitle>
+                                    {selectedTemplate?.id === template.id ? (
+                                      <div className="flex items-center gap-2">
+                                        <Button
+                                          onClick={() => {
+                                            updateTemplateMutation.mutate({
+                                              id: template.id,
+                                              subject: editingSubject,
+                                              body: editingBody,
+                                            });
+                                          }}
+                                          disabled={updateTemplateMutation.isPending}
+                                        >
+                                          {updateTemplateMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                          ) : (
+                                            <Save className="h-4 w-4 mr-2" />
+                                          )}
+                                          Save Changes
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSelectedTemplate(null);
+                                            setEditingSubject("");
+                                            setEditingBody("");
+                                          }}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedTemplate(template);
+                                          setEditingSubject(template.subject);
+                                          setEditingBody(template.body);
+                                        }}
+                                      >
+                                        Edit Template
+                                      </Button>
+                                    )}
+                                  </div>
+                                </CardHeader>
+                                {selectedTemplate?.id === template.id ? (
+                                  <CardContent className="p-4 pt-0">
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label>Subject</Label>
+                                        <Input
+                                          value={editingSubject}
+                                          onChange={(e) => setEditingSubject(e.target.value)}
+                                          placeholder="Email subject..."
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Body</Label>
+                                        <Textarea
+                                          value={editingBody}
+                                          onChange={(e) => setEditingBody(e.target.value)}
+                                          placeholder="Email body..."
+                                          className="min-h-[200px]"
+                                        />
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                ) : (
+                                  <CardContent className="p-4 pt-0">
+                                    <div className="space-y-2">
+                                      <p className="text-sm font-medium">Subject:</p>
+                                      <p className="text-sm text-muted-foreground">{template.subject}</p>
+                                      <p className="text-sm font-medium mt-4">Body:</p>
+                                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                        {template.body}
+                                      </p>
+                                    </div>
+                                  </CardContent>
+                                )}
+                              </Card>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <EmailTemplateDialog
-                        open={showEmailTemplates}
-                        onOpenChange={setShowEmailTemplates}
-                      />
                     </TabsContent>
                   </>
                 )}
