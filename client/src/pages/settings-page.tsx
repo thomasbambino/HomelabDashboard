@@ -19,11 +19,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { EmailTemplateDialog } from "@/components/email-template-dialog";
 import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
   const [horizontalPadding, setHorizontalPadding] = useState(32);
@@ -738,7 +741,7 @@ export default function SettingsPage() {
                               </div>
                             </div>
                           </div>
-                          <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                          <Button type="submit" className="w-full mt-6" disabled={updateSettingsMutation.isPending}>
                             {updateSettingsMutation.isPending && (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             )}
@@ -752,7 +755,6 @@ export default function SettingsPage() {
               </Tabs>
             </CardContent>
           </Card>
-          <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
         </main>
       </div>
     </PageTransition>
