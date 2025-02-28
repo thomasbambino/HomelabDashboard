@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { ArrowLeft, Eye, Loader2, Mail, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -29,20 +28,12 @@ export default function SettingsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
-  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
-  const [editingTemplate, setEditingTemplate] = useState<{
-    name: string;
-    subject: string;
-    body: string;
-    logo_url: string;
-  } | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
-  const { data: emailTemplates = [] } = useQuery({
+  const { data: emailTemplates } = useQuery({
     queryKey: ["/api/email-templates"],
     enabled: currentTab === "email" && isSuperAdmin,
   });
@@ -185,7 +176,7 @@ export default function SettingsPage() {
   });
 
   const updateEmailTemplateMutation = useMutation({
-    mutationFn: async (data: { id: number; name: string; subject: string; body: string; logo_url: string }) => {
+    mutationFn: async (data: { id: number; subject: string; body: string }) => {
       const res = await apiRequest("PATCH", `/api/email-templates/${data.id}`, data);
       return res.json();
     },
@@ -231,63 +222,6 @@ export default function SettingsPage() {
       });
     } finally {
       setIsTestingConnection(false);
-    }
-  };
-
-  const handleEditTemplate = (template: any) => {
-    setEditingTemplateId(template.id);
-    setEditingTemplate({
-      name: template.name,
-      subject: template.subject,
-      body: template.body,
-      logo_url: template.logo_url || "",
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTemplateId(null);
-    setEditingTemplate(null);
-    setPreviewHtml(null);
-  };
-
-  const handleSaveTemplate = async (templateId: number) => {
-    if (editingTemplate) {
-      try {
-        await updateEmailTemplateMutation.mutateAsync({
-          id: templateId,
-          name: editingTemplate.name,
-          subject: editingTemplate.subject,
-          body: editingTemplate.body,
-          logo_url: editingTemplate.logo_url,
-        });
-      } catch (error) {
-        // Error is handled by the mutation
-      }
-    }
-  };
-
-  const handlePreviewTemplate = async (templateId: number) => {
-    if (editingTemplate) {
-      try {
-        const res = await apiRequest("POST", `/api/email-templates/${templateId}/preview`, {
-          name: editingTemplate.name,
-          subject: editingTemplate.subject,
-          body: editingTemplate.body,
-          logo_url: editingTemplate.logo_url,
-        });
-        const data = await res.json();
-        if (data.html) {
-          setPreviewHtml(data.html);
-        } else {
-          throw new Error("Failed to generate preview");
-        }
-      } catch (error) {
-        toast({
-          title: "Preview Failed",
-          description: error instanceof Error ? error.message : "Failed to generate preview",
-          variant: "destructive",
-        });
-      }
     }
   };
 
@@ -749,116 +683,40 @@ export default function SettingsPage() {
                             Customize the email templates used for notifications and user communications
                           </p>
                         </div>
-                        {emailTemplates.map((template: any) => (
+                        {emailTemplates?.map((template) => (
                           <div key={template.id} className="space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-medium">{template.name}</h4>
-                              {editingTemplateId !== template.id && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditTemplate(template)}
-                                >
-                                  Edit Template
-                                </Button>
-                              )}
                             </div>
-                            {editingTemplateId === template.id ? (
-                              <div className="space-y-4">
-                                <div>
-                                  <Label className="text-sm">Template Name</Label>
-                                  <Input
-                                    value={editingTemplate?.name || ''}
-                                    onChange={(e) =>
-                                      setEditingTemplate(prev => ({
-                                        ...prev!,
-                                        name: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-sm">Template Logo</Label>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      placeholder="https://example.com/logo.png"
-                                      value={editingTemplate?.logo_url || ''}
-                                      onChange={(e) =>
-                                        setEditingTemplate(prev => ({
-                                          ...prev!,
-                                          logo_url: e.target.value,
-                                        }))
-                                      }
-                                    />
-                                    <Button variant="outline" type="button" className="shrink-0">
-                                      Upload
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div>
-                                  <Label className="text-sm">Email Subject</Label>
-                                  <Input
-                                    value={editingTemplate?.subject || ''}
-                                    onChange={(e) =>
-                                      setEditingTemplate(prev => ({
-                                        ...prev!,
-                                        subject: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-sm">Template Content (HTML)</Label>
-                                  <Textarea
-                                    value={editingTemplate?.body || ''}
-                                    onChange={(e) =>
-                                      setEditingTemplate(prev => ({
-                                        ...prev!,
-                                        body: e.target.value,
-                                      }))
-                                    }
-                                    className="min-h-[200px] font-mono"
-                                  />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={handleCancelEdit}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handlePreviewTemplate(template.id)}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Preview
-                                  </Button>
-                                  <Button
-                                    onClick={() => handleSaveTemplate(template.id)}
-                                    disabled={updateEmailTemplateMutation.isPending}
-                                  >
-                                    {updateEmailTemplateMutation.isPending ? (
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Save className="h-4 w-4 mr-2" />
-                                    )}
-                                    Update Template
-                                  </Button>
-                                </div>
+                            <div className="space-y-4">
+                              <div>
+                                <Label className="text-sm">Subject</Label>
+                                <Input
+                                  value={template.subject}
+                                  onChange={(e) =>
+                                    updateEmailTemplateMutation.mutate({
+                                      id: template.id,
+                                      subject: e.target.value,
+                                      body: template.body,
+                                    })
+                                  }
+                                />
                               </div>
-                            ) : (
-                              <div className="space-y-4">
-                                <div>
-                                  <Label className="text-sm">Subject</Label>
-                                  <p className="text-sm mt-1">{template.subject}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm">Body</Label>
-                                  <p className="text-sm mt-1 whitespace-pre-wrap">{template.body}</p>
-                                </div>
+                              <div>
+                                <Label className="text-sm">Body</Label>
+                                <Textarea
+                                  value={template.body}
+                                  onChange={(e) =>
+                                    updateEmailTemplateMutation.mutate({
+                                      id: template.id,
+                                      subject: template.subject,
+                                      body: e.target.value,
+                                    })
+                                  }
+                                  className="min-h-[200px]"
+                                />
                               </div>
-                            )}
+                            </div>
                             <Separator />
                           </div>
                         ))}
@@ -873,18 +731,6 @@ export default function SettingsPage() {
           <Separator className="mx-auto w-full max-w-[calc(100%-2rem)] bg-border/60" />
         </main>
       </div>
-
-      <Dialog open={!!previewHtml} onOpenChange={() => setPreviewHtml(null)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Email Preview</DialogTitle>
-          </DialogHeader>
-          <div
-            className="prose prose-sm max-h-[600px] overflow-y-auto"
-            dangerouslySetInnerHTML={{ __html: previewHtml || '' }}
-          />
-        </DialogContent>
-      </Dialog>
     </PageTransition>
   );
 }
