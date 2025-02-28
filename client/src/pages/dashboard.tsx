@@ -23,6 +23,11 @@ export default function Dashboard() {
     return saved ? JSON.parse(saved) : true;
   });
 
+  // Layout debug state
+  const [horizontalPadding, setHorizontalPadding] = useState(32);
+  const [verticalPadding, setVerticalPadding] = useState(24);
+  const [maxWidth, setMaxWidth] = useState(1250); // Default to 1250px
+
   useEffect(() => {
     localStorage.setItem('isServersExpanded', JSON.stringify(isServersExpanded));
   }, [isServersExpanded]);
@@ -135,6 +140,9 @@ export default function Dashboard() {
 
         {settings?.show_layout_debugger && (
           <LayoutDebugger
+            horizontalPadding={horizontalPadding}
+            verticalPadding={verticalPadding}
+            maxWidth={maxWidth}
             onPaddingChange={setHorizontalPadding}
             onVerticalPaddingChange={setVerticalPadding}
             onWidthChange={setMaxWidth}
