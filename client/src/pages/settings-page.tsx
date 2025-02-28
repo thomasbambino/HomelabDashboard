@@ -30,9 +30,11 @@ export default function SettingsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [currentTab, setCurrentTab] = useState("general");
   const isSuperAdmin = user?.role === 'superadmin';
-  const [horizontalPadding, setHorizontalPadding] = useState(settings?.layout_horizontal_padding ?? 32);
-  const [verticalPadding, setVerticalPadding] = useState(settings?.layout_vertical_padding ?? 24);
-  const [maxWidth, setMaxWidth] = useState(settings?.layout_max_width ?? 1400);
+
+  // Initialize state with default values
+  const [horizontalPadding, setHorizontalPadding] = useState(32);
+  const [verticalPadding, setVerticalPadding] = useState(24);
+  const [maxWidth, setMaxWidth] = useState(1400);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -41,31 +43,31 @@ export default function SettingsPage() {
   const form = useForm({
     resolver: zodResolver(updateSettingsSchema),
     defaultValues: {
-      id: settings?.id ?? 1,
-      favicon_url: settings?.favicon_url ?? "",
-      favicon_label: settings?.favicon_label ?? "",
-      tracking_code: settings?.tracking_code ?? "",
-      default_role: settings?.default_role ?? "pending",
-      site_title: settings?.site_title ?? "",
-      font_family: settings?.font_family ?? "",
-      login_description: settings?.login_description ?? "",
-      online_color: settings?.online_color ?? "#22c55e",
-      offline_color: settings?.offline_color ?? "#ef4444",
-      discord_url: settings?.discord_url ?? "https://discord.gg/YhGnr92Bep",
-      show_refresh_interval: settings?.show_refresh_interval ?? true,
-      show_last_checked: settings?.show_last_checked ?? true,
-      show_service_url: settings?.show_service_url ?? true,
-      show_status_badge: settings?.show_status_badge ?? true,
-      admin_show_refresh_interval: settings?.admin_show_refresh_interval ?? true,
-      admin_show_last_checked: settings?.admin_show_last_checked ?? true,
-      admin_show_service_url: settings?.admin_show_service_url ?? true,
-      admin_show_status_badge: settings?.admin_show_status_badge ?? true,
-      logo_url: settings?.logo_url ?? "",
-      logo_url_large: settings?.logo_url_large ?? "",
-      show_layout_debugger: settings?.show_layout_debugger ?? false,
-      layout_horizontal_padding: settings?.layout_horizontal_padding ?? 32,
-      layout_vertical_padding: settings?.layout_vertical_padding ?? 24,
-      layout_max_width: settings?.layout_max_width ?? 1400,
+      id: 1,
+      favicon_url: "",
+      favicon_label: "",
+      tracking_code: "",
+      default_role: "pending",
+      site_title: "",
+      font_family: "",
+      login_description: "",
+      online_color: "#22c55e",
+      offline_color: "#ef4444",
+      discord_url: "https://discord.gg/YhGnr92Bep",
+      show_refresh_interval: true,
+      show_last_checked: true,
+      show_service_url: true,
+      show_status_badge: true,
+      admin_show_refresh_interval: true,
+      admin_show_last_checked: true,
+      admin_show_service_url: true,
+      admin_show_status_badge: true,
+      logo_url: "",
+      logo_url_large: "",
+      show_layout_debugger: false,
+      layout_horizontal_padding: 32,
+      layout_vertical_padding: 24,
+      layout_max_width: 1400,
     },
   });
 
@@ -94,13 +96,13 @@ export default function SettingsPage() {
         logo_url: settings.logo_url,
         logo_url_large: settings.logo_url_large,
         show_layout_debugger: settings.show_layout_debugger,
-        layout_horizontal_padding: settings.layout_horizontal_padding ?? 32,
-        layout_vertical_padding: settings.layout_vertical_padding ?? 24,
-        layout_max_width: settings.layout_max_width ?? 1400,
+        layout_horizontal_padding: settings.layout_horizontal_padding,
+        layout_vertical_padding: settings.layout_vertical_padding,
+        layout_max_width: settings.layout_max_width,
       });
-      setHorizontalPadding(settings.layout_horizontal_padding ?? 32);
-      setVerticalPadding(settings.layout_vertical_padding ?? 24);
-      setMaxWidth(settings.layout_max_width ?? 1400);
+      setHorizontalPadding(settings.layout_horizontal_padding);
+      setVerticalPadding(settings.layout_vertical_padding);
+      setMaxWidth(settings.layout_max_width);
     }
   }, [settings, form]);
 
