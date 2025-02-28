@@ -137,8 +137,8 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   } : {};
 
   return (
-    <Card 
-      className={`relative transition-all duration-200 ${isDragging ? "shadow-lg" : ""}`} 
+    <Card
+      className={`relative transition-all duration-200 border-0 shadow-none ${isDragging ? "scale-[1.02]" : ""}`}
       style={cardStyle}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

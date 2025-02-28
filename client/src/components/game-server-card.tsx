@@ -162,7 +162,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
   });
 
   return (
-    <Card className={`backdrop-blur-sm bg-background/95 ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
+    <Card className={`backdrop-blur-sm bg-background/95 border-0 shadow-none ${server.background ? `bg-[url('${server.background}')] bg-cover` : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {server.icon ? (
