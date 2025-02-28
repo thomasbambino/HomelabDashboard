@@ -24,9 +24,9 @@ export function NavigationBar({ settings }: NavigationBarProps) {
   const isSuperAdmin = user?.role === 'superadmin';
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="flex items-center gap-2 mr-4">
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center p-4">
+      <nav className="w-full max-w-7xl flex items-center justify-between rounded-full border bg-background/95 px-6 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-2">
           {settings?.logo_url ? (
             <img
               src={settings.logo_url}
@@ -41,31 +41,31 @@ export function NavigationBar({ settings }: NavigationBarProps) {
           </span>
         </div>
 
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        <div className="flex items-center justify-end gap-4">
           <ThemeToggle />
           <NotificationPreferencesDialog>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
               <Bell className="h-5 w-5" />
             </Button>
           </NotificationPreferencesDialog>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                {user?.username || "User"}
+              <Button variant="ghost" className="gap-2 h-8 px-2">
+                <span className="max-w-[100px] truncate">{user?.username || "User"}</span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48">
               {(isAdmin || isSuperAdmin) && (
                 <>
                   <DropdownMenuItem asChild>
                     <Link href="/users">Manage Users</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <UptimeLogDialog />
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <SettingsDialog />
                   </DropdownMenuItem>
                 </>
@@ -76,7 +76,7 @@ export function NavigationBar({ settings }: NavigationBarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }
