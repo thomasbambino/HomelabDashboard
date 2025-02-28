@@ -72,7 +72,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
                       </DropdownMenuItem>
                     </Link>
 
-                    <Link href="/uptime">
+                    <Link href="/uptime-log">
                       <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                         <Activity className="h-4 w-4" />
                         <span>Uptime Log</span>
