@@ -12,6 +12,7 @@ export function PageTransition({ children }: PageTransitionProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.15 }}
+      className="h-full w-full"
     >
       {children}
     </motion.div>
