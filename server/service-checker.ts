@@ -77,21 +77,22 @@ async function updateServiceStatus(service: Service) {
   // Only consider a service truly offline after 2 consecutive failures
   // This helps prevent false offline notifications due to temporary issues
   const isOffline = !status && cachedStatus.consecutiveFailures >= 2;
+  const currentStatus = !isOffline; // If not offline, then it's online
 
   // Only update database and create log if status has significantly changed
-  const hasStatusChanged = cachedStatus.status !== !isOffline;
+  const hasStatusChanged = cachedStatus.status !== currentStatus;
 
   if (hasStatusChanged) {
     try {
       // Log the status change
-      await storage.createServiceStatusLog(service.id, !isOffline, responseTime);
-      console.log(`Status change logged for service ${service.name}: ${!isOffline ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
+      await storage.createServiceStatusLog(service.id, currentStatus, responseTime);
+      console.log(`Status change logged for service ${service.name}: ${currentStatus ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
 
       // Update service status in database
       await db
         .update(services)
         .set({ 
-          status: !isOffline, 
+          status: currentStatus, 
           lastChecked: new Date().toISOString(),
           lastError: error ? `${error} at ${new Date().toISOString()}` : null
         })
@@ -106,7 +107,7 @@ async function updateServiceStatus(service: Service) {
           stack: error.stack,
           serviceId: service.id,
           serviceName: service.name,
-          status: !isOffline,
+          status: currentStatus,
           responseTime
         });
       }
@@ -128,7 +129,7 @@ async function updateServiceStatus(service: Service) {
 
   // Update cache
   statusCache.set(service.id, {
-    status: !isOffline,
+    status: currentStatus,
     lastCheck: now,
     consecutiveFailures: cachedStatus.consecutiveFailures
   });
