@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { EmailTemplateDialog } from "./email-template-dialog";
+import { Button } from "@/components/ui/button";
+
 
 interface ServiceNotificationState {
   email: string;
