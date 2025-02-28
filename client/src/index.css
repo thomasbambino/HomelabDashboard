@@ -6,7 +6,7 @@
   :root {
     --layout-horizontal-padding: 32px;
     --layout-vertical-padding: 24px;
-    --layout-max-width: 1400px;
+    --layout-max-width: 1250px;
   }
 
   * {

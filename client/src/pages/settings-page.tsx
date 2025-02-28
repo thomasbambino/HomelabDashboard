@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const isSuperAdmin = user?.role === 'superadmin';
   const [horizontalPadding, setHorizontalPadding] = useState(32);
   const [verticalPadding, setVerticalPadding] = useState(24);
-  const [maxWidth, setMaxWidth] = useState(1400);
+  const [maxWidth, setMaxWidth] = useState(1250);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -44,7 +44,7 @@ export default function SettingsPage() {
       show_layout_debugger: false,
       layout_horizontal_padding: 32,
       layout_vertical_padding: 24,
-      layout_max_width: 1400,
+      layout_max_width: 1250,
       favicon_url: "",
       favicon_label: "",
       tracking_code: "",
