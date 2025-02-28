@@ -161,7 +161,7 @@ export default function UsersPage() {
     <div className="min-h-screen bg-background">
       <NavigationBar settings={settings} pageTitle="User Management" />
 
-      <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-8">
+      <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-4">
         <Card className="border-0 shadow-none">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Settings</CardTitle>
@@ -203,7 +203,15 @@ export default function UsersPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
-                      <p className="font-medium">{u.username}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{u.username}</p>
+                        {u.role === 'superadmin' && (
+                          <p className="text-sm font-medium text-primary flex items-center gap-1">
+                            <Shield className="h-4 w-4 text-blue-500" />
+                            Superadmin
+                          </p>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4">
                         <p className="text-sm text-muted-foreground">ID: {u.id}</p>
                         <div className="flex items-center gap-6">
@@ -286,52 +294,45 @@ export default function UsersPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-4">
-                      {u.role === 'superadmin' ? (
-                        <p className="text-sm font-medium text-primary flex items-center gap-1">
-                          <Shield className="h-4 w-4 text-blue-500" />
-                          Superadmin
-                        </p>
-                      ) : (
-                        canModifyUser(u) && (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={!u.approved}
-                                onCheckedChange={(checked) =>
-                                  updateUserMutation.mutate({ id: u.id, approved: !checked })
-                                }
-                                disabled={!canModifyUser(u)}
-                              />
-                              <Label>Account Disabled</Label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={u.can_view_nsfw}
-                                onCheckedChange={(checked) =>
-                                  updateUserMutation.mutate({ id: u.id, can_view_nsfw: checked })
-                                }
-                                disabled={!canModifyUser(u)}
-                              />
-                              <Label>NSFW Access</Label>
-                            </div>
-                            <Select
-                              value={u.role}
-                              onValueChange={(value) =>
-                                updateUserMutation.mutate({ id: u.id, role: value })
+                      {u.role !== 'superadmin' && canModifyUser(u) && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={!u.approved}
+                              onCheckedChange={(checked) =>
+                                updateUserMutation.mutate({ id: u.id, approved: !checked })
                               }
                               disabled={!canModifyUser(u)}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </>
-                        )
+                            />
+                            <Label>Account Disabled</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={u.can_view_nsfw}
+                              onCheckedChange={(checked) =>
+                                updateUserMutation.mutate({ id: u.id, can_view_nsfw: checked })
+                              }
+                              disabled={!canModifyUser(u)}
+                            />
+                            <Label>NSFW Access</Label>
+                          </div>
+                          <Select
+                            value={u.role}
+                            onValueChange={(value) =>
+                              updateUserMutation.mutate({ id: u.id, role: value })
+                            }
+                            disabled={!canModifyUser(u)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </>
                       )}
                     </div>
                   </div>
