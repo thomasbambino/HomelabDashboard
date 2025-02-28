@@ -162,7 +162,7 @@ export default function UsersPage() {
       <NavigationBar settings={settings} pageTitle="User Management" />
 
       <main className="max-w-[1400px] mx-auto px-8 pt-20 pb-6 space-y-8">
-        <Card className="border-0">
+        <Card className="border-0 shadow-none">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Settings</CardTitle>
             <Link href="/">
@@ -205,7 +205,7 @@ export default function UsersPage() {
           {[...users]
             .sort((a, b) => a.id - b.id)
             .map((u) => (
-              <Card key={u.id} className="border-0">
+              <Card key={u.id} className="border-0 shadow-none">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
