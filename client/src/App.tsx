@@ -15,22 +15,19 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { PageTransition } from "@/components/page-transition";
 
 function Router() {
   const [location] = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <PageTransition key={location}>
-        <Switch>
-          <ProtectedRoute path="/" component={Dashboard} />
-          <ProtectedRoute path="/users" component={UsersPage} />
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/pending" component={PendingPage} />
-          <Route component={NotFound} />
-        </Switch>
-      </PageTransition>
+    <AnimatePresence initial={false}>
+      <Switch location={location}>
+        <ProtectedRoute path="/" component={Dashboard} />
+        <ProtectedRoute path="/users" component={UsersPage} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/pending" component={PendingPage} />
+        <Route component={NotFound} />
+      </Switch>
     </AnimatePresence>
   );
 }
