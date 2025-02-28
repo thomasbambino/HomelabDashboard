@@ -21,29 +21,33 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
 
   const [horizontalValue, setHorizontalValue] = useState(32);
   const [verticalValue, setVerticalValue] = useState(24);
-  const [widthValue, setWidthValue] = useState(1250); // Set default to 1250px
+  const [widthValue, setWidthValue] = useState(1250); // Default to 1250px
 
   useEffect(() => {
     if (settings) {
       // When settings load, update state and apply CSS variables
       const horizontal = settings.layout_horizontal_padding ?? 32;
       const vertical = settings.layout_vertical_padding ?? 24;
-      const width = settings.layout_max_width ?? 1250; // Default to 1250px if not set
+      const width = 1250; // Force 1250px width
 
       setHorizontalValue(horizontal);
       setVerticalValue(vertical);
       setWidthValue(width);
 
-      // Apply CSS variables
+      // Apply CSS variables immediately
       document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontal}px`);
       document.documentElement.style.setProperty('--layout-vertical-padding', `${vertical}px`);
-      document.documentElement.style.setProperty('--layout-max-width', `${width}px`);
+      document.documentElement.style.setProperty('--layout-max-width', '1250px'); // Force 1250px
     }
   }, [settings]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { layout_horizontal_padding: number; layout_vertical_padding: number; layout_max_width: number }) => {
-      const res = await apiRequest("PATCH", "/api/settings", { id: 1, ...data });
+      const res = await apiRequest("PATCH", "/api/settings", { 
+        id: 1, 
+        ...data,
+        layout_max_width: 1250 // Always force 1250px when saving
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -66,13 +70,13 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
     // Apply CSS variables immediately
     document.documentElement.style.setProperty('--layout-horizontal-padding', `${horizontal}px`);
     document.documentElement.style.setProperty('--layout-vertical-padding', `${vertical}px`);
-    document.documentElement.style.setProperty('--layout-max-width', `${width}px`);
+    document.documentElement.style.setProperty('--layout-max-width', '1250px'); // Force 1250px
 
     // Save to database
     updateSettingsMutation.mutate({
       layout_horizontal_padding: horizontal,
       layout_vertical_padding: vertical,
-      layout_max_width: width,
+      layout_max_width: 1250 // Always force 1250px when saving
     });
   };
 
@@ -96,7 +100,7 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
               onValueChange={([value]) => {
                 setHorizontalValue(value);
                 onPaddingChange(value);
-                saveLayoutSettings(value, verticalValue, widthValue);
+                saveLayoutSettings(value, verticalValue, 1250); // Force 1250px
               }}
             />
           </div>
@@ -113,25 +117,26 @@ export function LayoutDebugger({ onPaddingChange, onWidthChange, onVerticalPaddi
               onValueChange={([value]) => {
                 setVerticalValue(value);
                 onVerticalPaddingChange(value);
-                saveLayoutSettings(horizontalValue, value, widthValue);
+                saveLayoutSettings(horizontalValue, value, 1250); // Force 1250px
               }}
             />
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label>Max Content Width</Label>
-              <span className="text-sm text-muted-foreground">{widthValue}px</span>
+              <span className="text-sm text-muted-foreground">1250px</span>
             </div>
             <Slider
-              defaultValue={[widthValue]}
+              defaultValue={[1250]}
               min={800}
               max={2000}
               step={50}
-              value={[widthValue]}
+              value={[1250]}
+              disabled={true} // Lock the width at 1250px
               onValueChange={([value]) => {
-                setWidthValue(value);
-                onWidthChange(value);
-                saveLayoutSettings(horizontalValue, verticalValue, value);
+                setWidthValue(1250);
+                onWidthChange(1250);
+                saveLayoutSettings(horizontalValue, verticalValue, 1250);
               }}
             />
           </div>
