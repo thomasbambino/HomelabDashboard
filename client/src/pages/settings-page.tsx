@@ -33,8 +33,18 @@ export default function SettingsPage() {
   const [verticalPadding, setVerticalPadding] = useState(24);
   const [maxWidth, setMaxWidth] = useState(1250);
 
+  // Add console log to debug initial settings load
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
+    onSuccess: (data) => {
+      console.log("Settings loaded, max-width:", data?.layout_max_width);
+      if (data) {
+        // Apply CSS variables immediately when settings load
+        document.documentElement.style.setProperty('--layout-horizontal-padding', `${data.layout_horizontal_padding}px`);
+        document.documentElement.style.setProperty('--layout-vertical-padding', `${data.layout_vertical_padding}px`);
+        document.documentElement.style.setProperty('--layout-max-width', '1250px'); // Force 1250px
+      }
+    }
   });
 
   const form = useForm({
