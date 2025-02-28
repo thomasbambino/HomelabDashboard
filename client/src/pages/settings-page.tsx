@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { ArrowLeft, Loader2, Mail, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -17,19 +17,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Switch } from "@/components/ui/switch";
-import { ImageUpload } from "@/components/ui/image-upload";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { EmailTemplateDialog } from "@/components/email-template-dialog";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const isSuperAdmin = user?.role === 'superadmin';
   const [currentTab, setCurrentTab] = useState("general");
+  const isSuperAdmin = user?.role === 'superadmin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],
@@ -62,7 +58,6 @@ export default function SettingsPage() {
     },
   });
 
-  // Reset form when settings are loaded
   useEffect(() => {
     if (settings) {
       form.reset({
@@ -133,7 +128,7 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
         title: "Settings updated",
-        description: "UI settings have been updated successfully",
+        description: "Settings have been updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -163,19 +158,10 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="general" className="space-y-4" onValueChange={setCurrentTab}>
-                <TabsList className="w-full flex space-x-1">
-                  <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-                  <TabsTrigger value="branding" className="flex-1">Branding</TabsTrigger>
-                  <TabsTrigger value="visibility" className="flex-1">Visibility</TabsTrigger>
-                  {isSuperAdmin && (
-                    <>
-                      <TabsTrigger value="amp" className="flex-1">AMP</TabsTrigger>
-                      <TabsTrigger value="email" className="flex-1">
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
-                      </TabsTrigger>
-                    </>
-                  )}
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="branding">Branding</TabsTrigger>
+                  <TabsTrigger value="visibility">Visibility</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general">
@@ -269,7 +255,248 @@ export default function SettingsPage() {
                   </Form>
                 </TabsContent>
 
-                {/* Add content for other tabs here */}
+                <TabsContent value="branding">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="logo_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Logo URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://example.com/logo.png" {...field} value={field.value || ""} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="logo_url_large"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Large Logo URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://example.com/logo-large.png" {...field} value={field.value || ""} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="favicon_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Favicon URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://example.com/favicon.ico" {...field} value={field.value || ""} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="favicon_label"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Favicon Label</FormLabel>
+                            <FormControl>
+                              <Input placeholder="My Dashboard" {...field} value={field.value || ""} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="online_color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Online Status Color</FormLabel>
+                            <FormControl>
+                              <Input type="color" {...field} value={field.value || "#22c55e"} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="offline_color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Offline Status Color</FormLabel>
+                            <FormControl>
+                              <Input type="color" {...field} value={field.value || "#ef4444"} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+
+                <TabsContent value="visibility">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => updateSettingsMutation.mutate(data))} className="space-y-4">
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-lg font-medium">Default User Settings</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Configure default visibility settings for new users</p>
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="show_refresh_interval"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="show_refresh_interval" className="text-sm cursor-pointer">Show Refresh Interval</Label>
+                                    <Switch
+                                      id="show_refresh_interval"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="show_last_checked"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="show_last_checked" className="text-sm cursor-pointer">Show Last Checked Time</Label>
+                                    <Switch
+                                      id="show_last_checked"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="show_service_url"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="show_service_url" className="text-sm cursor-pointer">Show Service URL</Label>
+                                    <Switch
+                                      id="show_service_url"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="show_status_badge"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="show_status_badge" className="text-sm cursor-pointer">Show Status Badge</Label>
+                                    <Switch
+                                      id="show_status_badge"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <Separator className="my-6" />
+
+                        <div>
+                          <h3 className="text-lg font-medium">Admin Default Settings</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Configure default visibility settings for admin users</p>
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="admin_show_refresh_interval"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="admin_show_refresh_interval" className="text-sm cursor-pointer">Show Refresh Interval</Label>
+                                    <Switch
+                                      id="admin_show_refresh_interval"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="admin_show_last_checked"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="admin_show_last_checked" className="text-sm cursor-pointer">Show Last Checked Time</Label>
+                                    <Switch
+                                      id="admin_show_last_checked"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="admin_show_service_url"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="admin_show_service_url" className="text-sm cursor-pointer">Show Service URL</Label>
+                                    <Switch
+                                      id="admin_show_service_url"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="admin_show_status_badge"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <div className="flex items-center justify-between">
+                                    <Label htmlFor="admin_show_status_badge" className="text-sm cursor-pointer">Show Status Badge</Label>
+                                    <Switch
+                                      id="admin_show_status_badge"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full mt-6" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
