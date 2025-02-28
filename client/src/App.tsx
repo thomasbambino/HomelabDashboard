@@ -1,6 +1,7 @@
 import * as React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { AnimatePresence } from "framer-motion";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -14,16 +15,23 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
 import { FaviconUpdater } from "@/components/favicon-updater";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { PageTransition } from "@/components/page-transition";
 
 function Router() {
+  const [location] = useLocation();
+
   return (
-    <Switch>
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/users" component={UsersPage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/pending" component={PendingPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <AnimatePresence mode="wait">
+      <PageTransition key={location}>
+        <Switch>
+          <ProtectedRoute path="/" component={Dashboard} />
+          <ProtectedRoute path="/users" component={UsersPage} />
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/pending" component={PendingPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </PageTransition>
+    </AnimatePresence>
   );
 }
 
