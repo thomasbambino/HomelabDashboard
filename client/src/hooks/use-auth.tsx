@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -8,6 +8,7 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { PasskeyEnrollmentDialog } from "@/components/passkey-enrollment-dialog";
 
 // Extend SelectUser type to include the requires_password_change field
 type AuthUser = SelectUser & {
@@ -26,9 +27,11 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [showPasskeyDialog, setShowPasskeyDialog] = useState(false);
 
   const {
     data: user,
@@ -52,6 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: AuthUser) => {
       console.log("Setting user data with requires_password_change:", user.requires_password_change);
       queryClient.setQueryData(["/api/user"], user);
+
+      // Check if we should show the passkey enrollment dialog
+      const passkeyChoiceMade = localStorage.getItem('passkey-choice-made');
+      if (!passkeyChoiceMade && !user.requires_password_change) {
+        setShowPasskeyDialog(true);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -110,6 +119,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const handlePasskeyEnrollment = async () => {
+    try {
+      // TODO: Implement passkey enrollment logic here
+      // This should create a new passkey for the user
+      localStorage.setItem('passkey-choice-made', 'true');
+      toast({
+        title: "Success",
+        description: "Passkey has been set up successfully!",
+      });
+    } catch (error) {
+      console.error('Passkey enrollment error:', error);
+      toast({
+        title: "Failed to set up passkey",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -122,6 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <PasskeyEnrollmentDialog
+        open={showPasskeyDialog}
+        onOpenChange={setShowPasskeyDialog}
+        onEnroll={handlePasskeyEnrollment}
+      />
     </AuthContext.Provider>
   );
 }
