@@ -12,6 +12,7 @@ import { NotificationPreferencesDialog } from "@/components/notification-prefere
 import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { ThemeToggle } from "./theme-toggle"
+import { Layout } from "./layout"
 
 interface NavigationBarProps {
   settings?: Settings;
@@ -25,7 +26,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container">
+      <Layout>
         <nav className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">
@@ -99,7 +100,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </DropdownMenu>
           </div>
         </nav>
-      </div>
+      </Layout>
     </div>
   );
 }

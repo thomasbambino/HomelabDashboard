@@ -9,6 +9,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavigationBar } from "@/components/navigation-bar";
 import { PageTransition } from "@/components/page-transition";
+import { Layout } from "@/components/layout";
 import { useState, useEffect } from "react";
 
 export default function Dashboard() {
@@ -46,11 +47,11 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="container pt-24 pb-6">
+        <Layout className="pt-24 pb-6">
           <div className="animate-pulse space-y-8">
             <div className="h-8 w-48 bg-primary/20 rounded" />
           </div>
-        </main>
+        </Layout>
       </div>
     );
   }
@@ -59,8 +60,8 @@ export default function Dashboard() {
     <PageTransition>
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
-        <main className="container pt-24 pb-6">
-          <div className="max-w-4xl mx-auto space-y-8">
+        <Layout className="pt-24 pb-6">
+          <div className="space-y-8">
             <section className="relative">
               <div
                 className="flex items-center justify-between mb-4"
@@ -131,7 +132,7 @@ export default function Dashboard() {
               </div>
             </section>
           </div>
-        </main>
+        </Layout>
       </div>
     </PageTransition>
   );
