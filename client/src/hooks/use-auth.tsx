@@ -50,16 +50,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         throw new Error("Login failed");
       }
-      console.log("Login response:", data);
       return data;
     },
-    onSuccess: (user: AuthUser) => {
-      console.log("Setting user data with requires_password_change:", user.requires_password_change);
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: async (data: AuthUser & { firebaseToken?: string }) => {
+      console.log("Setting user data with requires_password_change:", data.requires_password_change);
+      queryClient.setQueryData(["/api/user"], data);
+
+      // Sign in to Firebase with the custom token if provided
+      if (data.firebaseToken) {
+        try {
+          await auth.signInWithCustomToken(data.firebaseToken);
+          console.log("Firebase authentication successful");
+        } catch (error) {
+          console.error("Firebase authentication error:", error);
+          toast({
+            title: "Warning",
+            description: "Secondary authentication failed. Some features may be limited.",
+            variant: "destructive",
+          });
+        }
+      }
 
       // Check if we should show the passkey enrollment dialog
       const passkeyChoiceMade = localStorage.getItem('passkey-choice-made');
-      if (!passkeyChoiceMade && !user.requires_password_change) {
+      if (!passkeyChoiceMade && !data.requires_password_change) {
         // Wait a bit to ensure Firebase auth is initialized
         setTimeout(() => {
           setShowPasskeyDialog(true);

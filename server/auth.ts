@@ -240,6 +240,12 @@ export function setupAuth(app: Express) {
           if (err) return next(err);
 
           try {
+            // Create a custom token for Firebase authentication
+            const firebaseToken = await admin.auth().createCustomToken(user.id.toString(), {
+              email: user.email,
+              username: user.username
+            });
+
             const ipInfo = await getIpInfo(clientIp);
             const now = new Date();
 
@@ -257,19 +263,17 @@ export function setupAuth(app: Express) {
             await storage.updateUser({
               id: user.id,
               last_ip: ipInfo.ip || clientIp,
-              last_login: now // Add last_login update
+              last_login: now
             });
 
             res.json({
               ...user,
-              requires_password_change: user.temp_password
+              requires_password_change: user.temp_password,
+              firebaseToken // Send the Firebase token to the client
             });
           } catch (error) {
-            console.error('Failed to update user IP with geolocation:', error);
-            res.json({
-              ...user,
-              requires_password_change: user.temp_password
-            });
+            console.error('Error during login process:', error);
+            res.status(500).json({ message: "Internal server error during login" });
           }
         });
       })(req, res, next);
