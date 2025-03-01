@@ -43,11 +43,11 @@ export default function Dashboard() {
     localStorage.setItem('isServicesExpanded', JSON.stringify(isServicesExpanded));
   }, [isServicesExpanded]);
 
-  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
+  const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/settings"],
   });
 
-  const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["/api/services"],
     refetchInterval: 30000,
   });
@@ -59,11 +59,13 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6">
-          <div className="animate-pulse space-y-8">
-            <div className="h-8 w-48 bg-primary/20 rounded" />
+        <div className="grid grid-cols-[1fr_minmax(auto,1400px)_1fr] px-8">
+          <div className="col-start-2 mt-24 pb-6">
+            <div className="animate-pulse space-y-8">
+              <div className="h-8 w-48 bg-primary/20 rounded" />
+            </div>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -73,77 +75,81 @@ export default function Dashboard() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
 
-        <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6">
-          <section className="relative">
-            <div
-              className="flex items-center justify-between mb-4"
-              onClick={() => setIsServersExpanded(!isServersExpanded)}
-              role="button"
-              aria-expanded={isServersExpanded}
-              aria-controls="game-servers-section"
-            >
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-foreground">Game Servers</h2>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isServersExpanded ? "transform rotate-180" : ""
-                  )}
-                />
-              </div>
-              <div className="flex gap-2">
-                <RequestServerDialog />
-              </div>
-            </div>
-            <div
-              id="game-servers-section"
-              className={cn(
-                "transition-all duration-300 ease-in-out overflow-hidden",
-                isServersExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
-              )}
-            >
-              <GameServerList />
-            </div>
-          </section>
-
-          <section className="relative mt-8">
-            <div
-              className="flex items-center justify-between mb-4"
-              onClick={() => setIsServicesExpanded(!isServicesExpanded)}
-              role="button"
-              aria-expanded={isServicesExpanded}
-              aria-controls="services-section"
-            >
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-foreground">Services</h2>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isServicesExpanded ? "transform rotate-180" : ""
-                  )}
-                />
-              </div>
-              {(isAdmin || isSuperAdmin) && <AddServiceDialog />}
-            </div>
-            <div
-              id="services-section"
-              className={cn(
-                "transition-all duration-300 ease-in-out overflow-hidden",
-                isServicesExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
-              )}
-            >
-              {servicesLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                  ))}
+        {/* Main grid container with three columns */}
+        <div className="grid grid-cols-[1fr_minmax(auto,1400px)_1fr] px-8">
+          {/* Content area in the middle column */}
+          <main className="col-start-2 mt-24 pb-6 space-y-8">
+            <section className="relative">
+              <div
+                className="flex items-center justify-between mb-4"
+                onClick={() => setIsServersExpanded(!isServersExpanded)}
+                role="button"
+                aria-expanded={isServersExpanded}
+                aria-controls="game-servers-section"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-foreground">Game Servers</h2>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      isServersExpanded ? "transform rotate-180" : ""
+                    )}
+                  />
                 </div>
-              ) : (
-                <ServiceList services={services} />
-              )}
-            </div>
-          </section>
-        </main>
+                <div className="flex gap-2">
+                  <RequestServerDialog />
+                </div>
+              </div>
+              <div
+                id="game-servers-section"
+                className={cn(
+                  "transition-all duration-300 ease-in-out overflow-hidden",
+                  isServersExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
+                )}
+              >
+                <GameServerList />
+              </div>
+            </section>
+
+            <section className="relative">
+              <div
+                className="flex items-center justify-between mb-4"
+                onClick={() => setIsServicesExpanded(!isServicesExpanded)}
+                role="button"
+                aria-expanded={isServicesExpanded}
+                aria-controls="services-section"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-foreground">Services</h2>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      isServicesExpanded ? "transform rotate-180" : ""
+                    )}
+                  />
+                </div>
+                {(isAdmin || isSuperAdmin) && <AddServiceDialog />}
+              </div>
+              <div
+                id="services-section"
+                className={cn(
+                  "transition-all duration-300 ease-in-out overflow-hidden",
+                  isServicesExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
+                )}
+              >
+                {servicesLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array(3).fill(0).map((_, i) => (
+                      <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <ServiceList services={services} />
+                )}
+              </div>
+            </section>
+          </main>
+        </div>
       </div>
     </PageTransition>
   );
