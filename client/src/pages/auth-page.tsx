@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, InsertUser } from "@shared/schema";
 import { Redirect } from "wouter";
 import { Loader2, ServerCog } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,21 +16,26 @@ import { useToast } from "@/hooks/use-toast";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useLocation } from 'wouter';
 import { cn } from "@/lib/utils";
+import { PasskeyAuthButton } from "@/components/passkey-auth-button";
+
+// Add proper types for the forms
+type LoginFormData = Pick<InsertUser, "username" | "password">;
+type RegisterFormData = Pick<InsertUser, "username" | "password" | "email">;
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const changePasswordSchema = z
-  .object({
-    newPassword: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+const changePasswordSchema = z.object({
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
+type RequestResetFormData = z.infer<typeof requestResetSchema>;
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 type FormType = 'login' | 'register' | 'reset' | 'change-password';
 
 export default function AuthPage() {
@@ -45,7 +50,7 @@ export default function AuthPage() {
     queryKey: ["/api/settings"],
   });
 
-  const loginForm = useForm({
+  const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
     defaultValues: {
       username: "",
@@ -53,7 +58,7 @@ export default function AuthPage() {
     }
   });
 
-  const registerForm = useForm({
+  const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(insertUserSchema.pick({ username: true, password: true, email: true })),
     defaultValues: {
       username: "",
@@ -62,14 +67,14 @@ export default function AuthPage() {
     }
   });
 
-  const resetForm = useForm({
+  const resetForm = useForm<RequestResetFormData>({
     resolver: zodResolver(requestResetSchema),
     defaultValues: {
       email: ""
     }
   });
 
-  const changePasswordForm = useForm({
+  const changePasswordForm = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
       newPassword: "",
@@ -105,7 +110,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleChangePassword = async (data: z.infer<typeof changePasswordSchema>) => {
+  const handleChangePassword: SubmitHandler<ChangePasswordFormData> = async (data) => {
     try {
       const response = await fetch("/api/change-password", {
         method: "POST",
@@ -133,7 +138,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleResetPassword = async (data: { email: string }) => {
+  const handleResetPassword: SubmitHandler<RequestResetFormData> = async (data) => {
     try {
       const response = await fetch('/api/request-reset', {
         method: 'POST',
@@ -254,7 +259,10 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    <GoogleAuthButton />
+                    <div className="space-y-2">
+                      <PasskeyAuthButton />
+                      <GoogleAuthButton />
+                    </div>
 
                     <div className="space-y-2 text-center">
                       <button
