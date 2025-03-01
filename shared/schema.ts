@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   last_login: timestamp("last_login"),
   last_ip: text("last_ip"),
   temp_password: boolean("temp_password").notNull().default(false),
+  passkeys: text("passkeys").array().default([]),
+  auth_token: text("auth_token"),
 });
 
 export const settings = pgTable("settings", {

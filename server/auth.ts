@@ -280,18 +280,25 @@ export function setupAuth(app: Express) {
             await storage.updateUser({
               id: user.id,
               last_ip: ipInfo.ip || clientIp,
-              last_login: now // Add last_login update
+              last_login: now
             });
+
+            // Check if user has any passkeys
+            const passkeys = await storage.getUserPasskeys(user.id);
+            const hasPasskey = passkeys && passkeys.length > 0;
 
             res.json({
               ...user,
-              requires_password_change: user.temp_password
+              requires_password_change: user.temp_password,
+              // Add flag to indicate whether to show passkey registration prompt
+              show_passkey_prompt: !hasPasskey
             });
           } catch (error) {
             console.error('Failed to update user IP with geolocation:', error);
             res.json({
               ...user,
-              requires_password_change: user.temp_password
+              requires_password_change: user.temp_password,
+              show_passkey_prompt: true // Default to showing prompt if we can't check
             });
           }
         });
@@ -805,7 +812,7 @@ export function setupAuth(app: Express) {
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 32)) as Buffer;
+    const buf = (await scryptAsync(password, salt, 32)) as Buffer;
   const hashedPassword = `${buf.toString("hex")}.${salt}`;
   console.log("Generated hash length:", buf.length, "Generated hash:", hashedPassword);
   return hashedPassword;
@@ -819,7 +826,7 @@ async function comparePasswords(supplied: string, stored: string) {
       return false;
     }
     const hashedBuf = Buffer.from(hash, "hex");
-        const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
+    const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
     console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
     console.log("Stored hash:", hash);
     console.log("Supplied hash:", suppliedBuf.toString("hex"));
