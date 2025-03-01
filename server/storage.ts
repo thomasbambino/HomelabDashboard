@@ -31,10 +31,6 @@ import {
   loginAttempts,
   LoginAttempt,
   InsertLoginAttempt,
-  tickets,
-  Ticket,
-  InsertTicket,
-  UpdateTicket,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, or, asc } from "drizzle-orm";
@@ -102,15 +98,6 @@ export interface IStorage {
   getGameServer(id: number): Promise<GameServer | undefined>;
   deleteUser(id: number): Promise<User | undefined>;
   getLoginAttempts(): Promise<LoginAttempt[]>;
-
-  // Ticket methods
-  createTicket(ticket: InsertTicket): Promise<Ticket>;
-  getTicket(id: number): Promise<Ticket | undefined>;
-  getAllTickets(): Promise<Ticket[]>;
-  getUserTickets(userId: number): Promise<Ticket[]>;
-  getTicketsByStatus(status: 'pending' | 'completed'): Promise<Ticket[]>;
-  updateTicket(ticket: UpdateTicket): Promise<Ticket | undefined>;
-  deleteTicket(id: number): Promise<Ticket | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -524,54 +511,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loginAttempts)
       .orderBy(desc(loginAttempts.timestamp));
-  }
-
-  // Implement ticket methods
-  async createTicket(ticket: InsertTicket): Promise<Ticket> {
-    const [newTicket] = await db.insert(tickets).values(ticket).returning();
-    return newTicket;
-  }
-
-  async getTicket(id: number): Promise<Ticket | undefined> {
-    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
-    return ticket;
-  }
-
-  async getAllTickets(): Promise<Ticket[]> {
-    return await db.select().from(tickets).orderBy(desc(tickets.createdAt));
-  }
-
-  async getUserTickets(userId: number): Promise<Ticket[]> {
-    return await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.userId, userId))
-      .orderBy(desc(tickets.createdAt));
-  }
-
-  async getTicketsByStatus(status: 'pending' | 'completed'): Promise<Ticket[]> {
-    return await db
-      .select()
-      .from(tickets)
-      .where(eq(tickets.status, status))
-      .orderBy(desc(tickets.createdAt));
-  }
-
-  async updateTicket(ticket: UpdateTicket): Promise<Ticket | undefined> {
-    const [updatedTicket] = await db
-      .update(tickets)
-      .set(ticket)
-      .where(eq(tickets.id, ticket.id))
-      .returning();
-    return updatedTicket;
-  }
-
-  async deleteTicket(id: number): Promise<Ticket | undefined> {
-    const [deletedTicket] = await db
-      .delete(tickets)
-      .where(eq(tickets.id, id))
-      .returning();
-    return deletedTicket;
   }
 }
 
