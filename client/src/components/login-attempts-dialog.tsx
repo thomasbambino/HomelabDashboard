@@ -26,12 +26,12 @@ export function LoginAttemptsDialog() {
         <DialogHeader>
           <DialogTitle>Login Attempts</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-[600px] rounded-md border p-4">
+        <ScrollArea className="h-[600px] rounded-md p-4">
           <div className="space-y-4">
             {loginAttempts.map((attempt) => (
               <div
                 key={attempt.id}
-                className="p-4 rounded-lg border space-y-2"
+                className="p-4 rounded-lg bg-card space-y-2"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -62,7 +62,7 @@ export function LoginAttemptsDialog() {
                         <ISPIcon 
                           ispName={attempt.isp} 
                           className="h-8 w-8"
-                          size={34}
+                          size={attempt.isp.toLowerCase().includes('t-mobile') ? 101 : 34}
                         />
                         <span>{attempt.isp}</span>
                       </p>
