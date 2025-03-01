@@ -62,7 +62,7 @@ export function LoginAttemptsDialog() {
                         <ISPIcon 
                           ispName={attempt.isp} 
                           className="h-8 w-8"
-                          size={attempt.isp.toLowerCase().includes('t-mobile') ? 101 : 34}
+                          size={34}
                         />
                         <span>{attempt.isp}</span>
                       </p>

@@ -7,6 +7,11 @@ export const ISP_MAPPINGS: ISPMappingConfig[] = [
     iconPath: '/isp-logos/at_t_internet_101x101.png'
   },
   {
+    name: 'T-Mobile',
+    matches: ['T-Mobile', 'TMobile', 'T Mobile'],
+    iconPath: '/isp-logos/tmobile_101x101.png'  // Updated to use consistent naming format
+  },
+  {
     name: 'Verizon',
     matches: ['Verizon', 'Verizon Fios', 'Verizon Business', 'Verizon Wireless'],
     iconPath: '/isp-logos/verizon_fios_101x101.png'

@@ -11,7 +11,8 @@ const targetDir = path.join(__dirname, '..', 'client', 'public', 'isp-logos');
 const size = 32; // Consistent size for all logos
 
 // Extract URLs from the text
-const rawText = `https://static.ui.com/isp/at_t_internet_101x101.png
+const rawText = `https://static.ui.com/asn/21928_101x101.png
+https://static.ui.com/isp/at_t_internet_101x101.png
 https://static.ui.com/isp/verizon_fios_101x101.png
 https://static.ui.com/isp/verizon_business_101x101.png
 https://static.ui.com/isp/comcast_business_101x101.png
@@ -59,12 +60,19 @@ async function downloadAndResizeLogos() {
 
   for (const url of urls) {
     try {
-      const filename = url.split('/').pop().toLowerCase();
+      // Special handling for T-Mobile logo
+      let filename;
+      if (url.includes('asn/21928')) {
+        filename = 'tmobile_101x101.png';
+      } else {
+        filename = url.split('/').pop().toLowerCase();
+      }
+
       const outputPath = path.join(targetDir, filename);
 
       console.log(`Downloading ${url}...`);
       const response = await axios.get(url, { responseType: 'arraybuffer' });
-      
+
       console.log(`Resizing ${filename}...`);
       await sharp(response.data)
         .resize(size, size, {
