@@ -61,7 +61,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
               ) : (
                 <ServerCog className="h-7 w-7 md:h-9 md:w-9 text-primary" />
               )}
-              <span className="font-bold text-foreground text-sm md:text-base hidden sm:inline-block">
+              <span className="font-bold text-foreground text-xs md:text-base max-w-[120px] md:max-w-none truncate">
                 {settings?.site_title || "Homelab Dashboard"}
               </span>
             </div>
