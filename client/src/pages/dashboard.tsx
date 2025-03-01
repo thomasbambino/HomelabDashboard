@@ -55,7 +55,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-y-scroll">
       <NavigationBar settings={settings} />
 
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6 space-y-8">
@@ -83,13 +83,11 @@ export default function Dashboard() {
           <div
             id="game-servers-section"
             className={cn(
-              "grid grid-rows-[0fr] transition-[grid-template-rows] duration-300",
-              isServersExpanded && "grid-rows-[1fr]"
+              "transition-all duration-300",
+              isServersExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
             )}
           >
-            <div className="overflow-hidden">
-              <GameServerList />
-            </div>
+            <GameServerList />
           </div>
         </section>
 
@@ -115,21 +113,19 @@ export default function Dashboard() {
           <div
             id="services-section"
             className={cn(
-              "grid grid-rows-[0fr] transition-[grid-template-rows] duration-300",
-              isServicesExpanded && "grid-rows-[1fr]"
+              "transition-all duration-300",
+              isServicesExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
             )}
           >
-            <div className="overflow-hidden">
-              {servicesLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array(3).fill(0).map((_, i) => (
-                    <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                  ))}
-                </div>
-              ) : (
-                <ServiceList services={services} />
-              )}
-            </div>
+            {servicesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <ServiceList services={services} />
+            )}
           </div>
         </section>
       </main>
