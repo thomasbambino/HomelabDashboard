@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { TicketInbox } from "lucide-react";
+import { Ticket } from "lucide-react";
 
 const ticketSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
@@ -66,16 +66,16 @@ export function CreateTicketDialog({ children }: CreateTicketDialogProps) {
   };
 
   return (
-    <Dialog>
+    <Dialog modal={false}>
       <DialogTrigger asChild>
         {children || (
           <Button variant="ghost" className="w-full justify-start">
-            <TicketInbox className="mr-2 h-4 w-4" />
+            <Ticket className="mr-2 h-4 w-4" />
             <span>Submit Ticket</span>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Submit Support Ticket</DialogTitle>
         </DialogHeader>

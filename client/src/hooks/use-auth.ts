@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { createContext, useContext, ReactNode } from "react";
 
 interface User {
   id: number;
@@ -9,7 +10,18 @@ interface User {
   service_order?: number[];
 }
 
-export function useAuth() {
+interface AuthContextType {
+  user: User | undefined;
+  isLoading: boolean;
+  logoutMutation: {
+    mutate: () => void;
+    isPending: boolean;
+  };
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User>({
@@ -30,9 +42,26 @@ export function useAuth() {
     },
   });
 
-  return {
-    user,
-    isLoading,
-    logoutMutation,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        logoutMutation: {
+          mutate: logoutMutation.mutate,
+          isPending: logoutMutation.isLoading,
+        },
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
