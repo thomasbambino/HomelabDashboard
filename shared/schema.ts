@@ -1,7 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import * as z from "zod";
 
 // Update the role enum to include superadmin
 export const roleEnum = sql`CREATE TYPE "role" AS ENUM ('superadmin', 'admin', 'user', 'pending')`;
@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   last_login: timestamp("last_login"),
   last_ip: text("last_ip"),
   temp_password: boolean("temp_password").notNull().default(false),
+  reset_token: text("reset_token"),
 });
 
 export const settings = pgTable("settings", {
@@ -147,6 +148,7 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertSentNotificationSchema = createInsertSchema(sentNotifications);
 export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
 
+// Export the update schemas
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
 }).partial().required({ id: true });
@@ -173,8 +175,9 @@ export const updateEmailTemplateSchema = insertEmailTemplateSchema.extend({
 
 export const updateLoginAttemptSchema = insertLoginAttemptSchema.extend({
   id: z.number(),
-}).partial().required({id: true});
+}).partial().required({ id: true });
 
+// Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
