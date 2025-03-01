@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -60,7 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if we should show the passkey enrollment dialog
       const passkeyChoiceMade = localStorage.getItem('passkey-choice-made');
       if (!passkeyChoiceMade && !user.requires_password_change) {
-        setShowPasskeyDialog(true);
+        // Wait a bit to ensure Firebase auth is initialized
+        setTimeout(() => {
+          setShowPasskeyDialog(true);
+        }, 1000);
       }
     },
     onError: (error: Error) => {
@@ -122,11 +125,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handlePasskeyEnrollment = async () => {
     try {
-      // Get the current user's ID token
-      const idToken = await auth.currentUser?.getIdToken();
-      if (!idToken) {
-        throw new Error("User not authenticated");
+      // Verify Firebase auth state
+      if (!auth.currentUser) {
+        throw new Error("Please ensure you're logged in before setting up a passkey");
       }
+
+      // Get the current user's ID token
+      const idToken = await auth.currentUser.getIdToken();
+      if (!idToken) {
+        throw new Error("Failed to get authentication token");
+      }
+
+      console.log("Getting challenge from server...");
 
       // Get the challenge from the server
       const challengeResponse = await fetch("/api/auth/passkey/challenge", {
@@ -138,10 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!challengeResponse.ok) {
-        throw new Error("Failed to get challenge");
+        const error = await challengeResponse.text();
+        throw new Error(`Failed to get challenge: ${error}`);
       }
 
       const { challenge, userId } = await challengeResponse.json();
+      console.log("Got challenge from server", { userId });
 
       // Create the credentials
       const credential = await navigator.credentials.create({
@@ -175,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to create passkey");
       }
 
+      console.log("Created credential, registering with server...");
+
       // Register the credential with Firebase
       const res = await fetch("/api/auth/passkey/register", {
         method: "POST",
@@ -186,7 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to register passkey");
+        const error = await res.text();
+        throw new Error(`Failed to register passkey: ${error}`);
       }
 
       // Store that user has made a choice about passkeys
