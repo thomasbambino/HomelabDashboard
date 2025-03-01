@@ -9,6 +9,8 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendEmail } from "./email";
 import { getIpInfo } from './utils/ip';
+import { randomBytes as cryptoRandomBytes } from 'crypto'; // Added import
+
 
 const scryptAsync = promisify(scrypt);
 
@@ -751,6 +753,54 @@ export function setupAuth(app: Express) {
       });
     }
   });
+
+  app.post("/api/auth/verify-passkey", async (req, res) => {
+    try {
+      const { id, type } = req.body;
+
+      // In a production environment, you would:
+      // 1. Verify the credential against stored public key
+      // 2. Validate the challenge
+      // 3. Check the user verification flag
+
+      // For now, we'll just check if the passkey exists in our database
+      const user = await storage.getUserByPasskeyId(id);
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid passkey" });
+      }
+
+      // Generate a session token
+      const token = cryptoRandomBytes(32).toString('hex');
+
+      // Store the token with the user session
+      await storage.storeUserToken(user.id, token);
+
+      res.json({ token });
+    } catch (error) {
+      console.error('Passkey verification error:', error);
+      res.status(500).json({ message: "Failed to verify passkey" });
+    }
+  });
+
+  app.post("/api/auth/register-passkey", async (req, res) => {
+    try {
+      const { credential, userId } = req.body;
+
+      // In a production environment, you would:
+      // 1. Validate the attestation
+      // 2. Store the public key
+      // 3. Associate the credential with the user
+
+      // For now, we'll just store the credential ID
+      await storage.storePasskey(userId, credential.id);
+
+      res.json({ message: "Passkey registered successfully" });
+    } catch (error) {
+      console.error('Passkey registration error:', error);
+      res.status(500).json({ message: "Failed to register passkey" });
+    }
+  });
 }
 
 async function hashPassword(password: string) {
@@ -769,7 +819,7 @@ async function comparePasswords(supplied: string, stored: string) {
       return false;
     }
     const hashedBuf = Buffer.from(hash, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
+        const suppliedBuf = (await scryptAsync(supplied, salt, 32)) as Buffer;
     console.log("Stored hash length:", hashedBuf.length, "Supplied hash length:", suppliedBuf.length);
     console.log("Stored hash:", hash);
     console.log("Supplied hash:", suppliedBuf.toString("hex"));

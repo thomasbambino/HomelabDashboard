@@ -5,19 +5,18 @@ import { KeyRound } from "lucide-react";
 import { useState } from "react";
 
 type RegisterPasskeyButtonProps = {
-  userId: string;
   username: string;
 };
 
-export function RegisterPasskeyButton({ userId, username }: RegisterPasskeyButtonProps) {
+export function RegisterPasskeyButton({ username }: RegisterPasskeyButtonProps) {
   const { toast } = useToast();
   const [isRegistering, setIsRegistering] = useState(false);
 
   const handleRegisterPasskey = async () => {
     try {
       setIsRegistering(true);
-      await createPasskey(userId, username);
-      
+      await createPasskey(username);
+
       toast({
         title: "Passkey Created",
         description: "You can now use your passkey to sign in to your account.",

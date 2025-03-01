@@ -333,7 +333,6 @@ export default function AuthPage() {
                         description: "Would you like to set up a passkey for easier sign-in next time?",
                         action: (
                           <RegisterPasskeyButton
-                            userId={user.id.toString()}
                             username={user.username}
                           />
                         ),
