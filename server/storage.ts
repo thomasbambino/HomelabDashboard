@@ -33,7 +33,7 @@ import {
   InsertLoginAttempt,
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, desc, and, gte, lte, or, asc, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, or, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db.js";
@@ -98,12 +98,6 @@ export interface IStorage {
   getGameServer(id: number): Promise<GameServer | undefined>;
   deleteUser(id: number): Promise<User | undefined>;
   getAllLoginAttempts(): Promise<LoginAttempt[]>;
-
-  // Add new method for passkey management
-  getUserPasskeys(userId: number): Promise<string[]>;
-  storePasskey(userId: number, passKeyId: string): Promise<void>;
-  storeUserToken(userId: number, token: string): Promise<void>;
-  getUserByPasskeyId(passKeyId: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -518,34 +512,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loginAttempts)
       .orderBy(desc(loginAttempts.timestamp));
-  }
-
-  async getUserPasskeys(userId: number): Promise<string[]> {
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    return user?.passkeys || [];
-  }
-
-  async storePasskey(userId: number, passKeyId: string): Promise<void> {
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    const passkeys = user?.passkeys || [];
-
-    await db.update(users)
-      .set({ passkeys: [...passkeys, passKeyId] })
-      .where(eq(users.id, userId));
-  }
-
-  async storeUserToken(userId: number, token: string): Promise<void> {
-    await db.update(users)
-      .set({ auth_token: token })
-      .where(eq(users.id, userId));
-  }
-
-  async getUserByPasskeyId(passKeyId: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(sql`${users.passkeys} @> ARRAY[${passKeyId}]::text[]`);
-    return user;
   }
 }
 

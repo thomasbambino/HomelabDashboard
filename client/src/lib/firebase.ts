@@ -8,11 +8,7 @@ import {
   signInWithCredential,
   getMultiFactorResolver,
   MultiFactorError,
-  AuthCredential,
-  updateProfile,
-  multiFactor,
-  PhoneMultiFactorGenerator,
-  RecaptchaVerifier
+  AuthCredential
 } from 'firebase/auth';
 
 // Verify Firebase configuration values
@@ -47,116 +43,34 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Passkey authentication helper using WebAuthn native API
+// Passkey authentication helper
 export async function signInWithPasskeyCredential() {
   try {
-    // Create options for getting the credential
-    const options = {
+    // Use the PublicKeyCredential API directly
+    const credential = await navigator.credentials.get({
       publicKey: {
-        challenge: new Uint8Array([1, 2, 3, 4]), // In production, this should be a server-generated challenge
-        allowCredentials: [],
-        rpId: window.location.hostname,
+        challenge: new Uint8Array(32),
         timeout: 60000,
-        userVerification: "required" as UserVerificationRequirement,
+        userVerification: "required",
+        rpId: window.location.hostname
       }
-    };
+    }) as PublicKeyCredential;
 
-    // Get the credential from the authenticator
-    const credential = await navigator.credentials.get(options);
-
-    if (!credential) {
-      throw new Error("No credential returned");
-    }
-
-    // Send the credential to your backend for verification
-    const response = await fetch('/api/auth/verify-passkey', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: credential.id,
-        type: credential.type,
-        // Add any additional credential data needed for verification
-      }),
+    // Convert the credential to a format Firebase can use
+    const authCredential = AuthCredential.fromJSON({
+      providerId: 'passkey',
+      signInMethod: 'passkey',
+      credential: credential
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to verify passkey");
+    const result = await signInWithCredential(auth, authCredential);
+    return result;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'MultiFactor') {
+      const mfaError = error as MultiFactorError;
+      const resolver = getMultiFactorResolver(auth, mfaError);
+      return resolver;
     }
-
-    const { token } = await response.json();
-    return { user: { getIdToken: async () => token } };
-
-  } catch (error) {
-    console.error('Passkey authentication error:', error);
-    throw error;
-  }
-}
-
-// Create passkey for current user
-export async function createPasskey(displayName: string) {
-  try {
-    if (!auth.currentUser) {
-      throw new Error("You must be signed in to create a passkey");
-    }
-
-    // Create options for credential creation
-    const options = {
-      publicKey: {
-        challenge: new Uint8Array([1, 2, 3, 4]), // In production, this should be a server-generated challenge
-        rp: {
-          name: 'Homelab Dashboard',
-          id: window.location.hostname
-        },
-        user: {
-          id: new Uint8Array(16), // Should be a stable identifier for the user
-          name: auth.currentUser.email || displayName,
-          displayName: displayName
-        },
-        pubKeyCredParams: [
-          { type: 'public-key', alg: -7 }, // ES256
-          { type: 'public-key', alg: -257 } // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: "platform",
-          userVerification: "required"
-        },
-        timeout: 60000
-      }
-    };
-
-    // Create the credential
-    const credential = await navigator.credentials.create(options);
-
-    if (!credential) {
-      throw new Error("Failed to create passkey");
-    }
-
-    // Register the credential with your backend
-    const response = await fetch('/api/auth/register-passkey', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        credential: {
-          id: credential.id,
-          type: credential.type,
-          // Add any additional credential data needed for registration
-        },
-        userId: auth.currentUser.uid
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to register passkey with server");
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error('Error creating passkey:', error);
     throw error;
   }
 }
