@@ -75,6 +75,51 @@ export async function signInWithPasskeyCredential() {
   }
 }
 
+// Create passkey for current user
+export async function createPasskey(userId: string, username: string) {
+  try {
+    // Generate a new key pair
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: new Uint8Array(32),
+        rp: {
+          name: 'Homelab Dashboard',
+          id: window.location.hostname
+        },
+        user: {
+          id: Uint8Array.from(userId, c => c.charCodeAt(0)),
+          name: username,
+          displayName: username
+        },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 }, // ES256
+          { type: 'public-key', alg: -257 } // RS256
+        ],
+        timeout: 60000,
+        attestation: 'direct',
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'required'
+        }
+      }
+    }) as PublicKeyCredential;
+
+    // Store the credential with Firebase
+    const authCredential = AuthCredential.fromJSON({
+      providerId: 'passkey',
+      signInMethod: 'passkey',
+      credential: credential
+    });
+
+    await auth.currentUser?.linkWithCredential(authCredential);
+    return credential;
+  } catch (error) {
+    console.error('Error creating passkey:', error);
+    throw error;
+  }
+}
+
 // Log auth state changes for debugging
 auth.onAuthStateChanged((user) => {
   if (user) {

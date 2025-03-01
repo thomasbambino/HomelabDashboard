@@ -17,6 +17,7 @@ import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useLocation } from 'wouter';
 import { cn } from "@/lib/utils";
 import { PasskeyAuthButton } from "@/components/passkey-auth-button";
+import { RegisterPasskeyButton } from "@/components/register-passkey-button";
 
 // Add proper types for the forms
 type LoginFormData = Pick<InsertUser, "username" | "password">;
@@ -325,7 +326,21 @@ export default function AuthPage() {
 
               {formType === 'register' && (
                 <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
+                  <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data, {
+                    onSuccess: (user) => {
+                      toast({
+                        title: "Registration Successful",
+                        description: "Would you like to set up a passkey for easier sign-in next time?",
+                        action: (
+                          <RegisterPasskeyButton
+                            userId={user.id.toString()}
+                            username={user.username}
+                          />
+                        ),
+                        duration: 10000, // Give users more time to read and act
+                      });
+                    }
+                  }))} className="space-y-4">
                     <FormField
                       control={registerForm.control}
                       name="username"
