@@ -55,10 +55,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-y-scroll">
+    <div className="flex flex-col min-h-screen bg-background">
       <NavigationBar settings={settings} />
 
-      <main className="max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6 space-y-8">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6 space-y-8">
         <section className="relative">
           <div
             className="flex items-center justify-between mb-4 cursor-pointer"
