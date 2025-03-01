@@ -846,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message: "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -1074,20 +1074,11 @@ except Exception as e:
     }
   });
 
-  // Add the endpoint for fetching login attempts
+  // Add this with other API routes, before the app.get("/api/game-servers/:instanceId/metrics",...) route
   app.get("/api/login-attempts", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    // Check if user is a superadmin
-    const user = req.user as User;
-    if (user.role !== 'superadmin') {
-      return res.status(403).json({ message: "Only superadmins can view login attempts" });
-    }
-
     try {
-      // Get all login attempts, ordered by most recent first
-      const attempts = await storage.getLoginAttempts();
-      console.log('Fetched login attempts:', attempts);
+      const attempts = await storage.getAllLoginAttempts();
       res.json(attempts);
     } catch (error) {
       console.error('Error fetching login attempts:', error);
