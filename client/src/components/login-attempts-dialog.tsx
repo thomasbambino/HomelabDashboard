@@ -22,7 +22,11 @@ export function LoginAttemptsDialog() {
           Login Attempts
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden">
+      <DialogContent 
+        className="sm:max-w-[800px] max-h-[80vh] overflow-hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Login Attempts</DialogTitle>
         </DialogHeader>
