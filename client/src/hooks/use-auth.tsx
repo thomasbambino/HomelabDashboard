@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -46,10 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      const data = await res.json();
       if (!res.ok) {
         throw new Error("Login failed");
       }
+      const data = await res.json();
       return data;
     },
     onSuccess: async (data: AuthUser & { firebaseToken?: string }) => {
@@ -85,72 +85,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login failed",
         description: error.message,
         variant: "destructive",
-        action: (
-          <div className="flex items-center gap-2">
-            <button
-              className="px-3 py-2 text-sm font-medium text-white bg-destructive border-2 border-white rounded-md hover:bg-destructive/90"
-              onClick={() => setLocation("/auth?tab=reset")}
-            >
-              Reset Password
-            </button>
-          </div>
-        ),
-      });
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-      return data;
-    },
-    onSuccess: (user: AuthUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
-      setLocation("/auth");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
       });
     },
   });
 
   const handlePasskeyEnrollment = async () => {
     try {
+      // Wait for Firebase auth to be ready
+      await new Promise((resolve, reject) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          if (user) {
+            unsubscribe();
+            resolve(user);
+          }
+        });
+
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          unsubscribe();
+          reject(new Error("Timed out waiting for Firebase authentication"));
+        }, 5000);
+      });
+
       // Verify Firebase auth state
       if (!auth.currentUser) {
         throw new Error("Please ensure you're logged in before setting up a passkey");
       }
 
+      console.log("Firebase auth state verified:", auth.currentUser.uid);
+
       // Get the current user's ID token
-      const idToken = await auth.currentUser.getIdToken();
+      const idToken = await auth.currentUser.getIdToken(true); // Force refresh token
       if (!idToken) {
         throw new Error("Failed to get authentication token");
       }
 
-      console.log("Getting challenge from server...");
+      console.log("Got fresh ID token, getting challenge from server...");
 
       // Get the challenge from the server
       const challengeResponse = await fetch("/api/auth/passkey/challenge", {
@@ -203,12 +173,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log("Created credential, registering with server...");
 
-      // Register the credential with Firebase
+      // Get a fresh token again before registering
+      const freshToken = await auth.currentUser.getIdToken(true);
+
+      // Register the credential with the server
       const res = await fetch("/api/auth/passkey/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`
+          Authorization: `Bearer ${freshToken}`
         },
         body: JSON.stringify({ credential })
       });

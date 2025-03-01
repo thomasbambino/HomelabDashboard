@@ -21,9 +21,17 @@ const firebaseConfig = {
   measurementId: undefined
 };
 
+// Validate required config values
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
+  console.error('Missing required Firebase configuration values:', {
+    hasApiKey: !!firebaseConfig.apiKey,
+    hasProjectId: !!firebaseConfig.projectId,
+    hasAppId: !!firebaseConfig.appId
+  });
+  throw new Error('Firebase configuration is incomplete');
+}
+
 console.log('Initializing Firebase with config:', {
-  ...firebaseConfig,
-  apiKey: firebaseConfig.apiKey ? '[REDACTED]' : undefined,
   projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain
 });
@@ -32,8 +40,14 @@ console.log('Initializing Firebase with config:', {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Set persistence to local
-setPersistence(auth, browserLocalPersistence);
+// Set persistence to local and wait for it to complete
+await setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Firebase persistence set to local');
+  })
+  .catch(error => {
+    console.error('Error setting auth persistence:', error);
+  });
 
 // Configure Google Provider
 export const googleProvider = new GoogleAuthProvider();
@@ -43,42 +57,15 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Passkey authentication helper
-export async function signInWithPasskeyCredential() {
-  try {
-    // Use the PublicKeyCredential API directly
-    const credential = await navigator.credentials.get({
-      publicKey: {
-        challenge: new Uint8Array(32),
-        timeout: 60000,
-        userVerification: "required",
-        rpId: window.location.hostname
-      }
-    }) as PublicKeyCredential;
-
-    // Convert the credential to a format Firebase can use
-    const authCredential = AuthCredential.fromJSON({
-      providerId: 'passkey',
-      signInMethod: 'passkey',
-      credential: credential
-    });
-
-    const result = await signInWithCredential(auth, authCredential);
-    return result;
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'MultiFactor') {
-      const mfaError = error as MultiFactorError;
-      const resolver = getMultiFactorResolver(auth, mfaError);
-      return resolver;
-    }
-    throw error;
-  }
-}
-
 // Log auth state changes for debugging
 auth.onAuthStateChanged((user) => {
   if (user) {
-    console.log('Firebase Auth: User signed in', { email: user.email });
+    console.log('Firebase Auth: User signed in', { 
+      email: user.email,
+      uid: user.uid,
+      isAnonymous: user.isAnonymous,
+      providerId: user.providerId
+    });
   } else {
     console.log('Firebase Auth: User signed out');
   }
