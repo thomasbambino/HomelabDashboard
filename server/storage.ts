@@ -31,12 +31,12 @@ import {
   loginAttempts,
   LoginAttempt,
   InsertLoginAttempt,
-} from "@shared/schema";
-import { db } from "./db";
+} from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, desc, and, gte, lte, or, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+import { pool } from "./db.js";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -88,7 +88,7 @@ export interface IStorage {
   getRecentSentNotifications(serviceId: number): Promise<SentNotification[]>;
 
   // Add new methods for login attempts
-  getLoginAttempts(identifier: string, ip: string, type: string, windowMs: number): Promise<number>;
+  getLoginAttemptsInWindow(identifier: string, ip: string, type: string, windowMs: number): Promise<number>;
   addLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
   clearLoginAttempts(identifier: string, ip: string, type: string): Promise<void>;
   getOldestLoginAttempt(identifier: string, ip: string, type: string): Promise<LoginAttempt | undefined>;
@@ -97,7 +97,7 @@ export interface IStorage {
   getGameServerByInstanceId(instanceId: string): Promise<GameServer | undefined>;
   getGameServer(id: number): Promise<GameServer | undefined>;
   deleteUser(id: number): Promise<User | undefined>;
-  getLoginAttempts(): Promise<LoginAttempt[]>;
+  getAllLoginAttempts(): Promise<LoginAttempt[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -157,9 +157,10 @@ export class DatabaseStorage implements IStorage {
     const allUsers = await db.select().from(users);
 
     // Map the latest IP and timestamp to each user
-    return allUsers.map(user => {
+    return allUsers.map((user: User) => {
       const latestAttempt = latestAttempts.find(
-        attempt => attempt.identifier === user.username
+        (attempt: { identifier: string; ip: string; timestamp: Date; type: string }) =>
+          attempt.identifier === user.username
       );
       return {
         ...user,
@@ -430,7 +431,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Login Attempts
-  async getLoginAttempts(identifier: string, ip: string, type: string, windowMs: number): Promise<number> {
+  async getLoginAttemptsInWindow(identifier: string, ip: string, type: string, windowMs: number): Promise<number> {
     const windowStart = new Date(Date.now() - windowMs);
     const attempts = await db
       .select()
@@ -506,7 +507,7 @@ export class DatabaseStorage implements IStorage {
     return deletedUser;
   }
 
-  async getLoginAttempts(): Promise<LoginAttempt[]> {
+  async getAllLoginAttempts(): Promise<LoginAttempt[]> {
     return await db
       .select()
       .from(loginAttempts)
