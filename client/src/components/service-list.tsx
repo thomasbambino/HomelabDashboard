@@ -13,24 +13,12 @@ interface ServiceListProps {
 export function ServiceList({ services }: ServiceListProps) {
   const { user } = useAuth();
   const [orderedServices, setOrderedServices] = useState(() => {
-    // Create a sorted array considering NSFW content and user's custom order
+    // Define priority services
+    const priorityServices = ['Plex', 'Overseer', 'Open WebUI'];
+
+    // Create a sorted array considering priority services, NSFW content and user's custom order
     const sortedServices = [...services].sort((a, b) => {
-      // If user has admin/superadmin role, respect their custom order or fall back to alphabetical
-      if (user?.role === 'admin' || user?.role === 'superadmin') {
-        if (user?.service_order?.length) {
-          const orderMap = new Map(user.service_order.map((id, index) => [id, index]));
-          const orderA = orderMap.get(a.id) ?? Infinity;
-          const orderB = orderMap.get(b.id) ?? Infinity;
-          return orderA - orderB;
-        }
-        return a.name.localeCompare(b.name);
-      }
-
-      // For regular users, push NSFW content to the end
-      if (a.isNSFW && !b.isNSFW) return 1;
-      if (!a.isNSFW && b.isNSFW) return -1;
-
-      // If both are NSFW or both are not NSFW, use user's custom order or alphabetical
+      // If user has a custom order, respect it
       if (user?.service_order?.length) {
         const orderMap = new Map(user.service_order.map((id, index) => [id, index]));
         const orderA = orderMap.get(a.id) ?? Infinity;
@@ -38,6 +26,24 @@ export function ServiceList({ services }: ServiceListProps) {
         return orderA - orderB;
       }
 
+      // Check if services are in priority list
+      const isPriorityA = priorityServices.indexOf(a.name);
+      const isPriorityB = priorityServices.indexOf(b.name);
+
+      // If both are priority services, sort by priority order
+      if (isPriorityA !== -1 && isPriorityB !== -1) {
+        return isPriorityA - isPriorityB;
+      }
+
+      // If only one is a priority service, it should come first
+      if (isPriorityA !== -1) return -1;
+      if (isPriorityB !== -1) return 1;
+
+      // For regular users without custom order, push NSFW content to the end
+      if (a.isNSFW && !b.isNSFW) return 1;
+      if (!a.isNSFW && b.isNSFW) return -1;
+
+      // Default to alphabetical sorting
       return a.name.localeCompare(b.name);
     });
 
