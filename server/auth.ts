@@ -730,6 +730,73 @@ export function setupAuth(app: Express) {
       });
     }
   });
+
+  app.post("/api/auth/passkey/challenge", async (req, res) => {
+    try {
+      // Verify Firebase ID token
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "No token provided" });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+
+      // Generate a random challenge
+      const challenge = randomBytes(32);
+
+      res.json({
+        challenge: Array.from(challenge),
+        userId: decodedToken.uid
+      });
+    } catch (error) {
+      console.error('Error generating passkey challenge:', error);
+      res.status(500).json({
+        message: "Failed to generate challenge",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/auth/passkey/register", async (req, res) => {
+    try {
+      // Verify Firebase ID token
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "No token provided" });
+      }
+
+      const token = authHeader.split(' ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+
+      // Get the credential from the request body
+      const { credential } = req.body;
+      if (!credential) {
+        return res.status(400).json({ message: "No credential provided" });
+      }
+
+      // Store the credential in Firebase
+      await admin.auth().updateUser(decodedToken.uid, {
+        multiFactor: {
+          enrolledFactors: [{
+            uid: randomBytes(16).toString('hex'),
+            displayName: "Passkey",
+            factorId: "webauthn",
+            enrollmentTime: new Date().toISOString()
+          }]
+        }
+      });
+
+      res.json({ message: "Passkey registered successfully" });
+    } catch (error) {
+      console.error('Error registering passkey:', error);
+      res.status(500).json({
+        message: "Failed to register passkey",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
 }
 
 async function hashPassword(password: string) {

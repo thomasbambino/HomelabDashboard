@@ -9,6 +9,7 @@ import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { PasskeyEnrollmentDialog } from "@/components/passkey-enrollment-dialog";
+import { auth } from "@/lib/firebase";
 
 // Extend SelectUser type to include the requires_password_change field
 type AuthUser = SelectUser & {
@@ -121,13 +122,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handlePasskeyEnrollment = async () => {
     try {
-      // TODO: Implement passkey enrollment logic here
-      // This should create a new passkey for the user
+      // Get the current user's ID token
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        throw new Error("User not authenticated");
+      }
+
+      // Get the challenge from the server
+      const challengeResponse = await fetch("/api/auth/passkey/challenge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`
+        }
+      });
+
+      if (!challengeResponse.ok) {
+        throw new Error("Failed to get challenge");
+      }
+
+      const { challenge, userId } = await challengeResponse.json();
+
+      // Create the credentials
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: new Uint8Array(challenge),
+          rp: {
+            name: "Homelab Dashboard",
+            id: window.location.hostname
+          },
+          user: {
+            id: new Uint8Array(Buffer.from(userId)),
+            name: user?.email || "",
+            displayName: user?.username || "",
+          },
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 }, // ES256
+            { type: "public-key", alg: -257 } // RS256
+          ],
+          timeout: 60000,
+          attestation: "direct",
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            requireResidentKey: true,
+            residentKey: "required",
+            userVerification: "required"
+          }
+        }
+      });
+
+      if (!credential) {
+        throw new Error("Failed to create passkey");
+      }
+
+      // Register the credential with Firebase
+      const res = await fetch("/api/auth/passkey/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ credential })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to register passkey");
+      }
+
+      // Store that user has made a choice about passkeys
       localStorage.setItem('passkey-choice-made', 'true');
+
       toast({
         title: "Success",
         description: "Passkey has been set up successfully!",
       });
+
+      // Close the dialog
+      setShowPasskeyDialog(false);
     } catch (error) {
       console.error('Passkey enrollment error:', error);
       toast({
