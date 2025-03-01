@@ -83,8 +83,8 @@ export default function Dashboard() {
           <div
             id="game-servers-section"
             className={cn(
-              "transition-all duration-300 overflow-hidden",
-              isServersExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+              "transition-[max-height] duration-300 ease-in-out overflow-hidden",
+              isServersExpanded ? "max-h-[2000px]" : "max-h-0"
             )}
           >
             <GameServerList />
@@ -113,8 +113,8 @@ export default function Dashboard() {
           <div
             id="services-section"
             className={cn(
-              "transition-all duration-300 overflow-hidden",
-              isServicesExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+              "transition-[max-height] duration-300 ease-in-out overflow-hidden",
+              isServicesExpanded ? "max-h-[2000px]" : "max-h-0"
             )}
           >
             {servicesLoading ? (
