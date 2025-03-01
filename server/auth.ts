@@ -25,8 +25,8 @@ try {
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC3kwOwth/qERKe\nrWS96KCWxTgLff4gZr7ngFIQvDSE4PCUm5ln9unNNtPhbXnitnsn2xlid9jkiQPz\nQnS2bkK/cR18b+nSNlRmGqbbV52x9bk815vfqWL7cne0J0k8yjEFMPp+qjQFmTi7\n3CrG+q3U0XdBcM+5YGNUZSZlcs04F/JJ+5mFd2h/VgmGoxdyBozTrRNT+JKOfbnq\nKtBqyQSOrXIMFRzo3/iqJyzi4lA1eRm2E7t3rHKlgaSWku9HWoukX2WFfZSQlB2E\nF4oeAcaw7y4yQkhQ7mwIFN0kvg+b2FBBGexwla/EwohafaDToEbEHOZvSteadt/T\n5+q3oyUtAgMBAAECggEABwRGitWbSK4YYRpNlHi00q59IutQ8FodB+o+uMcI1t9m\nMrfz2CZ271IeLSqrEwBYmsBkKwBbuPiHvx+WKHb0dC7VqrD4ZgGPnkt8fzvNGkVD\nLFEtcxIdZ3ELpEYwJXOxBfrGSFsnG+OsaHnU5MAmLtFG1qiCOBq4ETzAh/YoY/Ft\noJQZaxYBIV5m2x/1AtWZQmLaIZiIziiVxIilH1FHlNN8lm8/1rP/Gag+KYJOuEO4\nXKRtoPi46fnTSBXBPA3C8aqaiEDVyof6oGGUERCw2lKCHGRVSWbZiGvMnU5T7awr\n4CYvU6rlYriUbWIg5AfB7+mg53RfpC+UJB0IKwVe/QKBgQD63dfYFmHGG53+m/+4\njNsrpBZs4Max6CqKUO8eokWTkvHCyac98xXp8AAupQa2mH74h968csmiv0Yhh4YW\n+RNdJ+rvHobAsclz18WCvlvNtE5k6gD5lSYrwOTk4MBd8KUwHSkvIdPyVvMF3IAt\nx5/X6tOdtbMEhKYsb2goQPRWTwKBgQC7VKmh1igcEP0AcFRB5Jid/mvHAS2/rAIM\n1wTz6Ft+Qglpxkc2i+51kkLPDXimvOtZdAcvURaI53xHFEIojIP8+tCfZbNFk5lj\nbY0nf91e+glJwJidja2Vr5jryXbfwkkkzwJ5DlnNNMn53EKBcLNHVTEVG5H9Vkc2\n2PwALzFpwwKBgQD5Hv5uduOHcPt30QCkCzTG5L7kRl7qYwyDqJWdDTYcs4rjjY9I\nJLK5Sn1T1MuS3mMQeRTGfRMhS+Lf/w44mAYTt0VFSkI07xiHsllQWase3pQPAJYR\nQ3zRbE+hvlMptoTD/+FbDbPE73WMd4jObXOdXnPhJIPu06+VZti/SKmbXwKBgQC3\npita3jGaOkleOcFQjAPWuEr+4Lfx9XZZEh7n4z53C9RgnyLHZe2T05ytkd5bUFBF\n9QrqJ0u5UX8zy7eEOyVWSKln6vMSXb39jLPaKm9ioiui4y57Hx8y5OA9H9frS3Qb\notogxaHiHEN6MaX9cfhAEVO6Brpbq07LhXOf1qRRswKBgQC2Vm+PmAE846BgB+Uv\n0uP2Tw5iuF0soeIdCkMvzR7Jwnml/04KN9pbExcSjX8draWlKhkG1CjppCUHNGt3\nZdNxXGxqJvA2kK7jpzTq2uDb2+JCFt5U+XEV06GNG5GaLQi1DfIyKTTgDEjC9yL0\nIPriwTGHs2tPhUllTKvOKG1rsg==\n-----END PRIVATE KEY-----\n",
-      clientEmail: "firebase-adminsdk-fbsvc@stylus-dashboard-f6c70.iam.gserviceaccount.com"
+      clientEmail: `firebase-adminsdk-${process.env.VITE_FIREBASE_PROJECT_ID}@${process.env.VITE_FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
+      privateKey: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmaougWKcG8x5o\nOmNWsnQg3ZFPuQ/Wu33YMiVpogPbIXCwQ8H/Rjcvl+LzXWPJesdIBMLd4xp0c/AA\nZqrZkvJ3wQOycAOcRwIOI4ZhC2ellH81OCa1BvS/Z1Ywv4PbOq60b1S9bonlj/jG\n3rbjHSsbEtQX1AZz9rxgnKnGfSD6KhVFzXzOT/C/K0Q2OA81wX6M0EAo4pT+/p1I\n3SKWur1T0jsnDkX/OGoIQgZOrGSMTqb45cGZfbEo2zTmqoPADxBimcz7eJ8z8HfA\n3bBi8KMpHaI0MR4CYXSp7odOibFVPIz4IPb09/WI8t2onBMXeEr3rsFeZJrbSVdv\nTnyJDV1vAgMBAAECggEAArCNCka9a3XkBSTJxnTUk+ISpmNSUlLuGvwXKnw7iGN4\n+R6PPAJt9T2E3rsvHyNLpXhyrH8uYpyPT+l1U+R1jv6ZuweR/nq6bv9mbykYlWsS\n47RPZ2ZHRUZ02EZpBigqwgXOnnqBN9Ur+WLeHS1eEKctI+7IyM3qMp/DzkA8l251\njws1q0FZq3tJicACJ00fD+Y1C+FmZGc/NZ84tFIzUKIWpfTEbsvUE0mWRjwbJJ4K\nQoD0hp6a4L3mzmHollZL1gj7eT8mdT14PUp4TgNTRz2cZEHZpbd53oWgCLEZjbGR\nqVOWxb3OZ2X5I2HIG2Q/bPbcBMR2LIPxPvDm6G9k8QKBgQDdGfMCmWTIkEWm52nF\n9aKIdIx4SrNiZSCLZYiE/48zwyld8lRp53rlF7X6AKaaOznfFNer8JIXfDQAP6AH\nXXOs07GoCTZjkAOatv+Asuj7P7KLWKdlvKjn43pn8BCIcBUQMu175IJbKHIskyIB\n8IhsbhCWIRZ5uRB+nQzXEbFr9wKBgQDAru40OFML8kwxPOxVEm3ukhcisa/KKMqj\n+qSkd+GWruhAlQggPxlWbV2rZ5OK0ejgkpTbrV+R/avoLxlX8EN7AJjh49kyjMSF\nJjcryNM4VJ6oTeef8JcptgHAOp4a+x4+jDydMlEZnaptdcShSjD0PPYKI1Qhz4Ke\nft2ZAUoMSQKBgQCaLXIrqdOBmDk5vb0gcb048izR5SVZw7MCAXdFZv/w1HKQNF9w\nyh4Eipg3ESUb/5jHWr1aBJObFN0eHz/0YtI6/hOwXVwz6UTaKinZEOkt6qkSSmvQ\nodIWgaXlvJ2Kxr2pYhoAfsP31ShotODOAXDgS4/9YG1PzCEYaWN+xbO22QKBgD+T\neJVSYFR4xhsY9wG66vrkyS1xY4dYnkQs11ZNF+oYHBnzEpNRPpL90wJTUqNjT2uJ\n8gPp2Lba9HXP1JTnedyD/e3KuEetmso0KdAQm2DiytbNnbdwMvBYVYuPy8srQHdy\n3i0gBRJmq20ihpaRXEW6N5Rww7nENl0FjyiE/GHBAoGAag2hp6qclxeysJctlvK1\naHbt5CTUfC2eodNzB8D+kJ50kpWAVB9NdDFv69A26jVE5cvoOrlUpwIVmxAIkPPu\n8lS1XrObHOZNI/+Yi7k0LtIVg2S2DWUKZh6fXZfqC70OISSWISFVK4MERhakQrGX\nwF5GJxxfDNa/Wm5F/Lek69E=\n-----END PRIVATE KEY-----\n"
     }),
   });
 
@@ -41,8 +41,29 @@ const RATE_LIMIT = {
 };
 
 async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
+  const identifier = req.body.username || req.body.identifier || req.body.email;
+  const ip = req.ip;
+  const type = req.path.includes('reset') ? 'reset' : 'login';
+
   try {
-    // Skip rate limiting for now until proper implementation
+    const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
+
+    if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+      const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
+      if (!oldestAttempt) {
+        return res.sendStatus(429);
+      }
+
+      const timeSinceOldest = Date.now() - oldestAttempt.timestamp.getTime();
+      const timeRemaining = RATE_LIMIT.WINDOW_MS - timeSinceOldest;
+
+      if (timeRemaining > 0) {
+        return res.sendStatus(429);
+      }
+
+      await storage.clearLoginAttempts(identifier, ip, type);
+    }
+
     next();
   } catch (error) {
     console.error('Rate limit check error:', error);
@@ -199,47 +220,11 @@ export function setupAuth(app: Express) {
     });
   });
 
-  async function signInUser(req: Request, res: Response, user: any) {
-    try {
-      // Create a custom token for Firebase authentication
-      const firebaseToken = await admin.auth().createCustomToken(user.id.toString(), {
-        email: user.email,
-        username: user.username
-      });
-      console.log('Firebase token created successfully');
-
-      const clientIp = await getClientIp(req);
-      const ipInfo = await getIpInfo(clientIp);
-      const now = new Date();
-
-      await storage.addLoginAttempt({
-        identifier: user.username,
-        ip: ipInfo.ip || clientIp,
-        type: 'success',
-        timestamp: now,
-        isp: ipInfo.isp || null,
-        city: ipInfo.city || null,
-        region: ipInfo.region || null,
-        country: ipInfo.country || null
-      });
-
-      await storage.updateUser({
-        id: user.id,
-        last_ip: ipInfo.ip || clientIp,
-        last_login: now
-      });
-
-      return { firebaseToken, user };
-    } catch (error) {
-      console.error('Error during sign in:', error);
-      throw error;
-    }
-  }
-
   app.post("/api/login", checkRateLimit, async (req, res, next) => {
     try {
       const identifier = req.body.username;
       const clientIp = await getClientIp(req);
+      const type = 'login';
 
       console.log("Login attempt - IP:", clientIp, "Username:", identifier);
 
@@ -261,7 +246,14 @@ export function setupAuth(app: Express) {
             });
           } catch (error) {
             console.error('Failed to record login attempt with geolocation:', error);
+            await storage.addLoginAttempt({
+              identifier,
+              ip: clientIp,
+              type: 'failed',
+              timestamp: new Date()
+            });
           }
+
           return res.sendStatus(401);
         }
 
@@ -269,16 +261,36 @@ export function setupAuth(app: Express) {
           if (err) return next(err);
 
           try {
-            const { firebaseToken, user: signedInUser } = await signInUser(req, res, user);
+            const ipInfo = await getIpInfo(clientIp);
+            const now = new Date();
+
+            await storage.addLoginAttempt({
+              identifier,
+              ip: ipInfo.ip || clientIp,
+              type: 'success',
+              timestamp: now,
+              isp: ipInfo.isp || null,
+              city: ipInfo.city || null,
+              region: ipInfo.region || null,
+              country: ipInfo.country || null
+            });
+
+            await storage.updateUser({
+              id: user.id,
+              last_ip: ipInfo.ip || clientIp,
+              last_login: now // Add last_login update
+            });
 
             res.json({
-              ...signedInUser,
-              requires_password_change: user.temp_password,
-              firebaseToken
+              ...user,
+              requires_password_change: user.temp_password
             });
           } catch (error) {
-            console.error('Error during login process:', error);
-            res.status(500).json({ message: "Internal server error during login" });
+            console.error('Failed to update user IP with geolocation:', error);
+            res.json({
+              ...user,
+              requires_password_change: user.temp_password
+            });
           }
         });
       })(req, res, next);
@@ -739,85 +751,6 @@ export function setupAuth(app: Express) {
       });
     }
   });
-
-  app.post("/api/auth/passkey/challenge", async (req, res) => {
-    try {
-      console.log('Received passkey challenge request');
-
-      // Verify Firebase ID token
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        console.log('No auth header found');
-        return res.status(401).json({ message: "No token provided" });
-      }
-
-      const token = authHeader.split(' ')[1];
-      console.log('Verifying token...');
-
-      const decodedToken = await admin.auth().verifyIdToken(token)
-        .catch(error => {
-          console.error('Token verification failed:', error);
-          throw error;
-        });
-
-      console.log('Token verified successfully for uid:', decodedToken.uid);
-
-      // Generate a random challenge
-      const challenge = randomBytes(32);
-      console.log('Generated challenge');
-
-      res.json({
-        challenge: Array.from(challenge),
-        userId: decodedToken.uid
-      });
-    } catch (error) {
-      console.error('Error in passkey challenge:', error);
-      res.status(500).json({
-        message: "Failed to generate challenge",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/auth/passkey/register", async (req, res) => {
-    try {
-      // Verify Firebase ID token
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ message: "No token provided" });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const decodedToken = await admin.auth().verifyIdToken(token);
-
-      // Get the credential from the request body
-      const { credential } = req.body;
-      if (!credential) {
-        return res.status(400).json({ message: "No credential provided" });
-      }
-
-      // Store the credential in Firebase
-      await admin.auth().updateUser(decodedToken.uid, {
-        multiFactor: {
-          enrolledFactors: [{
-            uid: randomBytes(16).toString('hex'),
-            displayName: "Passkey",
-            factorId: "webauthn",
-            enrollmentTime: new Date().toISOString()
-          }]
-        }
-      });
-
-      res.json({ message: "Passkey registered successfully" });
-    } catch (error) {
-      console.error('Error registering passkey:', error);
-      res.status(500).json({
-        message: "Failed to register passkey",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
 }
 
 async function hashPassword(password: string) {
@@ -888,5 +821,4 @@ async function createAdminUser(username: string, password: string, email: string
 
 function compileTemplate(template: string, data: any): string {
   return template;
-}
 }
