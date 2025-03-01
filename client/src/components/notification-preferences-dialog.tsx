@@ -105,7 +105,7 @@ export function NotificationPreferencesDialog({ children }: NotificationPreferen
   };
 
   return (
-    <Dialog>
+    <Dialog modal={false}>
       <DialogTrigger asChild>
         {children || (
           <NavIconButton>
@@ -113,7 +113,7 @@ export function NotificationPreferencesDialog({ children }: NotificationPreferen
           </NavIconButton>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Notification Preferences</DialogTitle>
         </DialogHeader>
