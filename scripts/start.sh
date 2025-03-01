@@ -11,4 +11,4 @@ npm run db:push
 
 # Start the application
 echo "Starting the application..."
-NODE_ENV=development exec npm run dev
+exec npm run start

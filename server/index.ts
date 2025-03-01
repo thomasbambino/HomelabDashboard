@@ -42,94 +42,43 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  try {
-    log("Starting application setup...");
+  // Set up default email templates
+  await setupDefaultTemplates();
 
-    // Setup base routes first to get the server running quickly
-    log("Setting up base routes...");
-    const server = await registerRoutes(app);
+  const server = await registerRoutes(app);
 
-    // Configure error handling
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      log(`Error handler caught: ${status} - ${message}`);
-      res.status(status).json({ message });
-    });
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-    // Start server first, then initialize other services
-    const port = 5000;
-    log(`Attempting to start server on port ${port}...`);
+    res.status(status).json({ message });
+    throw err;
+  });
 
-    // Add detailed error handling for server startup
-    server.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        log(`Critical Error: Port ${port} is already in use. Please ensure no other instance is running.`);
-        log("Checking process list...");
-        try {
-          const { execSync } = require('child_process');
-          const output = execSync(`lsof -i :${port}`).toString();
-          log(`Processes using port ${port}:\n${output}`);
-        } catch (e) {
-          log("Could not check process list");
-        }
-      } else {
-        log(`Server startup error: ${error.message}`);
-      }
-      process.exit(1);
-    });
+  // Start the service checker
+  startServiceChecker();
 
-    // Start listening before initializing other services
-    await new Promise<void>((resolve, reject) => {
-      server.listen({
-        port,
-        host: "0.0.0.0",
-        reusePort: true,
-      }, () => {
-        log(`Server successfully started on port ${port}`);
-        resolve();
-      }).on('error', reject);
-    });
-
-    // Now that the server is running, initialize other services
-    log("Initializing additional services...");
-
-    if (app.get("env") === "development") {
-      log("Setting up Vite development server...");
-      await setupVite(app, server);
-    } else {
-      log("Setting up static file serving...");
-      serveStatic(app);
-    }
-
-    // Setup remaining services asynchronously
-    Promise.all([
-      setupDefaultTemplates().then(() => log("Email templates setup complete")),
-      startServiceChecker().then(() => log("Service checker started"))
-    ]).catch(error => {
-      log(`Warning: Non-critical service initialization error: ${error.message}`);
-    });
-
-    // Handle graceful shutdown
-    const cleanup = () => {
-      log("Initiating graceful shutdown...");
-      server.close(() => {
-        log("HTTP server closed");
-        process.exit(0);
-      });
-
-      // Force exit after 5 seconds if graceful shutdown fails
-      setTimeout(() => {
-        log("Forced shutdown after timeout");
-        process.exit(1);
-      }, 5000);
-    };
-
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
-
-  } catch (error) {
-    log(`Fatal error during startup: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    process.exit(1);
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
+
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+
+  // Handle graceful shutdown
+  const cleanup = () => {
+    server.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 })();
