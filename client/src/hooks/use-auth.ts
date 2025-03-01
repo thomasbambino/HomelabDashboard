@@ -23,7 +23,7 @@ interface RegisterData {
 }
 
 interface AuthContextType {
-  user: User | undefined;
+  user: User | null;
   isLoading: boolean;
   loginMutation: {
     mutate: (data: LoginData) => void;
@@ -44,18 +44,29 @@ const AuthContext = React.createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
 
-  const { data: user, isLoading } = useQuery<User>({
+  const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],
     retry: false,
+    // Return null for 401 responses
+    queryFn: async () => {
+      try {
+        return await apiRequest<User>('GET', '/api/user');
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('401')) {
+          return null;
+        }
+        throw error;
+      }
+    }
   });
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
       const result = await apiRequest<User>("POST", "/api/login", data);
-      queryClient.setQueryData(['/api/user'], result);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
+      queryClient.setQueryData(['/api/user'], user);
       setLocation('/');
     },
   });
@@ -63,10 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
       const result = await apiRequest<User>("POST", "/api/register", data);
-      queryClient.setQueryData(['/api/user'], result);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
+      queryClient.setQueryData(['/api/user'], user);
       setLocation('/');
     },
   });
@@ -82,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const value = {
-    user,
+    user: user ?? null,
     isLoading,
     loginMutation: {
       mutate: (data: LoginData) => loginMutation.mutate(data),
