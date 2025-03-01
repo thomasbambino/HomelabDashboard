@@ -137,6 +137,17 @@ export const loginAttempts = pgTable("loginAttempts", {
   country: text("country"),
 });
 
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  status: text("status", { enum: ['pending', 'completed'] }).notNull().default('pending'),
+  type: text("type").notNull().default('server_request'),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  completedAt: timestamp("completedAt"),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
@@ -146,6 +157,7 @@ export const insertNotificationPreferenceSchema = createInsertSchema(notificatio
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertSentNotificationSchema = createInsertSchema(sentNotifications);
 export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
+export const insertTicketSchema = createInsertSchema(tickets);
 
 export const updateServiceSchema = insertServiceSchema.extend({
   id: z.number(),
@@ -175,6 +187,10 @@ export const updateLoginAttemptSchema = insertLoginAttemptSchema.extend({
   id: z.number(),
 }).partial().required({id: true});
 
+export const updateTicketSchema = insertTicketSchema.extend({
+  id: z.number(),
+}).partial().required({ id: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type InsertGameServer = z.infer<typeof insertGameServerSchema>;
@@ -193,3 +209,6 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type SentNotification = typeof sentNotifications.$inferSelect;
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;
+export type UpdateTicket = z.infer<typeof updateTicketSchema>;
+export type Ticket = typeof tickets.$inferSelect;

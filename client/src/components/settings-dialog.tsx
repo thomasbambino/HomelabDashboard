@@ -9,7 +9,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ children }: SettingsDialogProps) {
   return (
-    <Dialog>
+    <Dialog modal={false}>
       <DialogTrigger asChild>
         {children || (
           <NavIconButton>
@@ -17,7 +17,7 @@ export function SettingsDialog({ children }: SettingsDialogProps) {
           </NavIconButton>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>

@@ -11,6 +11,7 @@ import UsersPage from "@/pages/users-page";
 import UptimeLogPage from "@/pages/uptime-log-page";
 import SettingsPage from "@/pages/settings-page";
 import PendingPage from "@/pages/pending-page";
+import TicketsPage from "@/pages/tickets-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
@@ -30,6 +31,7 @@ export default function App() {
                 <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
                 <Route path="/uptime-log" component={() => <ProtectedRoute component={UptimeLogPage} />} />
                 <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
+                <Route path="/tickets" component={() => <ProtectedRoute component={TicketsPage} />} />
                 <Route path="/auth" component={AuthPage} />
                 <Route path="/pending" component={PendingPage} />
                 <Route component={NotFound} />

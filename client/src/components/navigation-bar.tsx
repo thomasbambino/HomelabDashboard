@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut } from "lucide-react"
+import { Bell, ChevronDown, ServerCog, Users, Activity, Settings as SettingsIcon, LogOut, Ticket } from "lucide-react"
 import { Link } from "wouter"
 import { Settings } from "@shared/schema"
 import {
@@ -10,6 +10,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { NotificationPreferencesDialog } from "@/components/notification-preferences-dialog"
 import { SettingsDialog } from "@/components/settings-dialog"
+import { CreateTicketDialog } from "@/components/create-ticket-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { ThemeToggle } from "./theme-toggle"
 import { useEffect, useState } from "react"
@@ -86,8 +87,16 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 overflow-y-auto">
-                {(isAdmin || isSuperAdmin) && (
+                {/* Add Tickets link for admins */}
+                {(isAdmin || isSuperAdmin) ? (
                   <>
+                    <Link href="/tickets">
+                      <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
+                        <Ticket className="h-4 w-4" />
+                        <span>Manage Tickets</span>
+                      </DropdownMenuItem>
+                    </Link>
+
                     <Link href="/users">
                       <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-foreground">
                         <Users className="h-4 w-4" />
@@ -109,6 +118,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
                       </DropdownMenuItem>
                     </Link>
                   </>
+                ) : (
+                  <CreateTicketDialog />
                 )}
 
                 <DropdownMenuItem

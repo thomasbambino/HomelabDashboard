@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema } from "@shared/schema";
+import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, insertTicketSchema, updateTicketSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { ZodError } from "zod";
 import multer from "multer";
@@ -840,9 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get metrics
       const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics for instance ${instanceId}:`, metrics);
-
-      res.json(metrics);    } catch (error) {
+      console.log(`Metrics for instance ${instanceId}:`, metrics);      res.json(metrics);    } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
@@ -1092,6 +1090,143 @@ except Exception as e:
     } catch (error) {
       console.error('Error fetching login attempts:', error);
       res.status(500).json({ message: "Failed to fetch login attempts" });
+    }
+  });
+
+  // Add to the existing routes
+  app.get("/api/tickets", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = req.user as User;
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    try {
+      const tickets = await storage.getAllTickets();
+
+      // Get user details for each ticket
+      const ticketsWithUsers = await Promise.all(
+        tickets.map(async (ticket) => {
+          const user = await storage.getUser(ticket.userId);
+          return { ...ticket, user };
+        })
+      );
+
+      res.json(ticketsWithUsers);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const data = insertTicketSchema.parse({
+        ...req.body,
+        userId: (req.user as User).id
+      });
+
+      const ticket = await storage.createTicket(data);
+
+      // Send notification to admins
+      const admins = await storage.getAllUsers();
+      const adminEmails = admins
+        .filter(admin => admin.role === 'admin' && admin.email)
+        .map(admin => admin.email);
+
+      if (adminEmails.length > 0) {
+        for (const adminEmail of adminEmails) {
+          if (adminEmail) {
+            await sendEmail({
+              to: adminEmail,
+              subject: "New Support Ticket",
+              html: `
+                <h2>New Support Ticket Created</h2>
+                <p><strong>Subject:</strong> ${ticket.subject}</p>
+                <p><strong>Content:</strong> ${ticket.content}</p>
+                <p><strong>Created by:</strong> ${(req.user as User).username}</p>
+                <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+              `
+            });
+          }
+        }
+      }
+
+      res.status(201).json(ticket);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: fromZodError(error).message });
+      } else {
+        console.error('Error creating ticket:', error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  });
+
+  app.post("/api/tickets/:id/complete", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = req.user as User;
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      const ticket = await storage.updateTicket({
+        id,
+        status: 'completed',
+        completedAt: new Date()
+      });
+
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Send completion email to ticket creator
+      const ticketUser = await storage.getUser(ticket.userId);
+      if (ticketUser?.email) {
+        await sendEmail({
+          to: ticketUser.email,
+          subject: "Your Support Ticket Has Been Completed",
+          html: `
+            <h2>Support Ticket Completed</h2>
+            <p>Your support ticket has been marked as completed by our team.</p>
+            <p><strong>Subject:</strong> ${ticket.subject}</p>
+            <p><strong>Content:</strong> ${ticket.content}</p>
+            <p><strong>Completed at:</strong> ${new Date().toLocaleString()}</p>
+          `
+        });
+      }
+
+      res.json(ticket);
+    } catch (error) {
+      console.error('Error completing ticket:', error);
+      res.status(500).json({ message: "Failed to complete ticket" });
+    }
+  });
+
+  app.delete("/api/tickets/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = req.user as User;
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      const ticket = await storage.deleteTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.json(ticket);
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      res.status(500).json({ message: "Failed to delete ticket" });
     }
   });
 
