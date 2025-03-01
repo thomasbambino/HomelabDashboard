@@ -846,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message: "Unknown error"
       });
     }
   });
