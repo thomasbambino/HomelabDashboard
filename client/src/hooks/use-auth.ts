@@ -21,7 +21,7 @@ interface AuthContextType {
 
 const AuthContext = React.createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }): JSX.Element {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User>({
@@ -51,11 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): JSX.E
     },
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return React.createElement(AuthContext.Provider, { value }, children);
 }
 
 export function useAuth(): AuthContextType {
