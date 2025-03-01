@@ -12,6 +12,7 @@ import { NotificationPreferencesDialog } from "@/components/notification-prefere
 import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { ThemeToggle } from "./theme-toggle"
+import { useEffect, useState } from "react"
 
 interface NavigationBarProps {
   settings?: Settings;
@@ -22,9 +23,31 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const { user, logoutMutation } = useAuth();
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Show navbar when scrolling up or at the top
+      if (currentScrollY < lastScrollY || currentScrollY < 50) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
+    <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform ${
+      isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+    }`}>
       <div className="max-w-[1400px] mx-auto px-8 py-4">
         <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3">
