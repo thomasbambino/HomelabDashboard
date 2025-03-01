@@ -1,6 +1,6 @@
+import * as React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { createContext, useContext, ReactNode } from "react";
 
 interface User {
   id: number;
@@ -19,9 +19,9 @@ interface AuthContextType {
   };
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User>({
@@ -42,25 +42,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const value = {
+    user,
+    isLoading,
+    logoutMutation: {
+      mutate: () => logoutMutation.mutate(),
+      isPending: logoutMutation.isPending ?? false,
+    },
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        logoutMutation: {
-          mutate: logoutMutation.mutate,
-          isPending: logoutMutation.isLoading,
-        },
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
+export function useAuth(): AuthContextType {
+  const context = React.useContext(AuthContext);
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
