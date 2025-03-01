@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startServiceChecker } from "./service-checker";
 import { setupDefaultTemplates } from "./email-templates";
+import { createServer } from "http";
+import net from 'net';
 
 const app = express();
 app.use(express.json());
@@ -41,6 +43,35 @@ app.use((req, res, next) => {
   next();
 });
 
+async function findAvailablePort(startPort: number): Promise<number> {
+
+  return new Promise((resolve) => {
+    let port = startPort;
+
+    function tryPort() {
+      const server = net.createServer();
+
+      server.once('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          port++;
+          tryPort();
+        } else {
+          console.error("Unexpected error while finding port:", err);
+          resolve(0); // Or handle the error appropriately
+        }
+      });
+
+      server.once('listening', () => {
+        server.close(() => resolve(port));
+      });
+
+      server.listen(port, '0.0.0.0');
+    }
+
+    tryPort();
+  });
+}
+
 (async () => {
   // Set up default email templates
   await setupDefaultTemplates();
@@ -64,13 +95,15 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const port = 5000;
+  // Find an available port starting from 5000
+  const port = await findAvailablePort(5000);
+
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`Server started - listening on port ${port}`);
   });
 
   // Handle graceful shutdown
