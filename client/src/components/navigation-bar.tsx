@@ -78,14 +78,14 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             <ThemeToggle />
             <NotificationPreferencesDialog />
 
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger>
                 <div className="flex items-center gap-1 md:gap-2 px-2 py-2 md:py-2.5 rounded-md hover:bg-accent cursor-pointer">
                   <span className="max-w-[60px] md:max-w-[100px] truncate text-sm md:text-base text-foreground">{user?.username || "User"}</span>
                   <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 overflow-y-auto">
                 {(isAdmin || isSuperAdmin) && (
                   <>
                     <Link href="/users">
