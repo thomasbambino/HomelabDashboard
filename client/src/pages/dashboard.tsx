@@ -59,8 +59,8 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <div className="grid grid-cols-[1fr_minmax(auto,900px)_1fr] px-8">
-          <div className="col-start-2 mt-24 pb-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="ml-[120px] mt-24 pb-6">
             <div className="animate-pulse space-y-8">
               <div className="h-8 w-48 bg-primary/20 rounded" />
             </div>
@@ -75,10 +75,8 @@ export default function Dashboard() {
       <div className="min-h-screen bg-background">
         <NavigationBar settings={settings} />
 
-        {/* Main grid container with three columns */}
-        <div className="grid grid-cols-[1fr_minmax(auto,900px)_1fr] px-8">
-          {/* Content area in the middle column */}
-          <main className="col-start-2 mt-24 pb-6 space-y-8">
+        <div className="max-w-[1400px] mx-auto">
+          <main className="ml-[120px] mt-24 pb-6 space-y-8">
             <section className="relative">
               <div
                 className="flex items-center justify-between mb-4"
