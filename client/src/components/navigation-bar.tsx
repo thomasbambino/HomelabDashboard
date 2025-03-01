@@ -48,41 +48,41 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
     <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
       isVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
-      <div className="max-w-[1400px] mx-auto px-8 py-4">
-        <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-8 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4">
+        <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-4 md:px-8 py-2 md:py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               {settings?.logo_url ? (
                 <img
                   src={settings.logo_url}
                   alt="Site Logo"
-                  className="h-8 w-8 object-contain fixed-logo"
+                  className="h-6 w-6 md:h-8 md:w-8 object-contain fixed-logo"
                 />
               ) : (
-                <ServerCog className="h-8 w-8 text-primary" />
+                <ServerCog className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               )}
-              <span className="font-bold text-foreground sm:inline-block">
+              <span className="font-bold text-foreground text-sm md:text-base hidden sm:inline-block">
                 {settings?.site_title || "Homelab Dashboard"}
               </span>
             </div>
 
             {pageTitle && (
               <>
-                <Separator orientation="vertical" className="h-6 mx-2" />
-                <span className="font-medium text-foreground">{pageTitle}</span>
+                <Separator orientation="vertical" className="h-4 md:h-6 mx-1 md:mx-2" />
+                <span className="font-medium text-foreground text-sm md:text-base">{pageTitle}</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-4 pr-2">
+          <div className="flex items-center justify-end gap-2 md:gap-4">
             <ThemeToggle />
             <NotificationPreferencesDialog />
 
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <div className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent cursor-pointer">
-                  <span className="max-w-[100px] truncate text-foreground">{user?.username || "User"}</span>
-                  <ChevronDown className="h-4 w-4" />
+                <div className="flex items-center gap-1 md:gap-2 px-2 py-1.5 md:py-2 rounded-md hover:bg-accent cursor-pointer">
+                  <span className="max-w-[60px] md:max-w-[100px] truncate text-sm md:text-base text-foreground">{user?.username || "User"}</span>
+                  <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
