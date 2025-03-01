@@ -61,7 +61,7 @@ export default function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6 space-y-8">
         <section className="relative">
           <div
-            className="flex items-center justify-between mb-4"
+            className="flex items-center justify-between mb-4 cursor-pointer"
             onClick={() => setIsServersExpanded(!isServersExpanded)}
             role="button"
             aria-expanded={isServersExpanded}
@@ -83,17 +83,19 @@ export default function Dashboard() {
           <div
             id="game-servers-section"
             className={cn(
-              "transition-all duration-300 ease-in-out overflow-hidden",
-              isServersExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
+              "grid grid-rows-[0fr] transition-[grid-template-rows] duration-300",
+              isServersExpanded && "grid-rows-[1fr]"
             )}
           >
-            <GameServerList />
+            <div className="overflow-hidden">
+              <GameServerList />
+            </div>
           </div>
         </section>
 
         <section className="relative">
           <div
-            className="flex items-center justify-between mb-4"
+            className="flex items-center justify-between mb-4 cursor-pointer"
             onClick={() => setIsServicesExpanded(!isServicesExpanded)}
             role="button"
             aria-expanded={isServicesExpanded}
@@ -113,19 +115,21 @@ export default function Dashboard() {
           <div
             id="services-section"
             className={cn(
-              "transition-all duration-300 ease-in-out overflow-hidden",
-              isServicesExpanded ? "opacity-100 h-auto" : "opacity-0 h-0"
+              "grid grid-rows-[0fr] transition-[grid-template-rows] duration-300",
+              isServicesExpanded && "grid-rows-[1fr]"
             )}
           >
-            {servicesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <ServiceList services={services} />
-            )}
+            <div className="overflow-hidden">
+              {servicesLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <ServiceList services={services} />
+              )}
+            </div>
           </div>
         </section>
       </main>
