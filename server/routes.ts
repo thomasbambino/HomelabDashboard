@@ -849,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message :"Unknown error"
       });
     }
   });
@@ -938,15 +938,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add Plex account invitation endpoint
   app.post("/api/services/plex/account", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-
     try {
       const { email } = plexInviteSchema.parse(req.body);
-      console.log('Processing Plex invitation for email:', email);
-
-      // Get Plex token from environment variables
       const plexToken = process.env.PLEX_TOKEN;
+
       if (!plexToken) {
-        console.error('Plex token not configured');
         throw new Error("Plex token not configured");
       }
 
@@ -978,7 +974,7 @@ try:
     # Send the invitation with the required server parameter
     account.inviteFriend(
         invite_email,
-        server,  // Pass the server object directly
+        server.machineIdentifier,
         allowSync=True,
         allowCameraUpload=False,
         allowChannels=False
@@ -1039,7 +1035,7 @@ except Exception as e:
       res.json({ message: "Plex invitation sent successfully" });
     } catch (error) {
       console.error('Error sending Plex invitation:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to send Plex invitation",
         error: error instanceof Error ? error.message : "Unknown error"
       });
