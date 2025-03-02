@@ -46,7 +46,7 @@ async function checkRateLimit(req: Request, res: Response, next: NextFunction) {
   const type = req.path.includes('reset') ? 'reset' : 'login';
 
   try {
-    const attempts = await storage.getLoginAttempts(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
+    const attempts = await storage.getLoginAttemptsInWindow(identifier, ip, type, RATE_LIMIT.WINDOW_MS);
 
     if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
       const oldestAttempt = await storage.getOldestLoginAttempt(identifier, ip, type);
