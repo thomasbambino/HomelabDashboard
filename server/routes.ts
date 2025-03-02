@@ -847,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error? error.message : "Unknown error"
       });
     }
   });
@@ -1053,9 +1053,9 @@ try:
 
     print("Debug: Selected server:", server.name, file=sys.stderr)
 
-    # Send the invitation
+    # Send the invitation with the server object
     print("Debug: Sending invitation to:", '${email}', file=sys.stderr)
-    account.inviteFriend('${email}')
+    account.inviteFriend('${email}', server)
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
