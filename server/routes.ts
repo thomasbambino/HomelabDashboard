@@ -849,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message :"Unknown error"
       });
     }
   });
@@ -942,21 +942,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email } = plexInviteSchema.parse(req.body);
       const plexToken = 'WXxaPDsUPNFszKdPUmAx';
 
-      // Use Python child process to handle Plex invitation
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
 import sys
 import json
 
 try:
-    print("Initializing Plex account with token")
-    account = MyPlexAccount(token='${plexToken}')
-    print("Sending friend invite")
-    result = account.inviteFriend(email, ['Server1'])
-    print("Invite sent successfully:", result)
+    print("Debug: Starting Plex invitation process", file=sys.stderr)
+    print("Debug: Using token:", "'${plexToken}'", file=sys.stderr)
+
+    # Initialize Plex account
+    account = MyPlexAccount(token='WXxaPDsUPNFszKdPUmAx')
+    print("Debug: Successfully initialized Plex account", file=sys.stderr)
+
+    # Get available servers
+    servers = account.resources()
+    print("Debug: Found servers:", [s.name for s in servers], file=sys.stderr)
+
+    # Get the main server
+    server = next((s for s in servers if s.provides == 'server'), None)
+    if not server:
+        raise Exception("No valid Plex server found")
+    print("Debug: Selected server:", server.name, file=sys.stderr)
+
+    # Send the invitation
+    print("Debug: Attempting to send invite to:", '${email}', file=sys.stderr)
+    account.inviteFriend('${email}', server)
     print("Success")
 except Exception as e:
-    print("Error:", str(e))
+    print("Error:", str(e), file=sys.stderr)
     print("Failed")
 `;
 
@@ -977,14 +991,16 @@ except Exception as e:
 
       await new Promise((resolve, reject) => {
         pythonProcess.on('close', (code) => {
-          console.log('Python process exited with code:', code);
-          console.log('Full output:', output);
-          console.log('Full error:', error);
+          console.log('Python process exit code:', code);
+          console.log('Python stdout:', output);
+          console.log('Python stderr:', error);
 
           if (code === 0 && output.includes('Success')) {
             resolve();
           } else {
-            reject(new Error(error || 'Failed to send Plex invitation'));
+            const errorMessage = error || 'Failed to send Plex invitation';
+            console.error('Plex invitation error:', errorMessage);
+            reject(new Error(errorMessage));
           }
         });
       });
