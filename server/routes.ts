@@ -853,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   //  // Add new debug endpoint for game server player count
-  app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
+  app.get("/api/api/game-servers/:instanceId/debug", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { instanceId } = req.params;
@@ -1120,14 +1120,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const services = await storage.getAllServices();
       const plexService = services.find(s => s.name.toLowerCase().includes('plex'));
 
-      if (!plexService || !plexService.url) {
-        console.log('No Plex service found or URL missing');
-        return res.status(404).json({ message: "Plex service not configured" });
+      if (!plexService) {
+        console.log('No Plex service found');
+        return res.status(404).json({ message: "Plex service not found" });
       }
 
       console.log('Found Plex service:', plexService.name, plexService.url);
 
-      // Extract server URL and token
+      // Extract token from URL if present
       const url = new URL(plexService.url);
       const token = url.searchParams.get('X-Plex-Token');
 
@@ -1136,72 +1136,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Plex token not found in service URL" });
       }
 
-      // Try both JSON and XML formats
-      const formats = [
-        { accept: 'application/json', type: 'json' },
-        { accept: 'application/xml', type: 'xml' }
-      ];
+      // Use the direct IP and port as specified in documentation
+      const plexUrl = `http://192.168.0.229:32400/status/sessions`;
+      console.log('Calling Plex API at:', plexUrl);
 
-      let response = null;
-      let responseType = '';
-
-      // Try each format until one works
-      for (const format of formats) {
-        try {
-          console.log(`Attempting Plex API call with ${format.type} format`);
-          const sessionsUrl = `${url.origin}/status/sessions?X-Plex-Token=${token}`;
-
-          response = await fetch(sessionsUrl, {
-            headers: {
-              'Accept': format.accept,
-              'X-Plex-Token': token
-            }
-          });
-
-          if (response.ok) {
-            responseType = format.type;
-            break;
-          }
-        } catch (err) {
-          console.error(`Failed to fetch with ${format.type} format:`, err);
-          continue;
+      // Make direct API call to Plex sessions endpoint
+      const response = await fetch(`${plexUrl}?X-Plex-Token=${token}`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Plex-Token': token
         }
+      });
+
+      if (!response.ok) {
+        console.error('Plex API error:', response.status, response.statusText);
+        throw new Error(`Plex API error: ${response.statusText}`);
       }
 
-      if (!response || !response.ok) {
-        throw new Error('Failed to fetch Plex sessions in any format');
-      }
+      const data = await response.json();
+      console.log('Raw Plex response:', JSON.stringify(data, null, 2));
 
-      let activeStreams = 0;
-      let sessionDetails = [];
-
-      if (responseType === 'json') {
-        const data = await response.json();
-        console.log('Raw JSON response:', JSON.stringify(data, null, 2));
-
-        activeStreams = data.MediaContainer?.size || 0;
-        sessionDetails = data.MediaContainer?.Metadata?.map(session => ({
-          type: session.type,
-          title: session.title,
+      // Process the response according to the Plex API documentation
+      const result = {
+        activeStreams: data.MediaContainer?.size || 0,
+        sessionDetails: (data.MediaContainer?.Metadata || []).map((session: any) => ({
+          type: session.type || 'unknown',
+          title: session.title || 'Unknown',
           user: session.User?.title || "Unknown",
           player: session.Player?.title || "Unknown",
           state: session.Player?.state || "unknown"
-        })) || [];
-      } else {
-        const text = await response.text();
-        console.log('Raw XML response:', text);
+        }))
+      };
 
-        // Parse XML response
-        const sizeMatch = text.match(/<MediaContainer size="(\d+)"/);
-        activeStreams = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
-      }
-
-      console.log('Processed active streams count:', activeStreams);
-
-      res.json({
-        activeStreams,
-        sessionDetails
-      });
+      console.log('Processed Plex session data:', JSON.stringify(result, null, 2));
+      res.json(result);
 
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
