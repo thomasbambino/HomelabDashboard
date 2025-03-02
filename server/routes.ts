@@ -17,6 +17,7 @@ import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
+import { spawn } from 'child_process';
 
 // Add this near other schema definitions
 const plexInviteSchema = z.object({
@@ -665,6 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -954,13 +956,12 @@ try:
     print(f"Using server: {server.name}", file=sys.stderr)
 
     print("Sending friend invite...", file=sys.stderr)
-    server.inviteFriend(user='${email}', sections=server.sections())
+    account.inviteFriend(email, servers=[server])
     print(json.dumps({"success": True, "message": "Invitation sent successfully"}))
 except Exception as e:
     print(json.dumps({"success": False, "error": str(e)}))
 `;
 
-      const { spawn } = require('child_process');
       const python = spawn('python3', ['-c', pythonScript]);
 
       let result = '';
@@ -990,7 +991,7 @@ except Exception as e:
               reject(new Error(response.error || 'Failed to send Plex invitation'));
             }
           } catch (e) {
-            reject(new Error('Invalid response from Plex script'));
+            reject(new Error('Invalid response from Plex script: ' + error));
           }
         });
       });
