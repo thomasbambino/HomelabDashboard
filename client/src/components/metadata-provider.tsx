@@ -23,68 +23,73 @@ export function LPMetadataProvider({ children }: MetadataProviderProps) {
         ? logoUrl 
         : `${window.location.origin}${logoUrl}`;
 
-      // Basic meta tags
-      document.title = title;
-
-      // Update or create basic meta tags
-      const updateMetaTag = (name: string, content: string) => {
-        let meta = document.querySelector(`meta[name="${name}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('name', name);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', content);
+      // Remove all existing meta tags we might want to update
+      const removeExistingMetaTags = () => {
+        const selectors = [
+          'meta[property^="og:"]',
+          'meta[name^="twitter:"]',
+          'meta[name="description"]',
+          'link[rel="icon"]',
+          'link[rel="shortcut icon"]',
+          'meta[name="theme-color"]'
+        ];
+        selectors.forEach(selector => {
+          document.querySelectorAll(selector).forEach(element => element.remove());
+        });
       };
 
-      // Update or create OpenGraph meta tags
-      const updateOGMetaTag = (property: string, content: string) => {
-        let meta = document.querySelector(`meta[property="${property}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('property', property);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', content);
+      removeExistingMetaTags();
+
+      // Create and append new meta tags
+      const head = document.head;
+      const createAndAppendMeta = (attributes: Record<string, string>) => {
+        const meta = document.createElement('meta');
+        Object.entries(attributes).forEach(([key, value]) => {
+          meta.setAttribute(key, value);
+        });
+        head.appendChild(meta);
       };
 
       // Basic metadata
-      updateMetaTag('description', description);
-      updateMetaTag('application-name', title);
+      document.title = title;
+      createAndAppendMeta({ name: "description", content: description });
 
       // OpenGraph metadata
-      updateOGMetaTag('og:site_name', title);
-      updateOGMetaTag('og:title', title);
-      updateOGMetaTag('og:description', description);
-      updateOGMetaTag('og:type', 'website');
-      updateOGMetaTag('og:url', window.location.href);
+      const ogTags = {
+        'property="og:type"': 'website',
+        'property="og:url"': window.location.href,
+        'property="og:site_name"': title,
+        'property="og:title"': title,
+        'property="og:description"': description,
+      };
+
+      Object.entries(ogTags).forEach(([attributes, content]) => {
+        createAndAppendMeta({ [attributes.split('"')[1]]: content });
+      });
+
+      // Image tags only if we have a logo
       if (absoluteLogoUrl) {
-        updateOGMetaTag('og:image', absoluteLogoUrl);
-        updateOGMetaTag('og:image:secure_url', absoluteLogoUrl);
-        updateOGMetaTag('og:image:alt', `${title} logo`);
+        createAndAppendMeta({ property: "og:image", content: absoluteLogoUrl });
+        createAndAppendMeta({ property: "og:image:secure_url", content: absoluteLogoUrl });
+        createAndAppendMeta({ property: "og:image:alt", content: `${title} logo` });
+        createAndAppendMeta({ name: "twitter:image", content: absoluteLogoUrl });
       }
 
       // Twitter Card metadata
-      updateMetaTag('twitter:card', 'summary_large_image');
-      updateMetaTag('twitter:title', title);
-      updateMetaTag('twitter:description', description);
-      if (absoluteLogoUrl) {
-        updateMetaTag('twitter:image', absoluteLogoUrl);
-        updateMetaTag('twitter:image:alt', `${title} logo`);
-      }
+      createAndAppendMeta({ name: "twitter:card", content: "summary_large_image" });
+      createAndAppendMeta({ name: "twitter:title", content: title });
+      createAndAppendMeta({ name: "twitter:description", content: description });
 
-      // Update favicon if custom logo is set
+      // Favicon
       if (logoUrl) {
-        const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
-        link.type = 'image/x-icon';
+        const link = document.createElement('link');
         link.rel = 'shortcut icon';
+        link.type = 'image/x-icon';
         link.href = logoUrl;
-        if (!document.querySelector("link[rel*='icon']")) {
-          document.head.appendChild(link);
-        }
+        head.appendChild(link);
       }
 
-      // Add preconnect for logo domain if it's from a different origin
+      // Preconnect to logo domain if external
       if (logoUrl?.startsWith('http')) {
         try {
           const logoOrigin = new URL(logoUrl).origin;
@@ -92,12 +97,26 @@ export function LPMetadataProvider({ children }: MetadataProviderProps) {
             const preconnectLink = document.createElement('link');
             preconnectLink.rel = 'preconnect';
             preconnectLink.href = logoOrigin;
-            document.head.appendChild(preconnectLink);
+            head.appendChild(preconnectLink);
           }
         } catch (e) {
           console.error('Failed to parse logo URL:', e);
         }
       }
+
+      // Add JSON-LD structured data
+      const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": title,
+        "description": description,
+        "url": window.location.origin,
+      };
+
+      const scriptTag = document.createElement('script');
+      scriptTag.type = 'application/ld+json';
+      scriptTag.text = JSON.stringify(jsonLd);
+      head.appendChild(scriptTag);
     }
   }, [settings]);
 
