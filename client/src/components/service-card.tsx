@@ -142,6 +142,9 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
+  console.log('Service name:', service.name);
+  console.log('Is Plex?', service.name.toLowerCase().includes('plex'));
+  console.log('Plex sessions:', plexSessions);
 
   return (
     <Card
@@ -167,6 +170,12 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
           )}
         </div>
         <div className="flex items-center gap-2">
+          {service.name.toLowerCase().includes('plex') && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {plexSessions?.activeStreams || 0}
+            </Badge>
+          )}
           {service.show_status_badge && (
             <Badge
               variant="default"
@@ -178,12 +187,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               }}
             >
               {service.status ? "Online" : "Offline"}
-            </Badge>
-          )}
-          {service.name.toLowerCase().includes('plex') && plexSessions?.activeStreams > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {plexSessions?.activeStreams}
             </Badge>
           )}
           {service.isNSFW && (
