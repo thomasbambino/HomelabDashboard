@@ -19,12 +19,10 @@ import { ampService } from './amp-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
 
-// Add this near other schema definitions
 const plexInviteSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
-// Configure multer for image upload
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -849,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message :"Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -1020,7 +1018,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add Plex account invitation endpoint
   app.post("/api/services/plex/account", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -1037,28 +1034,30 @@ import sys
 import json
 
 try:
-    print("Debug: Starting Plex invitation process", file=sys.stderr)
-    print("Debug: Using token length:", len('${plexToken}'), file=sys.stderr)
-
     # Initialize Plex account
+    print("Debug: Initializing Plex account...", file=sys.stderr)
     account = MyPlexAccount(token='${plexToken}')
-    print("Debug: Successfully initialized Plex account", file=sys.stderr)
 
-    # Get available servers
+    # Get servers
+    print("Debug: Getting servers...", file=sys.stderr)
     servers = account.resources()
     print("Debug: Found servers:", [s.name for s in servers], file=sys.stderr)
 
-    # Get the main server
+    if not servers:
+        raise Exception("No Plex servers found")
+
+    # Get the first server that provides server functionality
     server = next((s for s in servers if s.provides == 'server'), None)
     if not server:
         raise Exception("No valid Plex server found")
+
     print("Debug: Selected server:", server.name, file=sys.stderr)
 
-    # Send the invitation with the machine identifier
-    print("Debug: Attempting to send invite to:", '${email}', "for server:", server.name, file=sys.stderr)
+    # Send the friend invitation
+    print("Debug: Sending invitation to:", '${email}', file=sys.stderr)
     account.inviteFriend(
         '${email}',
-        servers=[server.machineIdentifier]
+        servers=['Stylus']
     )
     print("Success")
 except Exception as e:
@@ -1083,16 +1082,14 @@ except Exception as e:
 
       await new Promise((resolve, reject) => {
         pythonProcess.on('close', (code) => {
-          console.log('Python process exit code:', code);
+          console.log('Python process exited with code:', code);
           console.log('Python stdout:', output);
           console.log('Python stderr:', error);
 
           if (code === 0 && output.includes('Success')) {
             resolve();
           } else {
-            const errorMessage = error || 'Failed to send Plex invitation';
-            console.error('Plex invitation error:', errorMessage);
-            reject(new Error(errorMessage));
+            reject(new Error(error || 'Failed to send Plex invitation'));
           }
         });
       });
@@ -1100,12 +1097,11 @@ except Exception as e:
       res.json({ message: "Plex invitation sent successfully" });
     } catch (error) {
       console.error('Error sending Plex invitation:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to send Plex invitation",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
-
   });
 
   const httpServer = createServer(app);
