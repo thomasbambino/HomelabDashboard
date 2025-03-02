@@ -1022,67 +1022,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/services/plex/sessions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const plexToken = "WXxaPDsUPNFszKdPUmAx";
+      const plexToken = process.env.PLEX_TOKEN;
 
       if (!plexToken) {
         throw new Error("Plex token not configured");
       }
 
-      // Common headers for all Plex API requests
-      const headers = {
-        'X-Plex-Token': plexToken,
-        'X-Plex-Client-Identifier': 'HomelabDashboard',
-        'X-Plex-Product': 'Homelab Dashboard',
-        'X-Plex-Version': '1.0',
-        'Accept': 'application/xml'
-      };
+      // Use the Python script to get Plex sessions
+      const pythonProcess = spawn('python3', ['-c', `
+from plexapi.myplex import MyPlexAccount
+account = MyPlexAccount(token="${plexToken}")
+servers = account.resources()
+total_sessions = 0
+for server in servers:
+    if server.provides == 'server':
+        try:
+            connected_server = server.connect()
+            sessions = connected_server.sessions()
+            total_sessions += len(sessions)
+        except:
+            pass
+print(total_sessions)
+      `]);
 
-      // Step 1: Get all servers associated with the account
-      const resourcesResponse = await fetch('https://plex.tv/api/resources', {
-        method: 'GET',
-        headers
+      let sessionCount = 0;
+      let error = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        sessionCount = parseInt(data.toString().trim()) || 0;
       });
 
-      if (!resourcesResponse.ok) {
-        const errorText = await resourcesResponse.text();
-        console.error('Plex API resources error:', errorText);
-        throw new Error(`Failed to get Plex resources: ${resourcesResponse.status} ${errorText}`);
-      }
+      pythonProcess.stderr.on('data', (data) => {
+        error += data.toString();
+      });
 
-      const resourcesText = await resourcesResponse.text();
-
-      // Simple XML parsing to get the server identifier
-      const serverMatch = resourcesText.match(/clientIdentifier="([^"]+)"/);
-      const serverAddressMatch = resourcesText.match(/address="([^"]+)"/);
-      const serverPortMatch = resourcesText.match(/port="([^"]+)"/);
-
-      if (!serverMatch || !serverAddressMatch || !serverPortMatch) {
-        throw new Error("Could not find server information in Plex response");
-      }
-
-      const serverId = serverMatch[1];
-      const serverAddress = serverAddressMatch[1];
-      const serverPort = serverPortMatch[1];
-
-      // Step 2: Get active sessions from the server
-      const sessionsResponse = await fetch(`http://${serverAddress}:${serverPort}/status/sessions`, {
-        method: 'GET',
-        headers: {
-          ...headers,
-          'Accept': 'application/json'
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          console.error('Plex sessions error:', error);
+          res.status(500).json({
+            message: "Failed to fetch Plex sessions",
+            error: error
+          });
+        } else {
+          res.json({ count: sessionCount });
         }
       });
 
-      if (!sessionsResponse.ok) {
-        const errorText = await sessionsResponse.text();
-        console.error('Plex API sessions error:', errorText);
-        throw new Error(`Failed to get Plex sessions: ${sessionsResponse.status} ${errorText}`);
-      }
-
-      const sessionsData = await sessionsResponse.json();
-      const sessionCount = sessionsData.MediaContainer.size || 0;
-
-      res.json({ count: sessionCount });
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
       res.status(500).json({
