@@ -1121,32 +1121,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plexService = services.find(s => s.name.toLowerCase().includes('plex'));
 
       if (!plexService || !plexService.url) {
+        console.log('No Plex service found or URL missing');
         return res.status(404).json({ message: "Plex service not configured" });
       }
+
+      console.log('Found Plex service:', plexService.name, plexService.url);
 
       // Extract server URL and token
       const url = new URL(plexService.url);
       const token = url.searchParams.get('X-Plex-Token');
 
       if (!token) {
+        console.log('No Plex token found in URL');
         return res.status(400).json({ message: "Plex token not found in service URL" });
       }
+
+      console.log('Using Plex URL:', url.origin);
 
       // Make direct API call to Plex
       const response = await fetch(`${url.origin}/status/sessions?X-Plex-Token=${token}`, {
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'X-Plex-Token': token
         }
       });
 
       if (!response.ok) {
+        console.error('Plex API error:', response.status, response.statusText);
         throw new Error(`Plex API error: ${response.statusText}`);
       }
 
       const data = await response.json();
-      const activeSessionCount = data.MediaContainer?.size || 0;
+      console.log('Raw Plex response:', JSON.stringify(data, null, 2));
 
-      console.log('Active Plex sessions:', activeSessionCount);
+      // Check if MediaContainer exists and has the expected structure
+      if (!data.MediaContainer) {
+        console.log('No MediaContainer in response');
+        return res.json({ activeStreams: 0 });
+      }
+
+      const activeSessionCount = data.MediaContainer.size || 
+                               (data.MediaContainer.Metadata ? data.MediaContainer.Metadata.length : 0);
+
+      console.log('Calculated active sessions:', activeSessionCount);
       res.json({ activeStreams: activeSessionCount });
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
