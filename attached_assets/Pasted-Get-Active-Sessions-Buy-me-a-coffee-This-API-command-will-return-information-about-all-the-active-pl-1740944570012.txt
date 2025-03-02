@@ -1,0 +1,74 @@
+Get Active Sessions
+Buy me a coffee
+This API command will return information about all the active play sessions happening on the server at the moment. A lot of information is returned by this command, but the content returned is dependent on the type of media and how the media is being played.
+
+If you are looking at providing information to display about what is currently being played, such as displaying the posters of the media, then this command is the one you should use.
+
+URL
+GET http://{ip_address}:32400/status/sessions?X-Plex-Token={plex_token}
+Parameters
+Name	Description
+ip_address	The IP address of the Plex Media server.
+plex_token	The Plex token.
+Return Status
+HTTP Code	Description
+200	Success - The request was successful.
+401	Unauthorized - The Plex token provided was not valid.
+Response
+XML string value that lists all media being played from the Plex server. An example of the XML returned from the request is shown below for a video being transcoded:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<MediaContainer size="1">
+    <Video addedAt="1667839612" art="/library/metadata/286254/art/1667839616" createdAtAccuracy="epoch,local" createdAtTZOffset="0" duration="734166" guid="com.plexapp.agents.none://dcb84084c59465d53f8698a7c75a343a00d1b00f?lang=xn" key="/library/metadata/286254" librarySectionID="14" librarySectionKey="/library/sections/14" librarySectionTitle="Other videos" originallyAvailableAt="2022-11-07" ratingKey="286254" sessionKey="2" skipCount="4" subtype="clip" thumb="/library/metadata/286254/thumb/1667839616" title="tos-1720x720-cfg01" type="movie" updatedAt="1667839616" viewOffset="0" year="2022">
+        <Media id="350106" videoProfile="main" audioChannels="2" audioCodec="aac" container="mp4" duration="734166" height="720" optimizedForStreaming="1" protocol="dash" videoCodec="h264" videoFrameRate="24p" videoResolution="720p" width="1720" selected="1">
+            <Part id="350466" videoProfile="main" container="mp4" duration="734166" height="720" optimizedForStreaming="1" protocol="dash" width="1720" decision="transcode" selected="1">
+                <Stream bitrate="2147483647" codec="h264" default="1" displayTitle="720p (HEVC Main)" extendedDisplayTitle="720p (HEVC Main)" frameRate="24" height="720" id="273542" language="English" languageCode="eng" languageTag="en" streamType="1" width="1720" decision="transcode" location="segments-video" />
+                <Stream bitrate="256" bitrateMode="cbr" channels="2" codec="aac" default="1" displayTitle="English (AC3 5.1)" extendedDisplayTitle="English (AC3 5.1)" id="273543" language="English" languageCode="eng" languageTag="en" selected="1" streamType="2" decision="transcode" location="segments-audio" />
+            </Part>
+        </Media>
+        <User id="1" thumb="https://plex.tv/users/64045869dc35e78e/avatar?c=1661361687" title="APlexUser" />
+        <Player address="127.0.0.1" device="Windows" machineIdentifier="k5y3j33nmvjvd0uhvnd9zi2x" model="bundled" platform="Firefox" platformVersion="108.0" product="Plex Web" profile="Firefox" state="playing" title="Firefox" version="4.87.2" local="1" relayed="0" secure="1" userID="1" />
+        <Session id="rxiscwekkvkpukgi3pm9nklp" bandwidth="10000000" location="lan" />
+        <TranscodeSession key="/transcode/sessions/rl42k5xbxdly8rld3itfqq4f" throttled="0" complete="0" progress="5.3000001907348633" size="-22" speed="6.9000000953674316" error="0" duration="734167" remaining="93" context="streaming" sourceVideoCodec="hevc" sourceAudioCodec="ac3" videoDecision="transcode" audioDecision="transcode" protocol="dash" container="mp4" videoCodec="h264" audioCodec="aac" audioChannels="2" transcodeHwRequested="1" transcodeHwEncoding="mf" transcodeHwEncodingTitle="Windows (Media Foundation)" timeStamp="1671053495.3404744" maxOffsetAvailable="39.018666666666668" minOffsetAvailable="0" />
+    </Video>
+</MediaContainer>
+For comparison, the XML below is for a music track being direct played to a client:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<MediaContainer size="1">
+    <Track addedAt="1668524601" art="/library/metadata/286414/art/1670411477" duration="248066" grandparentArt="/library/metadata/286414/art/1670411477" grandparentGuid="plex://artist/5d07bbfc403c6402904a5ed1" grandparentKey="/library/metadata/286414" grandparentRatingKey="286414" grandparentThumb="/library/metadata/286414/thumb/1670411477" grandparentTitle="U2" guid="plex://track/5d07cdb1403c640290f49f0a" index="1" key="/library/metadata/286463" lastViewedAt="1668540997" librarySectionID="8" librarySectionKey="/library/sections/8" librarySectionTitle="Music" parentGuid="plex://album/5d07c170403c6402908451be" parentIndex="1" parentKey="/library/metadata/286462" parentRatingKey="286462" parentStudio="Island" parentThumb="/library/metadata/286462/thumb/1670411478" parentTitle="All That You Can’t Leave Behind" parentYear="2000" ratingCount="1138898" ratingKey="286463" sessionKey="3" thumb="/library/metadata/286462/thumb/1670411478" title="Beautiful Day" type="track" updatedAt="1670411478" viewCount="2" viewOffset="0">
+        <Media audioChannels="2" audioCodec="flac" bitrate="920" container="flac" duration="248066" id="350307" selected="1">
+            <Part container="flac" duration="248066" file="I:\Music\U2\All That You Can't Leave Behind\01 Beautiful Day.flac" hasThumbnail="1" id="350700" key="/library/parts/350700/1558059964/file.flac" size="28656120" decision="directplay" selected="1">
+                <Stream albumGain="-9.50" albumPeak="1.000000" albumRange="8.879813" audioChannelLayout="stereo" bitDepth="16" bitrate="920" channels="2" codec="flac" displayTitle="FLAC (Stereo)" extendedDisplayTitle="FLAC (Stereo)" gain="-9.50" id="273905" index="0" loudness="-9.23" lra="9.68" peak="1.000000" samplingRate="44100" selected="1" streamType="2" location="direct" />
+            </Part>
+        </Media>
+        <Mood filter="mood=32718" id="32718" tag="Lively" />
+        <Mood filter="mood=32079" id="32079" tag="Energetic" />
+        <Mood filter="mood=2362" id="2362" tag="Confident" />
+        <Mood filter="mood=2619" id="2619" tag="Exuberant" />
+        <Mood filter="mood=32078" id="32078" tag="Passionate" />
+        <User id="1" thumb="https://plex.tv/users/64045869dc35e78e/avatar?c=1661361687" title="APlexUser" />
+        <Player address="127.0.0.1" device="Windows" machineIdentifier="k5y3j33nmvjvd0uhvnd9zi2x" model="bundled" platform="Firefox" platformVersion="108.0" product="Plex Web" profile="Firefox" state="playing" title="Firefox" version="4.87.2" local="1" relayed="0" secure="1" userID="1" />
+        <Session id="rxiscwekkvkpukgi3pm9nklp" bandwidth="990" location="lan" />
+    </Track>
+</MediaContainer>
+Remarks
+The XML returned provides a list of the active play sessions currently on the Plex server. The root is the MediaContainer element. This element contains one attribute that provide a count of the number of items being played from the server.
+
+MediaContainer Attributes for Plex Devices
+Attribute	Description
+size	The number of media items being played from the Plex server.
+Within the MediaContainer there different elements dependent on the type of media being played. There are also elements that indicate the user playing the media and their player. Information about the play session is also provided along with information related to the media, such as the transcode data.
+
+The XML returned will be unique to the play sessions, so it would be difficult to provide a complete listing of all possible XML elements and attributes. Some common elements include the following:
+
+Play Session Elements
+Element	Description
+Video	Complete information on the video being played, including metadata information, the video specifications, and the video and audio streams.
+Track	Complete information on the music track being played, which also include the audio stream information.
+User	Information about the user playing the media item.
+Player	Information about the client playing the media item.
+Session	Prefix for the media tag.
+TranscodeSession	If the media item is being transcoded, information about the transcoding, including the transcoding formats is returned.
+Mood	This one is displayed for music tracks, and could be related to the type of music. There are multiple Mood elements returned.
+If there are no active play sessions, only the MediaContainer element is returned with the size attribute equal to zero.

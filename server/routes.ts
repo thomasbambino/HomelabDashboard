@@ -845,14 +845,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(metrics);
     } catch (error) {
       console.error(`Error fetching metrics for instance ${`instanceId}:`, error);
-            res.status(500).json({
+      res.status(500).json({
         message: "Failed to fetchinstance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
-    }  }
+    }
   });
 
-  // Add new debug endpoint for game server player count
+  //  // Add new debug endpoint for game server player count
   app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -1116,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/services/plex/sessions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      // Get Plex service from database
+      // Get all services to find Plex
       const services = await storage.getAllServices();
       const plexService = services.find(s => s.name.toLowerCase().includes('plex'));
 
@@ -1127,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found Plex service:', plexService.name, plexService.url);
 
-      // Extract token from URL if present
+      // Extract server URL and token
       const url = new URL(plexService.url);
       const token = url.searchParams.get('X-Plex-Token');
 
@@ -1136,61 +1136,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Plex token not found in service URL" });
       }
 
-      console.log('Executing Plex sessions script with URL:', url.origin);
+      // Ensure the URL ends with /status/sessions
+      const sessionsUrl = `${url.origin}/status/sessions?X-Plex-Token=${token}`;
+      console.log('Calling Plex API at:', sessionsUrl);
 
-      // Use the Python script to get Plex sessions
-      const { spawn } = require('child_process');
-      const pythonProcess = spawn('python3', [
-        'server/plex_sessions.py',
-        url.origin,
-        token
-      ]);
-
-      let output = '';
-      let errorOutput = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
-        console.log('Python script output:', data.toString());
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-        console.error('Python script error:', data.toString());
-      });
-
-      // Add a timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        pythonProcess.kill();
-        throw new Error('Plex session check timed out');
-      }, 10000); // 10 second timeout
-
-      const exitCode = await new Promise((resolve) => {
-        pythonProcess.on('close', resolve);
-      });
-
-      clearTimeout(timeout);
-
-      if (exitCode !== 0) {
-        console.error('Python script failed with code:', exitCode);
-        console.error('Error output:', errorOutput);
-        throw new Error('Failed to fetch Plex sessions');
-      }
-
-      try {
-        const data = JSON.parse(output);
-        if (data.error) {
-          console.error('Plex API error:', data.error);
-          throw new Error(data.error);
+      // Make direct API call to Plex sessions endpoint
+      const response = await fetch(sessionsUrl, {
+        headers: {
+          'Accept': 'application/xml',  // Request XML as per documentation
+          'X-Plex-Token': token
         }
+      });
 
-        console.log('Plex session data:', JSON.stringify(data, null, 2));
-        res.json(data);
-      } catch (parseError) {
-        console.error('Error parsing Python output:', parseError);
-        console.error('Raw output:', output);
-        throw new Error('Failed to parse Plex session data');
+      if (!response.ok) {
+        console.error('Plex API error:', response.status, response.statusText);
+        throw new Error(`Plex API error: ${response.statusText}`);
       }
+
+      const text = await response.text();
+      console.log('Raw Plex response:', text);
+
+      // Parse the XML response to get the MediaContainer size
+      const activeStreams = (text.match(/<MediaContainer size="(\d+)"/) || [])[1] || "0";
+      console.log('Extracted active streams:', activeStreams);
+
+      const result = {
+        activeStreams: parseInt(activeStreams, 10),
+        sessionDetails: []
+      };
+
+      console.log('Processed Plex session data:', JSON.stringify(result, null, 2));
+      res.json(result);
 
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
