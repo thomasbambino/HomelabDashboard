@@ -36,7 +36,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-
 // Add email schema for validation
 const plexAccountSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
