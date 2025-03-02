@@ -59,6 +59,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const { data: plexSessions, isLoading: isLoadingPlexSessions } = useQuery({
     queryKey: ["/api/services/plex/sessions"],
     enabled: service.name.toLowerCase().includes('plex'),
+    refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   const form = useForm<PlexAccountFormData>({
@@ -154,7 +155,18 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
                 />
               </div>
             )}
-            <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
+              {service.name.toLowerCase().includes('plex') && (
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1"
+                >
+                  <Users className="h-3 w-3" />
+                  {isLoadingPlexSessions ? "..." : plexSessions?.count || 0}
+                </Badge>
+              )}
+            </div>
           </div>
           {service.tooltip && (
             <p className="text-sm text-muted-foreground pt-1">{service.tooltip}</p>
@@ -184,15 +196,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               }}
             >
               NSFW
-            </Badge>
-          )}
-          {service.name.toLowerCase().includes('plex') && (
-            <Badge
-              variant="secondary"
-              className="flex items-center gap-1"
-            >
-              <Users className="h-3 w-3" />
-              {isLoadingPlexSessions ? "..." : plexSessions?.count || 0}
             </Badge>
           )}
           {service.name.toLowerCase().includes('plex') && (
