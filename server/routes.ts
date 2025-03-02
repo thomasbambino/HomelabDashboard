@@ -959,12 +959,11 @@ try:
 
     print(f"Found server: {server.name}", file=sys.stderr)
 
-    # Send the invitation with error handling
     try:
-        print(f"Attempting to send invite to: ${email}", file=sys.stderr)
+        print(f"Sending invite to: {email}", file=sys.stderr)
         account.inviteFriend(
-            "${email}",
-            servers=[server.machineIdentifier],
+            f"${email}",
+            servers=[server],
             allowSync=True,
             allowCameraUpload=False,
             allowChannels=False
@@ -978,11 +977,12 @@ try:
             }
         }))
     except Exception as invite_error:
+        error_msg = str(invite_error)
         print(json.dumps({
             "success": False,
-            "error": str(invite_error)
+            "error": error_msg
         }))
-        print(f"Invite error details: {str(invite_error)}", file=sys.stderr)
+        print(f"Invite error: {error_msg}", file=sys.stderr)
 
 except Exception as e:
     error_msg = str(e)
