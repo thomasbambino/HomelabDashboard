@@ -1053,12 +1053,9 @@ try:
 
     print("Debug: Selected server:", server.name, file=sys.stderr)
 
-    # Send the friend invitation
+    # Send the invitation
     print("Debug: Sending invitation to:", '${email}', file=sys.stderr)
-    account.inviteFriend(
-        '${email}',
-        servers=['Stylus']
-    )
+    account.inviteFriend('${email}')
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
