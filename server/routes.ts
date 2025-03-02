@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const metrics = await ampService.getMetrics(instanceId);
       console.log(`Metrics for instance ${instanceId}:`, metrics);
 
-      res.json(metrics);    } catch (error) {
+      res.json(metrics);} catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
@@ -926,25 +926,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { email } = plexInviteSchema.parse(req.body);
+      console.log('Processing Plex invitation for email:', email);
 
       // Get Plex token from environment variables
       const plexToken = process.env.PLEX_TOKEN;
       if (!plexToken) {
+        console.error('Plex token not configured');
         throw new Error("Plex token not configured");
       }
 
       // Use Python child process to handle Plex invitation
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
+import sys
+import json
+
 try:
+    print("Initializing Plex account with token...", file=sys.stderr)
     account = MyPlexAccount(token='${plexToken}')
-    # Get the first server (assuming single server setup)
-    server = account.resources()[0]
-    # Send the invitation
-    server.inviteFriend(email, plex_api.library.sections())
-    print('{"success": true}')
+
+    print("Getting Plex servers...", file=sys.stderr)
+    servers = account.resources()
+    if not servers:
+        raise Exception("No Plex servers found")
+
+    server = servers[0]
+    print(f"Using server: {server.name}", file=sys.stderr)
+
+    print("Sending friend invite...", file=sys.stderr)
+    server.inviteFriend(user='${email}', sections=server.sections())
+    print(json.dumps({"success": True, "message": "Invitation sent successfully"}))
 except Exception as e:
-    print('{"success": false, "error": "' + str(e) + '"}')
+    print(json.dumps({"success": False, "error": str(e)}))
 `;
 
       const { spawn } = require('child_process');
@@ -955,36 +968,39 @@ except Exception as e:
 
       python.stdout.on('data', (data) => {
         result += data.toString();
+        console.log('Python stdout:', data.toString());
       });
 
       python.stderr.on('data', (data) => {
         error += data.toString();
+        console.error('Python stderr:', data.toString());
       });
 
       await new Promise((resolve, reject) => {
         python.on('close', (code) => {
-          if (code !== 0) {
-            reject(new Error(error || 'Failed to send Plex invitation'));
-          } else {
-            resolve(result);
+          console.log('Python process exited with code:', code);
+          console.log('Full output:', result);
+          console.log('Full error:', error);
+
+          try {
+            const response = JSON.parse(result);
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error || 'Failed to send Plex invitation'));
+            }
+          } catch (e) {
+            reject(new Error('Invalid response from Plex script'));
           }
         });
       });
 
-      try {
-        const response = JSON.parse(result);
-        if (!response.success) {
-          throw new Error(response.error);
-        }
-      } catch (e) {
-        throw new Error('Invalid response from Plex API');
-      }
-
-      res.json({ message: "Invitation sent successfully" });
+      res.json({ message: "Plex invitation sent successfully" });
     } catch (error) {
       console.error('Error sending Plex invitation:', error);
-      res.status(400).json({
-        message: error instanceof Error ? error.message : "Failed to send invitation"
+      res.status(500).json({ 
+        message: "Failed to send Plex invitation",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
