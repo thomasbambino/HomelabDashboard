@@ -139,12 +139,18 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const { data: plexSessions } = useQuery({
     queryKey: ['/api/services/plex/sessions'],
     enabled: service.name.toLowerCase().includes('plex'),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 10000, // Reduce to 10 seconds for more frequent updates
+    onSuccess: (data) => {
+      console.log('Plex sessions updated:', data);
+    },
+    onError: (error) => {
+      console.error('Error fetching Plex sessions:', error);
+    }
   });
 
   console.log('Service name:', service.name);
   console.log('Is Plex?', service.name.toLowerCase().includes('plex'));
-  console.log('Plex sessions:', plexSessions);
+  console.log('Current Plex sessions:', plexSessions);
 
   return (
     <Card
