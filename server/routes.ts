@@ -1031,12 +1031,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the Python script to get Plex sessions with a consistent client identifier
       const pythonProcess = spawn('python3', ['-c', `
 import sys
-from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 
-# Use consistent client identifier and headers
+// Use consistent client identifier
 CLIENT_ID = 'HomeLabDashboard-SessionMonitor'
-CLIENT_HEADERS = {
+HEADERS = {
     'X-Plex-Client-Identifier': CLIENT_ID,
     'X-Plex-Product': 'Homelab Dashboard',
     'X-Plex-Version': '1.0',
@@ -1045,15 +1044,13 @@ CLIENT_HEADERS = {
 }
 
 try:
-    # Initialize account with consistent headers
-    account = MyPlexAccount(token="${plexToken}")
+    // Connect directly to the Plex server
+    baseurl = 'http://localhost:32400'  // Default Plex server URL
+    plex = PlexServer(baseurl, "${plexToken}", headers=HEADERS)
 
-    # Get the first available server
-    plex = account.resource().connect()
-
-    # Get all current sessions
+    // Get current sessions
     sessions = plex.sessions()
-    print(len(sessions), file=sys.stdout)
+    print(len(sessions))
 except Exception as e:
     print(f"Error: {str(e)}", file=sys.stderr)
     sys.exit(1)
