@@ -923,105 +923,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this with other API routes, before the app.get("/api/game-servers/:instanceId/metrics",...) route
-  app.get("/api/login-attempts", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const attempts = await storage.getAllLoginAttempts();
-      res.json(attempts);
-    } catch (error) {
-      console.error('Error fetching login attempts:', error);
-      res.status(500).json({ message: "Failed to fetch login attempts" });
-    }
-  });
-
-  // Add Plex account invitation endpoint
-  app.post("/api/services/plex/account", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { email } = plexInviteSchema.parse(req.body);
-      const plexToken = process.env.PLEX_TOKEN;
-
-      if (!plexToken) {
-        throw new Error("Plex token not configured");
-      }
-
-      const pythonScript = `
-from plexapi.myplex import MyPlexAccount
-import sys
-import json
-
-try:
-    print("Debug: Starting Plex invitation process", file=sys.stderr)
-    print("Debug: Using token length:", len('${plexToken}'), file=sys.stderr)
-
-    # Initialize Plex account
-    account = MyPlexAccount(token='${plexToken}')
-    print("Debug: Successfully initialized Plex account", file=sys.stderr)
-
-    # Get available servers
-    servers = account.resources()
-    print("Debug: Found servers:", [s.name for s in servers], file=sys.stderr)
-
-    # Get the main server
-    server = next((s for s in servers if s.provides == 'server'), None)
-    if not server:
-        raise Exception("No valid Plex server found")
-    print("Debug: Selected server:", server.name, file=sys.stderr)
-
-    // Send the invitation using machineIdentifier
-    print("Debug: Attempting to send invite to:", '${email}', "for server:", server.name, file=sys.stderr)
-    account.inviteFriend(
-        '${email}',
-        servers=[server.machineIdentifier]  // Pass as list of machineIdentifiers
-    )
-    print("Success")
-except Exception as e:
-    print("Error:", str(e), file=sys.stderr)
-    print("Failed")
-`;
-
-      const pythonProcess = spawn('python3', ['-c', pythonScript]);
-
-      let output = '';
-      let error = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
-        console.log('Python stdout:', data.toString());
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        error += data.toString();
-        console.error('Python stderr:', data.toString());
-      });
-
-      await new Promise((resolve, reject) => {
-        pythonProcess.on('close', (code) => {
-          console.log('Python process exit code:', code);
-          console.log('Python stdout:', output);
-          console.log('Python stderr:', error);
-
-          if (code === 0 && output.includes('Success')) {
-            resolve();
-          } else {
-            const errorMessage = error || 'Failed to send Plex invitation';
-            console.error('Plex invitation error:', errorMessage);
-            reject(new Error(errorMessage));
-          }
-        });
-      });
-
-      res.json({ message: "Plex invitation sent successfully" });
-    } catch (error) {
-      console.error('Error sending Plex invitation:', error);
-      res.status(500).json({ 
-        message: "Failed to send Plex invitation",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   // Add these routes within the registerRoutes function, with the other admin routes
   app.get("/api/email-templates", isAdmin, async (req, res) => {
     try {
@@ -1105,6 +1006,106 @@ except Exception as e:
       console.error('Error sending test email:', error);
       res.status(500).json({ message: "Internal server error" });
     }
+  });
+
+  // Add new route for login attempts
+  app.get("/api/login-attempts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const attempts = await storage.getAllLoginAttempts();
+      res.json(attempts);
+    } catch (error) {
+      console.error('Error fetching login attempts:', error);
+      res.status(500).json({ message: "Failed to fetch login attempts" });
+    }
+  });
+
+  // Add Plex account invitation endpoint
+  app.post("/api/services/plex/account", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { email } = plexInviteSchema.parse(req.body);
+      const plexToken = process.env.PLEX_TOKEN;
+
+      if (!plexToken) {
+        throw new Error("Plex token not configured");
+      }
+
+      const pythonScript = `
+from plexapi.myplex import MyPlexAccount
+import sys
+import json
+
+try:
+    print("Debug: Starting Plex invitation process", file=sys.stderr)
+    print("Debug: Using token length:", len('${plexToken}'), file=sys.stderr)
+
+    # Initialize Plex account
+    account = MyPlexAccount(token='${plexToken}')
+    print("Debug: Successfully initialized Plex account", file=sys.stderr)
+
+    # Get available servers
+    servers = account.resources()
+    print("Debug: Found servers:", [s.name for s in servers], file=sys.stderr)
+
+    # Get the main server
+    server = next((s for s in servers if s.provides == 'server'), None)
+    if not server:
+        raise Exception("No valid Plex server found")
+    print("Debug: Selected server:", server.name, file=sys.stderr)
+
+    # Send the invitation with the machine identifier
+    print("Debug: Attempting to send invite to:", '${email}', "for server:", server.name, file=sys.stderr)
+    account.inviteFriend(
+        '${email}',
+        servers=[server.machineIdentifier]
+    )
+    print("Success")
+except Exception as e:
+    print("Error:", str(e), file=sys.stderr)
+    print("Failed")
+`;
+
+      const pythonProcess = spawn('python3', ['-c', pythonScript]);
+
+      let output = '';
+      let error = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        output += data.toString();
+        console.log('Python stdout:', data.toString());
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        error += data.toString();
+        console.error('Python stderr:', data.toString());
+      });
+
+      await new Promise((resolve, reject) => {
+        pythonProcess.on('close', (code) => {
+          console.log('Python process exit code:', code);
+          console.log('Python stdout:', output);
+          console.log('Python stderr:', error);
+
+          if (code === 0 && output.includes('Success')) {
+            resolve();
+          } else {
+            const errorMessage = error || 'Failed to send Plex invitation';
+            console.error('Plex invitation error:', errorMessage);
+            reject(new Error(errorMessage));
+          }
+        });
+      });
+
+      res.json({ message: "Plex invitation sent successfully" });
+    } catch (error) {
+      console.error('Error sending Plex invitation:', error);
+      res.status(500).json({ 
+        message: "Failed to send Plex invitation",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+
   });
 
   const httpServer = createServer(app);
