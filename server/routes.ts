@@ -1140,10 +1140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plexUrl = `http://192.168.0.229:32400/status/sessions`;
       console.log('Calling Plex API at:', plexUrl);
 
-      // Make direct API call to Plex sessions endpoint
+      // Make direct API call to Plex sessions endpoint with XML format
       const response = await fetch(`${plexUrl}?X-Plex-Token=${token}`, {
         headers: {
-          'Accept': 'application/json',
+          'Accept': 'application/xml',  // Request XML format
           'X-Plex-Token': token
         }
       });
@@ -1153,19 +1153,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error(`Plex API error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('Raw Plex response:', JSON.stringify(data, null, 2));
+      // Get raw XML response
+      const xmlText = await response.text();
+      console.log('Raw XML response from Plex:', xmlText);
 
-      // Process the response according to the Plex API documentation
+      // Parse the XML to get active sessions count
+      const sizeMatch = xmlText.match(/<MediaContainer size="(\d+)"/);
+      const activeStreams = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
+
+      // Parse basic session details using regex
+      const sessionDetails = [];
+      const videoMatches = xmlText.matchAll(/<Video.*?<\/Video>/gs);
+      const trackMatches = xmlText.matchAll(/<Track.*?<\/Track>/gs);
+
+      for (const match of videoMatches) {
+        const videoXml = match[0];
+        const typeMatch = videoXml.match(/type="([^"]+)"/);
+        const titleMatch = videoXml.match(/title="([^"]+)"/);
+        const userMatch = videoXml.match(/<User.*?title="([^"]+)"/);
+        const playerMatch = videoXml.match(/<Player.*?title="([^"]+)"/);
+        const stateMatch = videoXml.match(/<Player.*?state="([^"]+)"/);
+
+        sessionDetails.push({
+          type: typeMatch?.[1] || 'unknown',
+          title: titleMatch?.[1] || 'Unknown',
+          user: userMatch?.[1] || 'Unknown',
+          player: playerMatch?.[1] || 'Unknown',
+          state: stateMatch?.[1] || 'unknown'
+        });
+      }
+
+      for (const match of trackMatches) {
+        const trackXml = match[0];
+        const titleMatch = trackXml.match(/title="([^"]+)"/);
+        const userMatch = trackXml.match(/<User.*?title="([^"]+)"/);
+        const playerMatch = trackXml.match(/<Player.*?title="([^"]+)"/);
+        const stateMatch = trackXml.match(/<Player.*?state="([^"]+)"/);
+
+        sessionDetails.push({
+          type: 'track',
+          title: titleMatch?.[1] || 'Unknown',
+          user: userMatch?.[1] || 'Unknown',
+          player: playerMatch?.[1] || 'Unknown',
+          state: stateMatch?.[1] || 'unknown'
+        });
+      }
+
       const result = {
-        activeStreams: data.MediaContainer?.size || 0,
-        sessionDetails: (data.MediaContainer?.Metadata || []).map((session: any) => ({
-          type: session.type || 'unknown',
-          title: session.title || 'Unknown',
-          user: session.User?.title || "Unknown",
-          player: session.Player?.title || "Unknown",
-          state: session.Player?.state || "unknown"
-        }))
+        activeStreams,
+        sessionDetails
       };
 
       console.log('Processed Plex session data:', JSON.stringify(result, null, 2));
