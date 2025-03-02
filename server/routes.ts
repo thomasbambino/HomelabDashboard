@@ -844,7 +844,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const metrics = await ampService.getMetrics(instanceId);
       console.log(`Metrics forinstance ${instanceId}:`, metrics);
 
-      res.json(metrics);} catch (error) {
+      res.json(metrics);
+    } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
@@ -951,21 +952,45 @@ try:
     if not servers:
         raise Exception("No Plex servers found")
 
+    # Find the first server that provides server functionality
     server = next((s for s in servers if s.provides == 'server'), None)
     if not server:
         raise Exception("No valid Plex server found")
 
     print(f"Found server: {server.name}", file=sys.stderr)
 
-    print("Sending friend invite...", file=sys.stderr)
-    invite = account.inviteFriend(
-        f"{email}",
-        server.machineIdentifier
-    )
-    print(json.dumps({"success": True, "message": "Invitation sent successfully"}))
+    # Send the invitation with error handling
+    try:
+        print(f"Attempting to send invite to: ${email}", file=sys.stderr)
+        account.inviteFriend(
+            "${email}",
+            servers=[server.machineIdentifier],
+            allowSync=True,
+            allowCameraUpload=False,
+            allowChannels=False
+        )
+        print(json.dumps({
+            "success": True,
+            "message": "Invitation sent successfully",
+            "details": {
+                "server": server.name,
+                "email": "${email}"
+            }
+        }))
+    except Exception as invite_error:
+        print(json.dumps({
+            "success": False,
+            "error": str(invite_error)
+        }))
+        print(f"Invite error details: {str(invite_error)}", file=sys.stderr)
+
 except Exception as e:
-    print(json.dumps({"success": False, "error": str(e)}), file=sys.stdout)
-    print(f"Error details: {str(e)}", file=sys.stderr)
+    error_msg = str(e)
+    print(f"General error: {error_msg}", file=sys.stderr)
+    print(json.dumps({
+        "success": False,
+        "error": error_msg
+    }))
 `;
 
       const pythonProcess = spawn('python3', ['-c', pythonScript]);
@@ -998,7 +1023,7 @@ except Exception as e:
             }
           } catch (e) {
             console.error('Error parsing Python response:', e);
-            reject(new Error(`Failed to parse Plex response: ${error}`));
+            reject(new Error(`Failed to parse Plex response. Error output: ${error}`));
           }
         });
       });
