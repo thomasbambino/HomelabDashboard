@@ -848,7 +848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
-        message: "Failed to fetch instance metrics",
+        message: "Failed to fetchinstance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -1077,16 +1077,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          machineIdentifier: serverId,
-          invitedEmail: email,
-          librarySectionIds: [], // Empty array gives access to all libraries
-          settings: {
-            allowSync: '1',
-            allowCameraUpload: '0',
-            allowChannels: '0',
-            filterMovies: '',
-            filterTelevision: '',
-            filterMusic: ''
+          shared_server: {
+            library_section_ids: [],
+            invited_email: email,
+            sharing_settings: {
+              allowSync: 1,
+              allowCameraUpload: 0,
+              allowChannels: 0,
+              filterMovies: '',
+              filterTelevision: '',
+              filterMusic: ''
+            }
           }
         })
       });
