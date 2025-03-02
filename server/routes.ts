@@ -844,12 +844,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(metrics);
     } catch (error) {
-      console.error(`Error fetching metrics for instance ${instanceId}:`, error);
-      res.status(500).json({
+      console.error(`Error fetching metrics for instance ${`instanceId}:`, error);
+            res.status(500).json({
         message: "Failed to fetchinstance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
-    }
+    }  }
   });
 
   // Add new debug endpoint for game server player count
@@ -1127,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found Plex service:', plexService.name, plexService.url);
 
-      // Extract server URL and token
+      // Extract token from URL if present
       const url = new URL(plexService.url);
       const token = url.searchParams.get('X-Plex-Token');
 
@@ -1136,35 +1136,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Plex token not found in service URL" });
       }
 
-      console.log('Using Plex URL:', url.origin);
+      console.log('Executing Plex sessions script with URL:', url.origin);
 
-      // Make direct API call to Plex
-      const response = await fetch(`${url.origin}/status/sessions?X-Plex-Token=${token}`, {
-        headers: {
-          'Accept': 'application/json',
-          'X-Plex-Token': token
-        }
+      // Use the Python script to get Plex sessions
+      const { spawn } = require('child_process');
+      const pythonProcess = spawn('python3', [
+        'server/plex_sessions.py',
+        url.origin,
+        token
+      ]);
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        output += data.toString();
+        console.log('Python script output:', data.toString());
       });
 
-      if (!response.ok) {
-        console.error('Plex API error:', response.status, response.statusText);
-        throw new Error(`Plex API error: ${response.statusText}`);
+      pythonProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+        console.error('Python script error:', data.toString());
+      });
+
+      // Add a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        pythonProcess.kill();
+        throw new Error('Plex session check timed out');
+      }, 10000); // 10 second timeout
+
+      const exitCode = await new Promise((resolve) => {
+        pythonProcess.on('close', resolve);
+      });
+
+      clearTimeout(timeout);
+
+      if (exitCode !== 0) {
+        console.error('Python script failed with code:', exitCode);
+        console.error('Error output:', errorOutput);
+        throw new Error('Failed to fetch Plex sessions');
       }
 
-      const data = await response.json();
-      console.log('Raw Plex response:', JSON.stringify(data, null, 2));
+      try {
+        const data = JSON.parse(output);
+        if (data.error) {
+          console.error('Plex API error:', data.error);
+          throw new Error(data.error);
+        }
 
-      // Check if MediaContainer exists and has the expected structure
-      if (!data.MediaContainer) {
-        console.log('No MediaContainer in response');
-        return res.json({ activeStreams: 0 });
+        console.log('Plex session data:', JSON.stringify(data, null, 2));
+        res.json(data);
+      } catch (parseError) {
+        console.error('Error parsing Python output:', parseError);
+        console.error('Raw output:', output);
+        throw new Error('Failed to parse Plex session data');
       }
 
-      const activeSessionCount = data.MediaContainer.size || 
-                               (data.MediaContainer.Metadata ? data.MediaContainer.Metadata.length : 0);
-
-      console.log('Calculated active sessions:', activeSessionCount);
-      res.json({ activeStreams: activeSessionCount });
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
       res.status(500).json({ 

@@ -135,7 +135,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     backgroundPosition: 'center',
   } : {};
 
-  // Add query for Plex sessions
+  // Update query implementation for Plex sessions
   const { data: plexSessions } = useQuery({
     queryKey: ['/api/services/plex/sessions'],
     enabled: service.name.toLowerCase().includes('plex'),
@@ -147,10 +147,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
       console.error('Error fetching Plex sessions:', error);
     }
   });
-
-  console.log('Service name:', service.name);
-  console.log('Is Plex?', service.name.toLowerCase().includes('plex'));
-  console.log('Current Plex sessions:', plexSessions);
 
   return (
     <Card
