@@ -18,6 +18,8 @@ import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
+import fetch from 'node-fetch';
+
 
 const plexInviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -1027,68 +1029,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Plex token not configured");
       }
 
-      const pythonScript = `
-from plexapi.myplex import MyPlexAccount
-import sys
+      console.log(`Sending Plex invitation to ${email}...`);
 
-try:
-    # Initialize Plex account with token
-    print("Debug: Initializing Plex account...", file=sys.stderr)
-    account = MyPlexAccount(token='${plexToken}')
-
-    # Get all servers
-    print("Debug: Getting servers...", file=sys.stderr)
-    servers = account.resources()
-    for server in servers:
-        print(f"Debug: Found server: {server.name} ({server.machineIdentifier})", file=sys.stderr)
-
-    # Find the server named Stylus
-    server = next((s for s in servers if s.provides == 'server'), None)
-    if not server:
-        raise Exception("No valid Plex server found")
-
-    print(f"Debug: Using server: {server.name} ({server.machineIdentifier})", file=sys.stderr)
-
-    # Send the invitation with the machine identifier
-    print(f"Debug: Sending invitation to {email} for server {server.machineIdentifier}", file=sys.stderr)
-    account.inviteFriend(
-        f"{email}",
-        server.machineIdentifier,
-        allowSync=True,
-        allowCameraUpload=False,
-        allowChannels=False
-    )
-    print("Success")
-except Exception as e:
-    print(f"Error: {str(e)}", file=sys.stderr)
-    print("Failed")
-`;
-
-      const pythonProcess = spawn('python3', ['-c', pythonScript]);
-
-      let output = '';
-      let error = '';
-
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
+      // Step 1: Get all servers associated with the account
+      const resourcesResponse = await fetch(`https://plex.tv/api/resources?X-Plex-Token=${plexToken}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
       });
 
-      pythonProcess.stderr.on('data', (data) => {
-        error += data.toString();
-        console.error('Plex debug:', data.toString());
-      });
+      if (!resourcesResponse.ok) {
+        const errorText = await resourcesResponse.text();
+        console.error('Plex API resources error:', errorText);
+        throw new Error(`Failed to get Plex resources: ${resourcesResponse.status} ${errorText}`);
+      }
 
-      await new Promise((resolve, reject) => {
-        pythonProcess.on('close', (code) => {
-          if (code === 0 && output.includes('Success')) {
-            resolve();
-          } else {
-            reject(new Error(error || 'Failed to send Plex invitation'));
+      const resources = await resourcesResponse.json();
+      console.log('Plex resources:', resources);
+
+      // Step 2: Find the server (look for the one that provides 'server')
+      const server = resources.find(r => r.provides === 'server');
+      if (!server) {
+        throw new Error("No valid Plex server found in account");
+      }
+
+      console.log(`Found Plex server: ${server.name} (${server.clientIdentifier})`);
+
+      // Step 3: Send the invitation
+      const inviteResponse = await fetch('https://plex.tv/api/servers/' + server.clientIdentifier + '/shared_servers', {
+        method: 'POST',
+        headers: {
+          'X-Plex-Token': plexToken,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'machineIdentifier': server.clientIdentifier,
+          'invitedEmail': email,
+          'librarySectionIds': [], // Empty array gives access to all libraries
+          'settings': {
+            'allowSync': '1',
+            'allowCameraUpload': '0',
+            'allowChannels': '0',
+            'filterMovies': '',
+            'filterTelevision': '',
+            'filterMusic': ''
           }
-        });
+        })
       });
 
-      res.json({ message: "Plex invitation sent successfully" });
+      if (!inviteResponse.ok) {
+        const errorText = await inviteResponse.text();
+        console.error('Plex API invitation error:', errorText);
+        throw new Error(`Failed to send invitation: ${inviteResponse.status} ${errorText}`);
+      }
+
+      const inviteResult = await inviteResponse.json();
+      console.log('Plex invitation sent successfully:', inviteResult);
+
+      res.json({ 
+        message: "Plex invitation sent successfully", 
+        server: server.name,
+        email: email
+      });
     } catch (error) {
       console.error('Error sending Plex invitation:', error);
       res.status(500).json({
