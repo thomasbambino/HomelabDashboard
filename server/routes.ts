@@ -1028,20 +1028,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Plex token not configured");
       }
 
-      // Use the Python script to get Plex sessions
+      // Use the Python script to get Plex sessions with a consistent client identifier
       const pythonProcess = spawn('python3', ['-c', `
 from plexapi.myplex import MyPlexAccount
-account = MyPlexAccount(token="${plexToken}")
+from plexapi.server import PlexServer
+from plexapi.client import PlexClient
+
+# Use consistent client identifier and headers
+CLIENT_ID = 'HomeLabDashboard-SessionMonitor'
+CLIENT_HEADERS = {
+    'X-Plex-Client-Identifier': CLIENT_ID,
+    'X-Plex-Product': 'Homelab Dashboard',
+    'X-Plex-Version': '1.0',
+    'X-Plex-Device': 'HomelabDashboard',
+    'X-Plex-Device-Name': 'Homelab Session Monitor'
+}
+
+# Initialize account with consistent headers
+account = MyPlexAccount(token="${plexToken}", headers=CLIENT_HEADERS)
 servers = account.resources()
 total_sessions = 0
+
 for server in servers:
     if server.provides == 'server':
         try:
-            connected_server = server.connect()
+            connected_server = server.connect(headers=CLIENT_HEADERS)
             sessions = connected_server.sessions()
             total_sessions += len(sessions)
         except:
             pass
+
 print(total_sessions)
       `]);
 
