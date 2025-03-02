@@ -1032,14 +1032,35 @@ from plexapi.myplex import MyPlexAccount
 import sys
 
 try:
-    # Initialize Plex account
+    # Initialize Plex account with token
+    print("Debug: Initializing Plex account...", file=sys.stderr)
     account = MyPlexAccount(token='${plexToken}')
 
-    # Send a basic friend invitation
-    account.inviteFriend('${email}')
+    # Get all servers
+    print("Debug: Getting servers...", file=sys.stderr)
+    servers = account.resources()
+    for server in servers:
+        print(f"Debug: Found server: {server.name} ({server.machineIdentifier})", file=sys.stderr)
+
+    # Find the server named Stylus
+    server = next((s for s in servers if s.provides == 'server'), None)
+    if not server:
+        raise Exception("No valid Plex server found")
+
+    print(f"Debug: Using server: {server.name} ({server.machineIdentifier})", file=sys.stderr)
+
+    # Send the invitation with the machine identifier
+    print(f"Debug: Sending invitation to {email} for server {server.machineIdentifier}", file=sys.stderr)
+    account.inviteFriend(
+        f"{email}",
+        server.machineIdentifier,
+        allowSync=True,
+        allowCameraUpload=False,
+        allowChannels=False
+    )
     print("Success")
 except Exception as e:
-    print("Error:", str(e), file=sys.stderr)
+    print(f"Error: {str(e)}", file=sys.stderr)
     print("Failed")
 `;
 
@@ -1054,6 +1075,7 @@ except Exception as e:
 
       pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
+        console.error('Plex debug:', data.toString());
       });
 
       await new Promise((resolve, reject) => {
