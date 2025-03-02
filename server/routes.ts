@@ -847,10 +847,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
-    });
+  });
 
   // Add new debug endpoint for game server player count
   app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
@@ -1034,14 +1034,10 @@ import sys
 
 try:
     # Initialize Plex account
-    print("Debug: Initializing Plex account...", file=sys.stderr)
     account = MyPlexAccount(token='${plexToken}')
 
     # Get servers
-    print("Debug: Getting servers...", file=sys.stderr)
     servers = account.resources()
-    print("Debug: Found servers:", [s.name for s in servers], file=sys.stderr)
-
     if not servers:
         raise Exception("No Plex servers found")
 
@@ -1050,17 +1046,8 @@ try:
     if not server:
         raise Exception("No valid Plex server found")
 
-    print("Debug: Selected server:", server.name, file=sys.stderr)
-
-    # Send the invitation
-    print("Debug: Sending invitation to:", '${email}', file=sys.stderr)
-    account.inviteFriend(
-        '${email}',
-        server,
-        allowSync=True,
-        allowCameraUpload=False,
-        allowChannels=False
-    )
+    # Send the invitation with minimal parameters
+    account.inviteFriend('${email}', server.name)
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
@@ -1082,10 +1069,6 @@ except Exception as e:
 
       await new Promise((resolve, reject) => {
         pythonProcess.on('close', (code) => {
-          console.log('Python process exited with code:', code);
-          console.log('Python stdout:', output);
-          console.log('Python stderr:', error);
-
           if (code === 0 && output.includes('Success')) {
             resolve();
           } else {
