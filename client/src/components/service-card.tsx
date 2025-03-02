@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
+import { ExternalLink, Settings, Trash2, UserPlus, Users } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -136,6 +136,14 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     backgroundPosition: 'center',
   } : {};
 
+  // Add query for Plex sessions
+  const { data: plexSessions } = useQuery({
+    queryKey: ['/api/services/plex/sessions'],
+    enabled: service.name.toLowerCase().includes('plex'),
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+
   return (
     <Card
       className={`relative transition-all duration-200 border-0 shadow-none ${isDragging ? "scale-[1.02]" : ""}`}
@@ -171,6 +179,12 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               }}
             >
               {service.status ? "Online" : "Offline"}
+            </Badge>
+          )}
+          {service.name.toLowerCase().includes('plex') && plexSessions?.activeStreams > 0 && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {plexSessions?.activeStreams}
             </Badge>
           )}
           {service.isNSFW && (

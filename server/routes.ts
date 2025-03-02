@@ -17,8 +17,8 @@ import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
-import { spawn } from 'child_process';
 import fetch from 'node-fetch';
+import { PlexServer } from 'plexapi.js';
 
 
 const plexInviteSchema = z.object({
@@ -1110,6 +1110,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error sending Plex invitation:', error);
       res.status(500).json({
         message: "Failed to send Plex invitation",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/services/plex/sessions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Get Plex service from database
+      const services = await storage.getAllServices();
+      const plexService = services.find(s => s.name.toLowerCase().includes('plex'));
+
+      if (!plexService || !plexService.url) {
+        return res.status(404).json({ message: "Plex service not configured" });
+      }
+
+      // Extract server URL and token
+      const url = new URL(plexService.url);
+      const token = url.searchParams.get('X-Plex-Token');
+
+      if (!token) {
+        return res.status(400).json({ message: "Plex token not found in service URL" });
+      }
+
+      // Create Plex server instance
+      const server = new PlexServer(url.origin, token);
+
+      // Get active sessions
+      const sessions = await server.query('/status/sessions');
+      const activeSessionCount = sessions.MediaContainer.size || 0;
+
+      res.json({ activeStreams: activeSessionCount });
+    } catch (error) {
+      console.error('Error fetching Plex sessions:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Plex sessions",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
