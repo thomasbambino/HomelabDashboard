@@ -621,7 +621,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -857,100 +856,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Debug operation failed",
         error: error instanceof Error ? error.message : "Unknown error"
       });
-    }
-  });
-
-  app.get("/api/email-templates", isAdmin, async (req, res) => {
-    try {
-      const templates = await storage.getAllEmailTemplates();
-      res.json(templates);
-    } catch (error) {
-      console.error('Error fetching email templates:', error);
-      res.status(500).json({ message: "Failed to fetch email templates" });
-    }
-  });
-
-  app.post("/api/email-templates", isAdmin, async (req, res) => {
-    try {
-      const template = await storage.createEmailTemplate(req.body);
-      res.status(201).json(template);
-    } catch (error) {
-      console.error('Error creating email template:', error);
-      res.status(500).json({ message: "Failed to create email template" });
-    }
-  });
-
-  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
-    try {
-      const template = await storage.updateEmailTemplate({
-        id: parseInt(req.params.id),
-        ...req.body
-      });
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-      res.json(template);
-    } catch (error) {
-      console.error('Error updating email template:', error);
-      res.status(500).json({ message: "Failed to update email template" });
-    }
-  });
-
-  app.post("/api/email-templates/:id/test", isAdmin, async (req, res) => {
-    try {
-      const { email, logoUrl } = req.body;
-      if (!email) {
-        return res.status(400).json({ message: "Email address is required" });
-      }
-
-      const templateId = parseInt(req.params.id);
-      const template = await storage.getEmailTemplate(templateId);
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const absoluteLogoUrl = logoUrl?.startsWith('http') ? logoUrl : `${baseUrl}${logoUrl}`;
-
-      console.log('Testing email template with logo:', {
-        providedUrl: logoUrl,
-        absoluteUrl: absoluteLogoUrl,
-        baseUrl
-      });
-
-      const templateData = {
-        serviceName: "Test Service",
-        status: "UP",
-        timestamp: new Date().toLocaleString(),
-        duration: "5 minutes",
-        logoUrl: absoluteLogoUrl
-      };
-
-      const success = await sendEmail({
-        to: email,
-        templateId,
-        templateData,
-      });
-
-      if (success) {
-        res.json({ message: "Test email sent successfully" });
-      } else {
-        res.status(500).json({ message: "Failed to send test email" });
-      }
-    } catch (error) {
-      console.error('Error sending test email:', error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/login-attempts", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const attempts = await storage.getAllLoginAttempts();
-      res.json(attempts);
-    } catch (error) {
-      console.error('Error fetching login attempts:', error);
-      res.status(500).json({ message: "Failed to fetch login attempts" });
     }
   });
 

@@ -62,6 +62,15 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
+  // Add debug query
+  const { data: plexDebug } = useQuery({
+    queryKey: ["/api/services/plex/debug"],
+    enabled: service.name.toLowerCase().includes('plex'),
+    onSuccess: (data) => {
+      console.log('Plex Debug Data:', data);
+    }
+  });
+
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),
     defaultValues: {
