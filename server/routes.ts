@@ -940,7 +940,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { email } = plexInviteSchema.parse(req.body);
-      const plexToken = 'WXxaPDsUPNFszKdPUmAx';
+      const plexToken = process.env.PLEX_TOKEN;
+
+      if (!plexToken) {
+        throw new Error("Plex token not configured");
+      }
 
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
@@ -949,10 +953,10 @@ import json
 
 try:
     print("Debug: Starting Plex invitation process", file=sys.stderr)
-    print("Debug: Using token:", "'${plexToken}'", file=sys.stderr)
+    print("Debug: Using token length:", len('${plexToken}'), file=sys.stderr)
 
     # Initialize Plex account
-    account = MyPlexAccount(token='WXxaPDsUPNFszKdPUmAx')
+    account = MyPlexAccount(token='${plexToken}')
     print("Debug: Successfully initialized Plex account", file=sys.stderr)
 
     # Get available servers
@@ -965,9 +969,12 @@ try:
         raise Exception("No valid Plex server found")
     print("Debug: Selected server:", server.name, file=sys.stderr)
 
-    # Send the invitation
-    print("Debug: Attempting to send invite to:", '${email}', file=sys.stderr)
-    account.inviteFriend('${email}', server)
+    // Send the invitation using machineIdentifier
+    print("Debug: Attempting to send invite to:", '${email}', "for server:", server.name, file=sys.stderr)
+    account.inviteFriend(
+        '${email}',
+        servers=[server.machineIdentifier]  // Pass as list of machineIdentifiers
+    )
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
