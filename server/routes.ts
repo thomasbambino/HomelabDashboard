@@ -18,8 +18,6 @@ import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
 import fetch from 'node-fetch';
-import { PlexServer } from 'plexapi.js';
-
 
 const plexInviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -1134,13 +1132,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Plex token not found in service URL" });
       }
 
-      // Create Plex server instance
-      const server = new PlexServer(url.origin, token);
+      // Make direct API call to Plex
+      const response = await fetch(`${url.origin}/status/sessions?X-Plex-Token=${token}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
 
-      // Get active sessions
-      const sessions = await server.query('/status/sessions');
-      const activeSessionCount = sessions.MediaContainer.size || 0;
+      if (!response.ok) {
+        throw new Error(`Plex API error: ${response.statusText}`);
+      }
 
+      const data = await response.json();
+      const activeSessionCount = data.MediaContainer?.size || 0;
+
+      console.log('Active Plex sessions:', activeSessionCount);
       res.json({ activeStreams: activeSessionCount });
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
