@@ -959,34 +959,29 @@ try:
 
     print(f"Found server: {server.name}", file=sys.stderr)
 
-    try:
-        print(f"Sending invite to: {email}", file=sys.stderr)
-        account.inviteFriend(
-            f"${email}",
-            servers=[server],
-            allowSync=True,
-            allowCameraUpload=False,
-            allowChannels=False
-        )
-        print(json.dumps({
-            "success": True,
-            "message": "Invitation sent successfully",
-            "details": {
-                "server": server.name,
-                "email": "${email}"
-            }
-        }))
-    except Exception as invite_error:
-        error_msg = str(invite_error)
-        print(json.dumps({
-            "success": False,
-            "error": error_msg
-        }))
-        print(f"Invite error: {error_msg}", file=sys.stderr)
+    # Store email in a variable to ensure proper string handling
+    invite_email = '${email}'
+    print(f"Sending invite to: {invite_email}", file=sys.stderr)
 
+    # Send the invitation
+    account.inviteFriend(
+        invite_email,
+        allowSync=True,
+        allowCameraUpload=False,
+        allowChannels=False
+    )
+
+    print(json.dumps({
+        "success": True,
+        "message": "Invitation sent successfully",
+        "details": {
+            "server": server.name,
+            "email": invite_email
+        }
+    }))
 except Exception as e:
     error_msg = str(e)
-    print(f"General error: {error_msg}", file=sys.stderr)
+    print(f"Error occurred: {error_msg}", file=sys.stderr)
     print(json.dumps({
         "success": False,
         "error": error_msg
