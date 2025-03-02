@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
+import { ExternalLink, Settings, Trash2, UserPlus, Users } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,7 +37,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 
-// Add email schema for validation
 const plexAccountSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
@@ -56,6 +55,11 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  const { data: plexSessions, isLoading: isLoadingPlexSessions } = useQuery({
+    queryKey: ["/api/services/plex/sessions"],
+    enabled: service.name.toLowerCase().includes('plex'),
+  });
 
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),
@@ -94,7 +98,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     createPlexAccountMutation.mutate(data);
   };
 
-  // Hide NSFW content from users without permission
   if (service.isNSFW && !user?.can_view_nsfw && !isAdmin) {
     return null;
   }
@@ -124,12 +127,10 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     },
   });
 
-  // Use the appropriate visibility settings based on user role
   const showRefreshInterval = isAdmin ? settings?.admin_show_refresh_interval : settings?.show_refresh_interval;
   const showLastChecked = isAdmin ? settings?.admin_show_last_checked : settings?.show_last_checked;
   const showServiceUrl = isAdmin ? settings?.admin_show_service_url : settings?.show_service_url;
 
-  // Create the background style with proper URL formatting
   const cardStyle = service.background ? {
     backgroundImage: `url('${service.background}')`,
     backgroundSize: 'cover',
@@ -183,6 +184,15 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               }}
             >
               NSFW
+            </Badge>
+          )}
+          {service.name.toLowerCase().includes('plex') && (
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
+              <Users className="h-3 w-3" />
+              {isLoadingPlexSessions ? "..." : plexSessions?.count || 0}
             </Badge>
           )}
           {service.name.toLowerCase().includes('plex') && (
