@@ -850,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error instanceof Error? error.message : "Unknown error"
       });
     }
-  });
+    });
 
   // Add new debug endpoint for game server player count
   app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
@@ -1031,7 +1031,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
 import sys
-import json
 
 try:
     # Initialize Plex account
@@ -1053,9 +1052,15 @@ try:
 
     print("Debug: Selected server:", server.name, file=sys.stderr)
 
-    # Send the invitation with the server object
+    # Send the invitation
     print("Debug: Sending invitation to:", '${email}', file=sys.stderr)
-    account.inviteFriend('${email}', server)
+    account.inviteFriend(
+        '${email}',
+        server,
+        allowSync=True,
+        allowCameraUpload=False,
+        allowChannels=False
+    )
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
@@ -1069,12 +1074,10 @@ except Exception as e:
 
       pythonProcess.stdout.on('data', (data) => {
         output += data.toString();
-        console.log('Python stdout:', data.toString());
       });
 
       pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
-        console.error('Python stderr:', data.toString());
       });
 
       await new Promise((resolve, reject) => {
