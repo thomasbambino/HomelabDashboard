@@ -1023,7 +1023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { email } = plexInviteSchema.parse(req.body);
-      const plexToken = process.env.PLEX_TOKEN;
+      const plexToken = "WXxaPDsUPNFszKdPUmAx";
 
       if (!plexToken) {
         throw new Error("Plex token not configured");
@@ -1035,7 +1035,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resourcesResponse = await fetch(`https://plex.tv/api/resources?X-Plex-Token=${plexToken}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'X-Plex-Client-Identifier': 'HomelabDashboard',
+          'X-Plex-Product': 'Homelab Dashboard',
+          'X-Plex-Version': '1.0'
         }
       });
 
@@ -1062,7 +1065,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         headers: {
           'X-Plex-Token': plexToken,
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Plex-Client-Identifier': 'HomelabDashboard',
+          'X-Plex-Product': 'Homelab Dashboard',
+          'X-Plex-Version': '1.0'
         },
         body: JSON.stringify({
           'machineIdentifier': server.clientIdentifier,
