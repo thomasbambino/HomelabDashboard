@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get metrics
       const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics for instance ${instanceId}:`, metrics);
+      console.log(`Metrics forinstance ${instanceId}:`, metrics);
 
       res.json(metrics);} catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
@@ -943,7 +943,7 @@ import sys
 import json
 
 try:
-    print("Initializing Plex account with token...", file=sys.stderr)
+    print("Initializing Plex account...", file=sys.stderr)
     account = MyPlexAccount(token='${plexToken}')
 
     print("Getting Plex servers...", file=sys.stderr)
@@ -951,14 +951,21 @@ try:
     if not servers:
         raise Exception("No Plex servers found")
 
-    server = servers[0]
-    print(f"Using server: {server.name}", file=sys.stderr)
+    server = next((s for s in servers if s.provides == 'server'), None)
+    if not server:
+        raise Exception("No valid Plex server found")
+
+    print(f"Found server: {server.name}", file=sys.stderr)
 
     print("Sending friend invite...", file=sys.stderr)
-    account.inviteFriend(email, servers=[server])
+    invite = account.inviteFriend(
+        f"{email}",
+        server.machineIdentifier
+    )
     print(json.dumps({"success": True, "message": "Invitation sent successfully"}))
 except Exception as e:
-    print(json.dumps({"success": False, "error": str(e)}))
+    print(json.dumps({"success": False, "error": str(e)}), file=sys.stdout)
+    print(f"Error details: {str(e)}", file=sys.stderr)
 `;
 
       const pythonProcess = spawn('python3', ['-c', pythonScript]);
@@ -990,7 +997,8 @@ except Exception as e:
               reject(new Error(response.error || 'Failed to send Plex invitation'));
             }
           } catch (e) {
-            reject(new Error('Invalid response from Plex script: ' + error));
+            console.error('Error parsing Python response:', e);
+            reject(new Error(`Failed to parse Plex response: ${error}`));
           }
         });
       });
