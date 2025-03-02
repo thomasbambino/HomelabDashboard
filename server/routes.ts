@@ -17,6 +17,7 @@ import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
+import { spawn } from 'child_process';
 import fetch from 'node-fetch';
 
 
@@ -73,11 +74,13 @@ async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType
 
 async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string, type: string): Promise<string | { url: string; largeUrl: string }> {
   if (type === 'site') {
+    // For site logos, create both small and large versions
     const smallFilename = `site_small_${filename}`;
     const largeFilename = `site_large_${filename}`;
     const smallPath = path.join(basePath, smallFilename);
     const largePath = path.join(basePath, largeFilename);
 
+    // Create small version (32x32) for header
     await sharp(inputBuffer)
       .resize(32, 32, {
         fit: 'contain',
@@ -86,6 +89,7 @@ async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filenam
       .png({ quality: 90 })
       .toFile(smallPath);
 
+    // Create large version (128x128) for login page
     await sharp(inputBuffer)
       .resize(128, 128, {
         fit: 'contain',
@@ -100,13 +104,14 @@ async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filenam
     };
   }
 
+  // For other types, create a single resized version
   let size: number;
   switch (type) {
     case 'service':
-      size = 48;
+      size = 48; // Medium icon for service cards
       break;
     case 'game':
-      size = 64;
+      size = 64; // Larger icon for game servers
       break;
     default:
       size = 32;
@@ -126,12 +131,14 @@ async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filenam
   return `/uploads/${outputFilename}`;
 }
 
+// Type-specific upload endpoints
 const handleUpload = async (req: express.Request, res: express.Response, type: 'site' | 'service' | 'game') => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
+    // Get instanceId from the request
     const { instanceId } = req.body;
     if (!instanceId && type === 'game') {
       return res.status(400).json({ message: "Instance ID is required for game server icons" });
@@ -139,6 +146,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 
     if (type === 'game') {
       console.log('Processing icon upload for instance:', instanceId);
+      // Verify instance exists before proceeding
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
       if (!instance) {
@@ -151,10 +159,13 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     let filename: string;
 
     if (req.file) {
+      // Handle direct file upload
       inputBuffer = fs.readFileSync(req.file.path);
       filename = req.file.filename;
+      // Delete the original uploaded file since we'll create resized version
       fs.unlinkSync(req.file.path);
     } else if (req.body.imageUrl) {
+      // Handle URL-based upload
       const { buffer } = await downloadImage(req.body.imageUrl);
       inputBuffer = buffer;
       filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
@@ -169,18 +180,22 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 
     const result = await resizeAndSaveImage(inputBuffer, uploadDir, filename, type);
 
+    // If this is a game server icon, ensure the server exists in database
     if (type === 'game' && instanceId) {
       console.log('Updating icon for instance:', instanceId);
 
+      // Find or create server record
       let server = await storage.getGameServerByInstanceId(instanceId);
       if (!server) {
         console.log('Creating new server record for instance:', instanceId);
+        // Get instance details from AMP
         const instances = await ampService.getInstances();
         const instance = instances.find(i => i.InstanceID === instanceId);
         if (!instance) {
           return res.status(404).json({ message: "Game server not found" });
         }
 
+        // Create new server record
         server = await storage.createGameServer({
           instanceId,
           name: instance.FriendlyName,
@@ -189,6 +204,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
         });
       } else {
         console.log('Updating existing server record:', server.name);
+        // Update existing server with new icon
         server = await storage.updateGameServer({
           ...server,
           icon: typeof result === 'string' ? result : result.url,
@@ -198,6 +214,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
       console.log('Server updated successfully:', server.name, 'with icon:', server.icon);
     }
 
+    // For site uploads, handle both URLs
     if (typeof result === 'object' && 'largeUrl' in result) {
       res.json(result);
     } else {
@@ -219,12 +236,15 @@ const isAdmin = (req: express.Request, res: express.Response, next: express.Next
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add cookie parser middleware before session setup
   app.use(cookieParser());
 
   setupAuth(app);
 
+  // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+  // Register type-specific upload endpoints
   app.post("/api/upload/site", upload.single('image'), (req, res) => handleUpload(req, res, 'site'));
   app.post("/api/upload/service", upload.single('image'), (req, res) => handleUpload(req, res, 'service'));
   app.post("/api/upload/game", upload.single('image'), (req, res) => handleUpload(req, res, 'game'));
@@ -292,12 +312,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/game-servers", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
+      // Get all AMP instances
       const ampInstances = await ampService.getInstances();
       console.log('Raw AMP instances:', ampInstances);
 
+      // Get all stored game servers (for hidden status and customizations)
       const storedServers = await storage.getAllGameServers();
 
+      // Map AMP instances to our game server format
       const servers = ampInstances.map(instance => {
+        // Find existing stored server or create new one
         const storedServer = storedServers.find(s => s.instanceId === instance.InstanceID) || {
           instanceId: instance.InstanceID,
           hidden: false,
@@ -307,12 +331,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           refreshInterval: 30
         };
 
+        // Get port from ApplicationEndpoints
         let port = '';
         if (instance.ApplicationEndpoints && instance.ApplicationEndpoints.length > 0) {
           const endpoint = instance.ApplicationEndpoints[0].Endpoint;
           port = endpoint.split(':')[1];
         }
 
+        // Create response object with metrics data directly from instance
         const serverData = {
           ...storedServer,
           name: instance.FriendlyName,
@@ -331,6 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return serverData;
       });
 
+      // Only return non-hidden servers unless specifically requested
       const showHidden = req.query.showHidden === 'true';
       const filteredServers = showHidden ? servers : servers.filter(s => !s.hidden);
 
@@ -348,12 +375,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       const { hidden } = req.body;
 
+      // Find or create server record
       let server = await storage.getGameServerByInstanceId(instanceId);
       if (!server) {
         server = await storage.createGameServer({
           instanceId,
-          name: "Unknown",
-          type: "unknown",
+          name: "Unknown",  // Will be updated on next fetch
+          type: "unknown",  // Will be updated on next fetch
           hidden: hidden
         });
       } else {
@@ -376,6 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       console.log(`Start request received for instance ${instanceId}`);
 
+      // Verify instance exists
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
       if (!instance) {
@@ -383,9 +412,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Instance not found" });
       }
 
+      // Attempt to start the instance
       await ampService.startInstance(instanceId);
       console.log(`Start command successful for instance ${instanceId}`);
 
+      // Get updated status
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
@@ -408,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       console.log(`Stop request received for instance ${instanceId}`);
 
+      // Verify instance exists
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
       if (!instance) {
@@ -415,9 +447,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Instance not found" });
       }
 
+      // Attempt to stop the instance
       await ampService.stopInstance(instanceId);
       console.log(`Stop command successful for instance ${instanceId}`);
 
+      // Get updated status
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
@@ -440,6 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       console.log(`Restart request received for instance ${instanceId}`);
 
+      // Verify instance exists
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
       if (!instance) {
@@ -447,9 +482,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Instance not found" });
       }
 
+      // Attempt to restart the instance
       await ampService.restartInstance(instanceId);
       console.log(`Restart command successful for instance ${instanceId}`);
 
+      // Get updated status
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
@@ -472,6 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       console.log(`Kill request received for instance ${instanceId}`);
 
+      // Verify instance exists
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
       if (!instance) {
@@ -479,9 +517,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Instance not found" });
       }
 
+      // Attempt to kill the instance
       await ampService.killInstance(instanceId);
       console.log(`Kill command successful for instance ${instanceId}`);
 
+      // Get updated status
       const status = await ampService.getInstanceStatus(instanceId);
       console.log(`Updated status for instance ${instanceId}:`, status);
 
@@ -552,6 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update the AMP test endpoint
   app.get("/api/amp-test", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -559,9 +600,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('AMP URL:', process.env.AMP_API_URL);
       console.log('Username configured:', !!process.env.AMP_API_USERNAME);
 
+      // Try to get available API methods
       const apiMethods = await ampService.getAvailableAPIMethods();
       console.log('Available API methods:', apiMethods);
 
+      // Get instance information
       const instances = await ampService.getInstances();
 
       res.json({
@@ -587,12 +630,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { game } = req.body;
       const user = req.user as User;
 
+      // Get all admin users
       const admins = await storage.getAllUsers();
       const adminEmails = admins
         .filter(admin => admin.role === 'admin' && admin.email)
         .map(admin => admin.email);
 
       if (adminEmails.length > 0) {
+        // Send email to all admins
         for (const adminEmail of adminEmails) {
           if (adminEmail) {
             await sendEmail({
@@ -621,11 +666,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const currentUser = req.user as User;
       const users = await storage.listUsers();
+      // Filter out the current user and only return necessary fields
       const filteredUsers = users
         .filter(user => user.id !== currentUser.id)
         .map(({ id, username, isOnline, lastSeen }) => ({
@@ -641,6 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new route for service status logs with filtering
   app.get("/api/services/status-logs", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -653,6 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Raw query params:', req.query);
 
+      // Parse serviceId
       if (req.query.serviceId) {
         const serviceId = parseInt(req.query.serviceId as string);
         if (!isNaN(serviceId)) {
@@ -661,11 +710,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Parse status
       if (req.query.status) {
         filters.status = req.query.status === 'true';
         console.log('Parsed status:', filters.status);
       }
 
+      // Parse dates
       if (req.query.startDate) {
         filters.startDate = new Date(req.query.startDate as string);
       }
@@ -678,6 +729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const logs = await storage.getServiceStatusLogs(filters);
 
+      // Fetch service details for each log
       const logsWithServiceDetails = await Promise.all(
         logs.map(async (log) => {
           const service = await storage.getService(log.serviceId);
@@ -692,6 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch status logs" });
     }
   });
+  // Inside /api/register route
   app.post("/api/register", async (req, res) => {
     if (req.isAuthenticated()) {
       return res.status(400).json({ message: "Already logged in" });
@@ -727,16 +780,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amp_url, amp_username, amp_password } = req.body;
 
+      // Basic validation
       if (!amp_url || !amp_username || !amp_password) {
         return res.status(400).json({ message: "Missing required credentials" });
       }
 
+      // Update environment variables
       process.env.AMP_API_URL = amp_url;
       process.env.AMP_API_USERNAME = amp_username;
       process.env.AMP_API_PASSWORD = amp_password;
 
+      // Reinitialize the AMP service with new credentials
       ampService.reinitialize(amp_url, amp_username, amp_password);
 
+      // Test the new credentials
       try {
         console.log('Testing new AMP credentials...');
         console.log('Using username:', amp_username);
@@ -746,6 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error('Error testing new credentials:', error);
 
+        // Extract the specific error message if available
         let errorMessage = "Failed to connect with new credentials";
         if (error instanceof Error) {
           errorMessage = error.message;
@@ -768,6 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { instanceId } = req.params;
       console.log(`Fetching metrics for instance ${instanceId}`);
 
+      // Get instance status first to verify it exists and is running
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
 
@@ -781,25 +840,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(null);
       }
 
+      // Get metrics
       const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics for instance ${instanceId}:`, metrics);
+      console.log(`Metrics forinstance ${instanceId}:`, metrics);
 
       res.json(metrics);
     } catch (error) {
-      console.error(`Error fetching metrics for instance ${req.params.instanceId}:`, error);
+      console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
-        message: "Failed to fetch instance metrics",
+        message: "Failed to fetchinstance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
 
+  // Add new debug endpoint for game server player count
   app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { instanceId } = req.params;
       console.log(`Debug request received for instance ${instanceId}`);
 
+      // Get all instance information first
       const instances = await ampService.getInstances();
       const instance = instances.find(i => i.InstanceID === instanceId);
 
@@ -810,6 +872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found instance:', instance);
 
+      // Get data from all possible sources
       console.log('Fetching metrics...');
       const metrics = await ampService.getMetrics(instanceId);
       console.log('Raw metrics:', metrics);
@@ -825,6 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const activeUsers = status?.Metrics?.['Active Users']?.RawValue || 0;
       console.log('Extracted active users:', activeUsers);
 
+      // Return all debug information
       const response = {
         instanceInfo: {
           ...instance,
@@ -859,78 +923,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/services/plex/sessions", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  // Add these routes within the registerRoutes function, with the other admin routes
+  app.get("/api/email-templates", isAdmin, async (req, res) => {
     try {
-      const plexToken = process.env.PLEX_TOKEN;
+      const templates = await storage.getAllEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({ message: "Failed to fetch email templates" });
+    }
+  });
 
-      if (!plexToken) {
-        throw new Error("Plex token not configured");
+  app.post("/api/email-templates", isAdmin, async (req, res) => {
+    try {
+      const template = await storage.createEmailTemplate(req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error('Error creating email template:', error);
+      res.status(500).json({ message: "Failed to create email template" });
+    }
+  });
+
+  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
+    try {
+      const template = await storage.updateEmailTemplate({
+        id: parseInt(req.params.id),
+        ...req.body
+      });
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      res.status(500).json({ message: "Failed to update email template" });
+    }
+  });
+
+  app.post("/api/email-templates/:id/test", isAdmin, async (req, res) => {
+    try {
+      const { email, logoUrl } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" });
       }
 
-      const headers = {
-        'X-Plex-Token': plexToken,
-        'X-Plex-Client-Identifier': 'HomeLabDashboard-SessionMonitor',
-        'X-Plex-Product': 'Homelab Dashboard',
-        'X-Plex-Version': '1.0',
-        'Accept': 'application/xml'
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getEmailTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+
+      // Ensure we have an absolute URL for the logo
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const absoluteLogoUrl = logoUrl?.startsWith('http') ? logoUrl : `${baseUrl}${logoUrl}`;
+
+      console.log('Testing email template with logo:', {
+        providedUrl: logoUrl,
+        absoluteUrl: absoluteLogoUrl,
+        baseUrl
+      });
+
+      const templateData = {
+        serviceName: "Test Service",
+        status: "UP",
+        timestamp: new Date().toLocaleString(),
+        duration: "5 minutes",
+        logoUrl: absoluteLogoUrl
       };
 
-      // Get server info from plex.tv, similar to invite endpoint
-      const resourcesResponse = await fetch('https://plex.tv/api/resources', {
-        method: 'GET',
-        headers
+      const success = await sendEmail({
+        to: email,
+        templateId,
+        templateData,
       });
 
-      if (!resourcesResponse.ok) {
-        throw new Error(`Failed to get Plex resources: ${resourcesResponse.status}`);
+      if (success) {
+        res.json({ message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send test email" });
       }
-
-      const resourcesText = await resourcesResponse.text();
-      console.log('Raw Plex response:', resourcesText);
-
-      // Parse the XML response to get server details
-      const serverMatch = resourcesText.match(/clientIdentifier="([^"]+)"/);
-      const serverAddressMatch = resourcesText.match(/address="([^"]+)"/);
-      const serverPortMatch = resourcesText.match(/port="([^"]+)"/);
-
-      if (!serverMatch || !serverAddressMatch || !serverPortMatch) {
-        throw new Error("Could not find server information in Plex response");
-      }
-
-      const serverId = serverMatch[1];
-      const serverAddress = serverAddressMatch[1];
-      const serverPort = serverPortMatch[1];
-
-      console.log(`Found Plex server: ${serverAddress}:${serverPort} (${serverId})`);
-
-      // Get sessions from the server
-      const sessionsResponse = await fetch(`https://plex.tv/api/servers/${serverId}/activities`, {
-        method: 'GET',
-        headers: {
-          ...headers,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!sessionsResponse.ok) {
-        throw new Error(`Failed to get sessions: ${sessionsResponse.status}`);
-      }
-
-      const sessionsData = await sessionsResponse.json();
-      console.log('Sessions data:', sessionsData);
-
-      // Count active sessions
-      const sessionCount = sessionsData?.MediaContainer?.size || 0;
-      console.log('Session count:', sessionCount);
-
-      res.json({ count: sessionCount });
     } catch (error) {
-      console.error('Error fetching Plex sessions:', error);
-      res.status(500).json({
-        message: "Failed to fetch Plex sessions",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      console.error('Error sending test email:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Add new route for login attempts
+  app.get("/api/login-attempts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const attempts = await storage.getAllLoginAttempts();
+      res.json(attempts);
+    } catch (error) {
+      console.error('Error fetching login attempts:', error);
+      res.status(500).json({ message: "Failed to fetch login attempts" });
     }
   });
 
@@ -946,6 +1032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Sending Plex invitation to ${email}...`);
 
+      // Common headers for all Plex API requests
       const headers = {
         'X-Plex-Token': plexToken,
         'X-Plex-Client-Identifier': 'HomelabDashboard',
@@ -954,6 +1041,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Accept': 'application/xml'
       };
 
+      // Step 1: Get all servers associated with the account
       const resourcesResponse = await fetch('https://plex.tv/api/resources', {
         method: 'GET',
         headers
@@ -968,6 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resourcesText = await resourcesResponse.text();
       console.log('Raw Plex response:', resourcesText);
 
+      // Simple XML parsing to get the server identifier
       const serverMatch = resourcesText.match(/clientIdentifier="([^"]+)"/);
       const serverNameMatch = resourcesText.match(/name="([^"]+)"/);
 
@@ -980,6 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Found Plex server: ${serverName} (${serverId})`);
 
+      // Step 2: Send the invitation
       const inviteResponse = await fetch(`https://plex.tv/api/servers/${serverId}/shared_servers`, {
         method: 'POST',
         headers: {
@@ -1011,8 +1101,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviteResult = await inviteResponse.text();
       console.log('Plex invitation response:', inviteResult);
 
-      res.json({
-        message: "Plex invitation sent successfully",
+      res.json({ 
+        message: "Plex invitation sent successfully", 
         server: serverName,
         email: email
       });
