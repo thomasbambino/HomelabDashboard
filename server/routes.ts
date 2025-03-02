@@ -937,7 +937,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("Plex token not configured");
       }
 
-      // Use Python child process to handle Plex invitation
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
 import sys
@@ -962,23 +961,23 @@ except Exception as e:
     print(json.dumps({"success": False, "error": str(e)}))
 `;
 
-      const python = spawn('python3', ['-c', pythonScript]);
+      const pythonProcess = spawn('python3', ['-c', pythonScript]);
 
       let result = '';
       let error = '';
 
-      python.stdout.on('data', (data) => {
+      pythonProcess.stdout.on('data', (data) => {
         result += data.toString();
         console.log('Python stdout:', data.toString());
       });
 
-      python.stderr.on('data', (data) => {
+      pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
         console.error('Python stderr:', data.toString());
       });
 
       await new Promise((resolve, reject) => {
-        python.on('close', (code) => {
+        pythonProcess.on('close', (code) => {
           console.log('Python process exited with code:', code);
           console.log('Full output:', result);
           console.log('Full error:', error);
