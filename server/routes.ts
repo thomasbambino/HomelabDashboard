@@ -847,8 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+        error: error instanceof Error ? error.message : "Unknown error"      });
     }
   });
 
@@ -1036,18 +1035,8 @@ try:
     # Initialize Plex account
     account = MyPlexAccount(token='${plexToken}')
 
-    # Get servers
-    servers = account.resources()
-    if not servers:
-        raise Exception("No Plex servers found")
-
-    # Get the first server that provides server functionality
-    server = next((s for s in servers if s.provides == 'server'), None)
-    if not server:
-        raise Exception("No valid Plex server found")
-
-    # Send the invitation with minimal parameters
-    account.inviteFriend('${email}', server.name)
+    # Send a basic friend invitation
+    account.inviteFriend('${email}')
     print("Success")
 except Exception as e:
     print("Error:", str(e), file=sys.stderr)
