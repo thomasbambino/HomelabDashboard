@@ -103,10 +103,10 @@ async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filenam
   let size: number;
   switch (type) {
     case 'service':
-      size = 48; 
+      size = 48;
       break;
     case 'game':
-      size = 64; 
+      size = 64;
       break;
     default:
       size = 32;
@@ -352,8 +352,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!server) {
         server = await storage.createGameServer({
           instanceId,
-          name: "Unknown", 
-          type: "unknown", 
+          name: "Unknown",
+          type: "unknown",
           hidden: hidden
         });
       } else {
@@ -964,70 +964,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const headers = {
-        'Accept': 'application/json',
         'X-Plex-Token': plexToken,
         'X-Plex-Client-Identifier': 'HomeLabDashboard-SessionMonitor',
         'X-Plex-Product': 'Homelab Dashboard',
         'X-Plex-Version': '1.0',
-        'X-Plex-Device': 'HomelabDashboard',
-        'X-Plex-Device-Name': 'Homelab Session Monitor'
+        'Accept': 'application/xml'
       };
 
-      const urls = [
-        'http://localhost:32400',
-        'http://127.0.0.1:32400'
-      ];
+      // Get server info from plex.tv, similar to invite endpoint
+      const resourcesResponse = await fetch('https://plex.tv/api/resources', {
+        method: 'GET',
+        headers
+      });
 
-      let sessionCount = 0;
-      let lastError = null;
-
-      for (const baseUrl of urls) {
-        try {
-          console.log(`Trying Plex server at ${baseUrl}...`);
-
-          const sessionsResponse = await fetch(`${baseUrl}/status/sessions`, { 
-            headers,
-            timeout: 5000 
-          });
-
-          if (sessionsResponse.ok) {
-            const data = await sessionsResponse.json();
-            console.log('Sessions response:', data);
-
-            if (data.MediaContainer) {
-              sessionCount = data.MediaContainer.size || 0;
-              console.log('Found session count:', sessionCount);
-              break; 
-            }
-          }
-        } catch (err) {
-          console.log(`Failed to connect to ${baseUrl}:`, err.message);
-          lastError = err;
-          continue; 
-        }
+      if (!resourcesResponse.ok) {
+        throw new Error(`Failed to get Plex resources: ${resourcesResponse.status}`);
       }
 
-      if (sessionCount === 0 && lastError) {
-        console.log('Trying Plex.tv API as fallback...');
-        const plexTvResponse = await fetch('https://plex.tv/api/v2/resources', {
-          headers: {
-            'Accept': 'application/json',
-            'X-Plex-Token': plexToken
-          }
-        });
+      const resourcesText = await resourcesResponse.text();
+      console.log('Raw Plex response:', resourcesText);
 
-        if (plexTvResponse.ok) {
-          const resources = await plexTvResponse.json();
-          const server = resources.find((r: any) => r.provides === 'server');
-          if (server) {
-            sessionCount = server.connections[0]?.Session?.size || 0;
-          }
-        }
+      // Parse the XML response to get server details
+      const serverMatch = resourcesText.match(/clientIdentifier="([^"]+)"/);
+      const serverAddressMatch = resourcesText.match(/address="([^"]+)"/);
+      const serverPortMatch = resourcesText.match(/port="([^"]+)"/);
+
+      if (!serverMatch || !serverAddressMatch || !serverPortMatch) {
+        throw new Error("Could not find server information in Plex response");
       }
 
-      console.log('Final session count:', sessionCount);
+      const serverId = serverMatch[1];
+      const serverAddress = serverAddressMatch[1];
+      const serverPort = serverPortMatch[1];
+
+      console.log(`Found Plex server: ${serverAddress}:${serverPort} (${serverId})`);
+
+      // Get sessions from the server
+      const sessionsResponse = await fetch(`https://plex.tv/api/servers/${serverId}/activities`, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!sessionsResponse.ok) {
+        throw new Error(`Failed to get sessions: ${sessionsResponse.status}`);
+      }
+
+      const sessionsData = await sessionsResponse.json();
+      console.log('Sessions data:', sessionsData);
+
+      // Count active sessions
+      const sessionCount = sessionsData?.MediaContainer?.size || 0;
+      console.log('Session count:', sessionCount);
+
       res.json({ count: sessionCount });
-
     } catch (error) {
       console.error('Error fetching Plex sessions:', error);
       res.status(500).json({
@@ -1114,8 +1106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviteResult = await inviteResponse.text();
       console.log('Plex invitation response:', inviteResult);
 
-      res.json({ 
-        message: "Plex invitation sent successfully", 
+      res.json({
+        message: "Plex invitation sent successfully",
         server: serverName,
         email: email
       });
