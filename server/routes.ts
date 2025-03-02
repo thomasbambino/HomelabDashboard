@@ -978,7 +978,7 @@ try:
     # Send the invitation with the required server parameter
     account.inviteFriend(
         invite_email,
-        server=server,  // Specify the server parameter
+        server,  // Pass the server object directly
         allowSync=True,
         allowCameraUpload=False,
         allowChannels=False
