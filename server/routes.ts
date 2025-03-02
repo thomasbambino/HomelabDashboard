@@ -1030,9 +1030,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the Python script to get Plex sessions with a consistent client identifier
       const pythonProcess = spawn('python3', ['-c', `
+import sys
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
-from plexapi.client import PlexClient
 
 # Use consistent client identifier and headers
 CLIENT_ID = 'HomeLabDashboard-SessionMonitor'
@@ -1044,42 +1044,44 @@ CLIENT_HEADERS = {
     'X-Plex-Device-Name': 'Homelab Session Monitor'
 }
 
-# Initialize account with consistent headers
-account = MyPlexAccount(token="${plexToken}", headers=CLIENT_HEADERS)
-servers = account.resources()
-total_sessions = 0
+try:
+    # Initialize account with consistent headers
+    account = MyPlexAccount(token="${plexToken}")
 
-for server in servers:
-    if server.provides == 'server':
-        try:
-            connected_server = server.connect(headers=CLIENT_HEADERS)
-            sessions = connected_server.sessions()
-            total_sessions += len(sessions)
-        except:
-            pass
+    # Get the first available server
+    plex = account.resource().connect()
 
-print(total_sessions)
+    # Get all current sessions
+    sessions = plex.sessions()
+    print(len(sessions), file=sys.stdout)
+except Exception as e:
+    print(f"Error: {str(e)}", file=sys.stderr)
+    sys.exit(1)
       `]);
 
       let sessionCount = 0;
       let error = '';
 
       pythonProcess.stdout.on('data', (data) => {
-        sessionCount = parseInt(data.toString().trim()) || 0;
+        const output = data.toString().trim();
+        console.log('Plex sessions output:', output);
+        sessionCount = parseInt(output) || 0;
       });
 
       pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
+        console.error('Plex sessions error:', error);
       });
 
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
-          console.error('Plex sessions error:', error);
+          console.error('Plex sessions process error:', error);
           res.status(500).json({
             message: "Failed to fetch Plex sessions",
             error: error
           });
         } else {
+          console.log('Returning session count:', sessionCount);
           res.json({ count: sessionCount });
         }
       });
