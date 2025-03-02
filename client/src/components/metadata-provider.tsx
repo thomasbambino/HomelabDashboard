@@ -13,61 +13,21 @@ export function LPMetadataProvider({ children }: MetadataProviderProps) {
 
   useEffect(() => {
     if (settings) {
-      // Update document title
+      // Define base metadata
       const title = settings.site_title || "Homelab Dashboard";
       const description = settings.login_description || "Monitor your services and game servers in real-time with our comprehensive dashboard.";
       const logoUrl = settings.logo_url_large || settings.logo_url;
 
+      // Ensure logo URL is absolute
+      const absoluteLogoUrl = logoUrl?.startsWith('http') 
+        ? logoUrl 
+        : `${window.location.origin}${logoUrl}`;
+
+      // Basic meta tags
       document.title = title;
 
-      // Update favicon if custom logo is set
-      if (settings.logo_url) {
-        const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
-        link.type = 'image/x-icon';
-        link.rel = 'shortcut icon';
-        link.href = settings.logo_url;
-        document.head.appendChild(link);
-      }
-
-      // Update meta description
-      const metaDescription = document.querySelector('meta[name="description"]') || document.createElement('meta');
-      metaDescription.setAttribute("name", "description");
-      metaDescription.setAttribute("content", description);
-      if (!document.querySelector('meta[name="description"]')) {
-        document.head.appendChild(metaDescription);
-      }
-
-      // OpenGraph meta tags for social sharing
-      const ogTags = {
-        'og:title': title,
-        'og:description': description,
-        'og:type': 'website',
-        'og:image': logoUrl || '',
-      };
-
-      // Twitter Card meta tags
-      const twitterTags = {
-        'twitter:card': 'summary_large_image',
-        'twitter:title': title,
-        'twitter:description': description,
-        'twitter:image': logoUrl || '',
-      };
-
-      // Update or create OpenGraph meta tags
-      Object.entries(ogTags).forEach(([property, content]) => {
-        if (!content) return;
-        let meta = document.querySelector(`meta[property="${property}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('property', property);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', content);
-      });
-
-      // Update or create Twitter Card meta tags
-      Object.entries(twitterTags).forEach(([name, content]) => {
-        if (!content) return;
+      // Update or create basic meta tags
+      const updateMetaTag = (name: string, content: string) => {
         let meta = document.querySelector(`meta[name="${name}"]`);
         if (!meta) {
           meta = document.createElement('meta');
@@ -75,7 +35,69 @@ export function LPMetadataProvider({ children }: MetadataProviderProps) {
           document.head.appendChild(meta);
         }
         meta.setAttribute('content', content);
-      });
+      };
+
+      // Update or create OpenGraph meta tags
+      const updateOGMetaTag = (property: string, content: string) => {
+        let meta = document.querySelector(`meta[property="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('property', property);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      // Basic metadata
+      updateMetaTag('description', description);
+      updateMetaTag('application-name', title);
+
+      // OpenGraph metadata
+      updateOGMetaTag('og:site_name', title);
+      updateOGMetaTag('og:title', title);
+      updateOGMetaTag('og:description', description);
+      updateOGMetaTag('og:type', 'website');
+      updateOGMetaTag('og:url', window.location.href);
+      if (absoluteLogoUrl) {
+        updateOGMetaTag('og:image', absoluteLogoUrl);
+        updateOGMetaTag('og:image:secure_url', absoluteLogoUrl);
+        updateOGMetaTag('og:image:alt', `${title} logo`);
+      }
+
+      // Twitter Card metadata
+      updateMetaTag('twitter:card', 'summary_large_image');
+      updateMetaTag('twitter:title', title);
+      updateMetaTag('twitter:description', description);
+      if (absoluteLogoUrl) {
+        updateMetaTag('twitter:image', absoluteLogoUrl);
+        updateMetaTag('twitter:image:alt', `${title} logo`);
+      }
+
+      // Update favicon if custom logo is set
+      if (logoUrl) {
+        const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+        link.href = logoUrl;
+        if (!document.querySelector("link[rel*='icon']")) {
+          document.head.appendChild(link);
+        }
+      }
+
+      // Add preconnect for logo domain if it's from a different origin
+      if (logoUrl?.startsWith('http')) {
+        try {
+          const logoOrigin = new URL(logoUrl).origin;
+          if (logoOrigin !== window.location.origin) {
+            const preconnectLink = document.createElement('link');
+            preconnectLink.rel = 'preconnect';
+            preconnectLink.href = logoOrigin;
+            document.head.appendChild(preconnectLink);
+          }
+        } catch (e) {
+          console.error('Failed to parse logo URL:', e);
+        }
+      }
     }
   }, [settings]);
 
