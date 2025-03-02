@@ -8,6 +8,8 @@ import { AuthProvider } from "./hooks/use-auth.js";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
+import SettingsPage from "@/pages/settings-page";
+import UptimeLogPage from "@/pages/uptime-log-page";
 import PendingPage from "@/pages/pending-page";
 import { ProtectedRoute } from "./lib/protected-route.js";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -20,6 +22,8 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/users" component={UsersPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/uptime-log" component={UptimeLogPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/pending" component={PendingPage} />
       <Route component={NotFound} />
