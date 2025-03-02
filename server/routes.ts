@@ -849,7 +849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
         message: "Failed to fetch instance metrics",
-        error: error instanceof Error ? error.message : "Unknown error"      });
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -1031,15 +1032,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Sending Plex invitation to ${email}...`);
 
+      // Common headers for all Plex API requests
+      const headers = {
+        'X-Plex-Token': plexToken,
+        'X-Plex-Client-Identifier': 'HomelabDashboard',
+        'X-Plex-Product': 'Homelab Dashboard',
+        'X-Plex-Version': '1.0',
+        'Accept': 'application/xml'
+      };
+
       // Step 1: Get all servers associated with the account
-      const resourcesResponse = await fetch(`https://plex.tv/api/resources?X-Plex-Token=${plexToken}`, {
+      const resourcesResponse = await fetch('https://plex.tv/api/resources', {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Plex-Client-Identifier': 'HomelabDashboard',
-          'X-Plex-Product': 'Homelab Dashboard',
-          'X-Plex-Version': '1.0'
-        }
+        headers
       });
 
       if (!resourcesResponse.ok) {
@@ -1048,39 +1053,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error(`Failed to get Plex resources: ${resourcesResponse.status} ${errorText}`);
       }
 
-      const resources = await resourcesResponse.json();
-      console.log('Plex resources:', resources);
+      const resourcesText = await resourcesResponse.text();
+      console.log('Raw Plex response:', resourcesText);
 
-      // Step 2: Find the server (look for the one that provides 'server')
-      const server = resources.find(r => r.provides === 'server');
-      if (!server) {
-        throw new Error("No valid Plex server found in account");
+      // Simple XML parsing to get the server identifier
+      const serverMatch = resourcesText.match(/clientIdentifier="([^"]+)"/);
+      const serverNameMatch = resourcesText.match(/name="([^"]+)"/);
+
+      if (!serverMatch || !serverNameMatch) {
+        throw new Error("Could not find server information in Plex response");
       }
 
-      console.log(`Found Plex server: ${server.name} (${server.clientIdentifier})`);
+      const serverId = serverMatch[1];
+      const serverName = serverNameMatch[1];
 
-      // Step 3: Send the invitation
-      const inviteResponse = await fetch('https://plex.tv/api/servers/' + server.clientIdentifier + '/shared_servers', {
+      console.log(`Found Plex server: ${serverName} (${serverId})`);
+
+      // Step 2: Send the invitation
+      const inviteResponse = await fetch(`https://plex.tv/api/servers/${serverId}/shared_servers`, {
         method: 'POST',
         headers: {
-          'X-Plex-Token': plexToken,
-          'Accept': 'application/json',
+          ...headers,
           'Content-Type': 'application/json',
-          'X-Plex-Client-Identifier': 'HomelabDashboard',
-          'X-Plex-Product': 'Homelab Dashboard',
-          'X-Plex-Version': '1.0'
         },
         body: JSON.stringify({
-          'machineIdentifier': server.clientIdentifier,
-          'invitedEmail': email,
-          'librarySectionIds': [], // Empty array gives access to all libraries
-          'settings': {
-            'allowSync': '1',
-            'allowCameraUpload': '0',
-            'allowChannels': '0',
-            'filterMovies': '',
-            'filterTelevision': '',
-            'filterMusic': ''
+          machineIdentifier: serverId,
+          invitedEmail: email,
+          librarySectionIds: [], // Empty array gives access to all libraries
+          settings: {
+            allowSync: '1',
+            allowCameraUpload: '0',
+            allowChannels: '0',
+            filterMovies: '',
+            filterTelevision: '',
+            filterMusic: ''
           }
         })
       });
@@ -1091,12 +1097,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error(`Failed to send invitation: ${inviteResponse.status} ${errorText}`);
       }
 
-      const inviteResult = await inviteResponse.json();
-      console.log('Plex invitation sent successfully:', inviteResult);
+      const inviteResult = await inviteResponse.text();
+      console.log('Plex invitation response:', inviteResult);
 
       res.json({ 
         message: "Plex invitation sent successfully", 
-        server: server.name,
+        server: serverName,
         email: email
       });
     } catch (error) {
