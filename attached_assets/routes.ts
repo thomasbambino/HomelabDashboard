@@ -12,12 +12,12 @@ import express from 'express';
 import https from 'https';
 import http from 'http';
 import sharp from 'sharp';
-import { User } from '@shared/schema';
+import {User} from '@shared/schema';
+import { ChatServer } from './chat';
 import cookieParser from 'cookie-parser';
-import { sendEmail } from './email';
+import { sendEmail } from './email'; // Import sendEmail function
 import { ampService } from './amp-service';
 import { z } from "zod";
-import { spawn } from 'child_process';
 
 // Add this near other schema definitions
 const plexInviteSchema = z.object({
@@ -228,18 +228,27 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
   }
 };
 
-const isAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (!req.isAuthenticated() || (req.user as User).role !== 'admin' && (req.user as User).role !== 'superadmin') {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-  next();
-};
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware before session setup
   app.use(cookieParser());
 
   setupAuth(app);
+
+  // Initialize chat server
+  const chatServer = new ChatServer();
+  app.set('chatServer', chatServer);
+
+  // Add Stream Chat token endpoint
+  app.get("/api/chat/token", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { token } = await chatServer.connectUser(req.user);
+      res.json({ token });
+    } catch (error) {
+      console.error('Error generating chat token:', error);
+      res.status(500).json({ message: "Failed to generate chat token" });
+    }
+  });
 
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -665,8 +674,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add private chat room routes
+  app.post("/api/chat/private-rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { userId } = req.body;
+      const currentUser = req.user as User;
 
+      if (!userId || typeof userId !== "number") {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
 
+      // Check if users already have a private chat
+      const existingRoom = await storage.findPrivateRoom(currentUser.id, userId);
+      if (existingRoom) {
+        return res.json(existingRoom);
+      }
+
+      // Get the other user's info for the room name
+      const otherUser = await storage.getUser(userId);
+      if (!otherUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create new private room
+      const newRoom = await storage.createChatRoom({
+        name: `${currentUser.username} & ${otherUser.username}`,
+        type: "private",
+        createdBy: currentUser.id,
+      });
+
+      // Add both users as members
+      await storage.addChatMember({
+        roomId: newRoom.id,
+        userId: currentUser.id,
+        isAdmin: true,
+      });
+
+      await storage.addChatMember({
+        roomId: newRoom.id,
+        userId: userId,
+        isAdmin: true,
+      });
+
+      res.status(201).json(newRoom);
+    } catch (error) {
+      console.error("Error creating private chat room:", error);
+      res.status(500).json({ message: "Failed to create private chat room" });
+    }
+  });
+
+  app.get("/api/chat/private-rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as User;
+      const rooms = await storage.listPrivateRooms(user.id);
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching private rooms:", error);
+      res.status(500).json({ message: "Failed to fetch private rooms" });
+    }
+  });
+
+  // Modify chat room creation to use Stream Chat
+  app.post("/api/chat/rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ message: "Invalid chat room name" });
+      }
+
+      const user = req.user as User;
+      const channelId = `room-${Date.now()}`;
+
+      // Create channel in Stream Chat
+      await chatServer.createChannel('team', channelId, name.trim(), [user.id.toString()]);
+
+      // Store channel info in local database
+      const newRoom = await storage.createChatRoom({
+        name: name.trim(),
+        type: "group",
+        createdBy: user.id,
+        streamChannelId: channelId,
+      });
+
+      res.status(201).json(newRoom);
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      res.status(500).json({ message: "Failed to create chat room" });
+    }
+  });
+
+  app.get("/api/chat/rooms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = req.user as User;
+      const rooms = await storage.listChatRooms(user.id);
+      res.json(rooms);
+    } catch (error) {
+      console.error("Error fetching chat rooms:", error);
+      res.status(500).json({ message: "Failed to fetch chat rooms" });
+    }
+  });
+
+  // Add chat message routes
+  app.post("/api/chat/messages/:roomId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { content } = req.body;
+      const roomId = parseInt(req.params.roomId);
+      const user = req.user as User;
+
+      console.log(`Message send attempt - Room: ${roomId}, User: ${user.id}, Content length: ${content?.length}`);
+
+      if (!content || typeof content !== "string" || !content.trim()) {
+        console.log("Invalid message content");
+        return res.status(400).json({ message: "Invalid message content" });
+      }
+
+      // Get the room to check if it exists and its type
+      const room = await storage.getChatRoom(roomId);
+      if (!room) {
+        console.log(`Room ${roomId} not found`);
+        return res.status(404).json({ message: "Chat room not found" });
+      }
+
+      console.log(`Processing message for ${room.type} room ${roomId}`);
+
+      // For public rooms, ensure user is a member
+      if (room.type === 'public') {
+        console.log(`Ensuring user ${user.id} is member of public room`);
+        await storage.addUserToPublicRoom(user.id);
+      } else {
+        // For private/group rooms, verify membership
+        console.log(`Checking membership for user ${user.id} in room ${roomId}`);
+        const isMember = await storage.getChatMember(roomId, user.id);
+        if (!isMember) {
+          console.log(`User ${user.id} is not a member of room ${roomId}`);
+          return res.status(403).json({ message: "Not a member of this chat room" });
+        }
+      }
+
+      console.log(`Creating message in database`);
+      const message = await storage.createChatMessage({
+        roomId,
+        senderId: user.id,
+        type: 'text',
+        content: content.trim(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEdited: false,
+      });
+
+      // Get the complete message with sender info
+      const messageWithSender = {
+        ...message,
+        sender: await storage.getUser(user.id),
+      };
+
+      // Broadcast the message through WebSocket
+      if (chatServer) {
+        console.log(`Broadcasting message to room ${roomId}`);
+        chatServer.broadcastToRoom(roomId, {
+          type: 'message',
+          roomId,
+          data: messageWithSender,
+        });      } else {
+        console.warn('Chat server not found for broadcasting');
+      }
+
+      res.status(201).json(messageWithSender);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Add endpoint to get users for private chats
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
@@ -762,6 +947,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         approved: true,
       });
 
+      // Add user to public chat room
+      await storage.addUserToPublicRoom(user.id);
+
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
@@ -842,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get metrics
       const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics forinstance ${instanceId}:`, metrics);
+      console.log(`Metrics for instance ${instanceId}:`, metrics);
 
       res.json(metrics);
     } catch (error) {
@@ -923,167 +1111,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this with other API routes, before the app.get("/api/game-servers/:instanceId/metrics",...) route
-  app.get("/api/login-attempts", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const attempts = await storage.getAllLoginAttempts();
-      res.json(attempts);
-    } catch (error) {
-      console.error('Error fetching login attempts:', error);
-      res.status(500).json({ message: "Failed to fetch login attempts" });
-    }
-  });
-
   // Add Plex account invitation endpoint
   app.post("/api/services/plex/account", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+
     try {
       const { email } = plexInviteSchema.parse(req.body);
-      const plexToken = 'WXxaPDsUPNFszKdPUmAx';
+
+      // Get Plex token from environment variables
+      const plexToken = process.env.PLEX_TOKEN;
+      if (!plexToken) {
+        throw new Error("Plex token not configured");
+      }
 
       // Use Python child process to handle Plex invitation
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
-import sys
-import json
-
 try:
-    print("Initializing Plex account with token")
     account = MyPlexAccount(token='${plexToken}')
-    print("Sending friend invite")
-    result = account.inviteFriend(email, ['Server1'])
-    print("Invite sent successfully:", result)
-    print("Success")
+    # Get the first server (assuming single server setup)
+    server = account.resources()[0]
+    # Send the invitation
+    server.inviteFriend(email, plex_api.library.sections())
+    print('{"success": true}')
 except Exception as e:
-    print("Error:", str(e))
-    print("Failed")
+    print('{"success": false, "error": "' + str(e) + '"}')
 `;
 
-      const pythonProcess = spawn('python3', ['-c', pythonScript]);
+      const { spawn } = require('child_process');
+      const python = spawn('python3', ['-c', pythonScript]);
 
-      let output = '';
+      let result = '';
       let error = '';
 
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
-        console.log('Python stdout:', data.toString());
+      python.stdout.on('data', (data) => {
+        result += data.toString();
       });
 
-      pythonProcess.stderr.on('data', (data) => {
+      python.stderr.on('data', (data) => {
         error += data.toString();
-        console.error('Python stderr:', data.toString());
       });
 
       await new Promise((resolve, reject) => {
-        pythonProcess.on('close', (code) => {
-          console.log('Python process exited with code:', code);
-          console.log('Full output:', output);
-          console.log('Full error:', error);
-
-          if (code === 0 && output.includes('Success')) {
-            resolve();
-          } else {
+        python.on('close', (code) => {
+          if (code !== 0) {
             reject(new Error(error || 'Failed to send Plex invitation'));
+          } else {
+            resolve(result);
           }
         });
       });
 
-      res.json({ message: "Plex invitation sent successfully" });
+      try {
+        const response = JSON.parse(result);
+        if (!response.success) {
+          throw new Error(response.error);
+        }
+      } catch (e) {
+        throw new Error('Invalid response from Plex API');
+      }
+
+      res.json({ message: "Invitation sent successfully" });
     } catch (error) {
       console.error('Error sending Plex invitation:', error);
-      res.status(500).json({ 
-        message: "Failed to send Plex invitation",
-        error: error instanceof Error ? error.message : "Unknown error"
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Failed to send invitation"
       });
-    }
-  });
-
-  // Add these routes within the registerRoutes function, with the other admin routes
-  app.get("/api/email-templates", isAdmin, async (req, res) => {
-    try {
-      const templates = await storage.getAllEmailTemplates();
-      res.json(templates);
-    } catch (error) {
-      console.error('Error fetching email templates:', error);
-      res.status(500).json({ message: "Failed to fetch email templates" });
-    }
-  });
-
-  app.post("/api/email-templates", isAdmin, async (req, res) => {
-    try {
-      const template = await storage.createEmailTemplate(req.body);
-      res.status(201).json(template);
-    } catch (error) {
-      console.error('Error creating email template:', error);
-      res.status(500).json({ message: "Failed to create email template" });
-    }
-  });
-
-  app.patch("/api/email-templates/:id", isAdmin, async (req, res) => {
-    try {
-      const template = await storage.updateEmailTemplate({
-        id: parseInt(req.params.id),
-        ...req.body
-      });
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-      res.json(template);
-    } catch (error) {
-      console.error('Error updating email template:', error);
-      res.status(500).json({ message: "Failed to update email template" });
-    }
-  });
-
-  app.post("/api/email-templates/:id/test", isAdmin, async (req, res) => {
-    try {
-      const { email, logoUrl } = req.body;
-      if (!email) {
-        return res.status(400).json({ message: "Email address is required" });
-      }
-
-      const templateId = parseInt(req.params.id);
-      const template = await storage.getEmailTemplate(templateId);
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      // Ensure we have an absolute URL for the logo
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const absoluteLogoUrl = logoUrl?.startsWith('http') ? logoUrl : `${baseUrl}${logoUrl}`;
-
-      console.log('Testing email template with logo:', {
-        providedUrl: logoUrl,
-        absoluteUrl: absoluteLogoUrl,
-        baseUrl
-      });
-
-      const templateData = {
-        serviceName: "Test Service",
-        status: "UP",
-        timestamp: new Date().toLocaleString(),
-        duration: "5 minutes",
-        logoUrl: absoluteLogoUrl
-      };
-
-      const success = await sendEmail({
-        to: email,
-        templateId,
-        templateData,
-      });
-
-      if (success) {
-        res.json({ message: "Test email sent successfully" });
-      } else {
-        res.status(500).json({ message: "Failed to send test email" });
-      }
-    } catch (error) {
-      console.error('Error sending test email:', error);
-      res.status(500).json({ message: "Internal server error" });
     }
   });
 
   const httpServer = createServer(app);
+  console.log('Chat server initialized successfully');
+
   return httpServer;
 }
