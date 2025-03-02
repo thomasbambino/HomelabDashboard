@@ -923,6 +923,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this with other API routes, before the app.get("/api/game-servers/:instanceId/metrics",...) route
+  app.get("/api/login-attempts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const attempts = await storage.getAllLoginAttempts();
+      res.json(attempts);
+    } catch (error) {
+      console.error('Error fetching login attempts:', error);
+      res.status(500).json({ message: "Failed to fetch login attempts" });
+    }
+  });
+
   // Add Plex account invitation endpoint
   app.post("/api/services/plex/account", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -963,9 +975,10 @@ try:
     invite_email = '${email}'
     print(f"Sending invite to: {invite_email}", file=sys.stderr)
 
-    # Send the invitation
+    # Send the invitation with the required server parameter
     account.inviteFriend(
         invite_email,
+        server=server,  // Specify the server parameter
         allowSync=True,
         allowCameraUpload=False,
         allowChannels=False
@@ -1115,18 +1128,6 @@ except Exception as e:
     } catch (error) {
       console.error('Error sending test email:', error);
       res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Add this with other API routes, before the app.get("/api/game-servers/:instanceId/metrics",...) route
-  app.get("/api/login-attempts", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const attempts = await storage.getAllLoginAttempts();
-      res.json(attempts);
-    } catch (error) {
-      console.error('Error fetching login attempts:', error);
-      res.status(500).json({ message: "Failed to fetch login attempts" });
     }
   });
 
