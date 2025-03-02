@@ -17,7 +17,9 @@ import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
 import { ampService } from './amp-service';
 import { z } from "zod";
+import { spawn } from 'child_process';
 import fetch from 'node-fetch';
+
 
 const plexInviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -840,20 +842,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get metrics
       const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics for instance ${instanceId}:`, metrics);
+      console.log(`Metrics forinstance ${instanceId}:`, metrics);
 
       res.json(metrics);
     } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
-        message: "Failed to fetch instance metrics",
+        message: "Failed to fetchinstance metrics",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
 
-  //  // Add new debug endpoint for game server player count
-  app.get("/api/api/game-servers/:instanceId/debug", async (req, res) => {
+  // Add new debug endpoint for game server player count
+  app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { instanceId } = req.params;
@@ -1099,8 +1101,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviteResult = await inviteResponse.text();
       console.log('Plex invitation response:', inviteResult);
 
-      res.json({
-        message: "Plex invitation sent successfully",
+      res.json({ 
+        message: "Plex invitation sent successfully", 
         server: serverName,
         email: email
       });
@@ -1108,109 +1110,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error sending Plex invitation:', error);
       res.status(500).json({
         message: "Failed to send Plex invitation",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.get("/api/services/plex/sessions", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      // Get all services to find Plex
-      const services = await storage.getAllServices();
-      const plexService = services.find(s => s.name.toLowerCase().includes('plex'));
-
-      if (!plexService) {
-        console.log('No Plex service found');
-        return res.status(404).json({ message: "Plex service not found" });
-      }
-
-      console.log('Found Plex service:', plexService.name, plexService.url);
-
-      // Extract token from URL if present
-      const url = new URL(plexService.url);
-      const token = url.searchParams.get('X-Plex-Token');
-
-      if (!token) {
-        console.log('No Plex token found in URL');
-        return res.status(400).json({ message: "Plex token not found in service URL" });
-      }
-
-      // Use the direct IP and port as specified in documentation
-      const plexUrl = `http://192.168.0.229:32400/status/sessions`;
-      console.log('Calling Plex API at:', plexUrl);
-
-      // Make direct API call to Plex sessions endpoint with XML format
-      const response = await fetch(`${plexUrl}?X-Plex-Token=${token}`, {
-        headers: {
-          'Accept': 'application/xml',  // Request XML format
-          'X-Plex-Token': token
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Plex API error:', response.status, response.statusText);
-        throw new Error(`Plex API error: ${response.statusText}`);
-      }
-
-      // Get raw XML response
-      const xmlText = await response.text();
-      console.log('Raw XML response from Plex:', xmlText);
-
-      // Parse the XML to get active sessions count
-      const sizeMatch = xmlText.match(/<MediaContainer size="(\d+)"/);
-      const activeStreams = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
-
-      // Parse basic session details using regex
-      const sessionDetails = [];
-      const videoMatches = xmlText.matchAll(/<Video.*?<\/Video>/gs);
-      const trackMatches = xmlText.matchAll(/<Track.*?<\/Track>/gs);
-
-      for (const match of videoMatches) {
-        const videoXml = match[0];
-        const typeMatch = videoXml.match(/type="([^"]+)"/);
-        const titleMatch = videoXml.match(/title="([^"]+)"/);
-        const userMatch = videoXml.match(/<User.*?title="([^"]+)"/);
-        const playerMatch = videoXml.match(/<Player.*?title="([^"]+)"/);
-        const stateMatch = videoXml.match(/<Player.*?state="([^"]+)"/);
-
-        sessionDetails.push({
-          type: typeMatch?.[1] || 'unknown',
-          title: titleMatch?.[1] || 'Unknown',
-          user: userMatch?.[1] || 'Unknown',
-          player: playerMatch?.[1] || 'Unknown',
-          state: stateMatch?.[1] || 'unknown'
-        });
-      }
-
-      for (const match of trackMatches) {
-        const trackXml = match[0];
-        const titleMatch = trackXml.match(/title="([^"]+)"/);
-        const userMatch = trackXml.match(/<User.*?title="([^"]+)"/);
-        const playerMatch = trackXml.match(/<Player.*?title="([^"]+)"/);
-        const stateMatch = trackXml.match(/<Player.*?state="([^"]+)"/);
-
-        sessionDetails.push({
-          type: 'track',
-          title: titleMatch?.[1] || 'Unknown',
-          user: userMatch?.[1] || 'Unknown',
-          player: playerMatch?.[1] || 'Unknown',
-          state: stateMatch?.[1] || 'unknown'
-        });
-      }
-
-      const result = {
-        activeStreams,
-        sessionDetails
-      };
-
-      console.log('Processed Plex session data:', JSON.stringify(result, null, 2));
-      res.json(result);
-
-    } catch (error) {
-      console.error('Error fetching Plex sessions:', error);
-      res.status(500).json({
-        message: "Failed to fetch Plex sessions",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }

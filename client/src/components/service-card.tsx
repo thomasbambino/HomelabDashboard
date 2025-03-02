@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, UserPlus, Users } from "lucide-react";
+import { ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 
 // Add email schema for validation
 const plexAccountSchema = z.object({
@@ -135,19 +136,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     backgroundPosition: 'center',
   } : {};
 
-  // Update query implementation for Plex sessions
-  const { data: plexSessions } = useQuery({
-    queryKey: ['/api/services/plex/sessions'],
-    enabled: service.name.toLowerCase().includes('plex'),
-    refetchInterval: 10000, // Reduce to 10 seconds for more frequent updates
-    onSuccess: (data) => {
-      console.log('Plex sessions updated:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching Plex sessions:', error);
-    }
-  });
-
   return (
     <Card
       className={`relative transition-all duration-200 border-0 shadow-none ${isDragging ? "scale-[1.02]" : ""}`}
@@ -172,12 +160,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
           )}
         </div>
         <div className="flex items-center gap-2">
-          {service.name.toLowerCase().includes('plex') && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {plexSessions?.activeStreams || 0}
-            </Badge>
-          )}
           {service.show_status_badge && (
             <Badge
               variant="default"
