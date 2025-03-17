@@ -2,7 +2,7 @@ import { Service } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlexStreams } from "./plex-streams";
 
 
 // Add email schema for validation
@@ -53,9 +54,11 @@ interface ServiceCardProps {
 export function ServiceCard({ service, isDragging, showAdminControls = true }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showPlexDialog, setShowPlexDialog] = useState(false);
+  const [showPlexStreams, setShowPlexStreams] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isPlex = service.name.toLowerCase().includes('plex');
 
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),
@@ -260,7 +263,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-4">
         {showServiceUrl && (
           <a
             href={service.url}
@@ -272,6 +275,39 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
             {service.url}
           </a>
         )}
+        
+        {isPlex && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Plex Media Server</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => setShowPlexStreams(!showPlexStreams)}
+              >
+                {showPlexStreams ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Hide Details
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Show Details
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {showPlexStreams && (
+              <div className="pt-2">
+                <PlexStreams />
+              </div>
+            )}
+          </div>
+        )}
+        
         {showLastChecked && (
           <p className="text-sm text-muted-foreground">
             Last checked: {new Date(service.lastChecked).toLocaleString()}
