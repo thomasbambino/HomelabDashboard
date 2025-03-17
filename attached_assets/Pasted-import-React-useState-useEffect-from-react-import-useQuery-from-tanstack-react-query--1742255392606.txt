@@ -1,0 +1,398 @@
+import React, { useState, useEffect } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw, Users, Film, Tv, Music, PlayCircle, PauseCircle, Settings2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import * as z from 'zod';
+
+// Define schemas for forms
+const plexSettingsSchema = z.object({
+  plexUrl: z.string().url("Must be a valid URL"),
+  plexToken: z.string().min(1, "Plex token is required")
+});
+
+const plexUserSchema = z.object({
+  email: z.string().email("Must be a valid email address")
+});
+
+// Define types for Plex API responses
+interface PlexServerInfo {
+  status: string;
+  uptime: string;
+  library_stats: Record<string, LibrarySection>;
+  active_users: string[];
+  current_streams: any[]; // Using any for now, could be typed more specifically
+  offline_since?: string;
+}
+
+interface LibrarySection {
+  count: number;
+  episodes?: number;
+  display_name: string;
+  emoji: string;
+  show_episodes: boolean;
+}
+
+export function PlexDashboard() {
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+
+  // Set up forms
+  const settingsForm = useForm({
+    resolver: zodResolver(plexSettingsSchema),
+    defaultValues: {
+      plexUrl: '',
+      plexToken: ''
+    }
+  });
+
+  const userForm = useForm({
+    resolver: zodResolver(plexUserSchema),
+    defaultValues: {
+      email: ''
+    }
+  });
+
+  // Fetch Plex data
+  const { data: plexInfo, error, isLoading, refetch } = useQuery<PlexServerInfo>({
+    queryKey: ["/api/plex/status"],
+    refetchInterval: refreshInterval,
+    keepPreviousData: true,
+  });
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: "Refreshing",
+      description: "Fetching latest Plex data"
+    });
+  };
+
+  // Update Plex settings
+  const handleUpdateSettings = async (data: z.infer<typeof plexSettingsSchema>) => {
+    try {
+      await apiRequest("POST", "/api/plex/config", data);
+      toast({
+        title: "Settings updated",
+        description: "Plex settings have been updated successfully"
+      });
+      // Force a refetch of Plex status
+      queryClient.invalidateQueries({ queryKey: ["/api/plex/status"] });
+      setIsEditingSettings(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update settings",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add Plex user
+  const handleAddUser = async (data: z.infer<typeof plexUserSchema>) => {
+    try {
+      await apiRequest("POST", "/api/plex/users", { email: data.email });
+      toast({
+        title: "User invited",
+        description: `Invitation sent to ${data.email}`
+      });
+      userForm.reset();
+      setIsAddingUser(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invitation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Test Plex connection
+  const handleTestConnection = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/plex/test-connection");
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Connection successful",
+          description: "Successfully connected to Plex server"
+        });
+      } else {
+        toast({
+          title: "Connection failed",
+          description: data.message || "Failed to connect to Plex server",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: error instanceof Error ? error.message : "Failed to connect to Plex server",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to render library sections
+  const renderLibrarySections = () => {
+    if (!plexInfo || !plexInfo.library_stats) return null;
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+        {Object.entries(plexInfo.library_stats).map(([key, section]) => (
+          <Card key={key} className="bg-card shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center text-center">
+                <div className="text-2xl mb-1">{section.emoji}</div>
+                <h3 className="font-medium text-sm">{section.display_name}</h3>
+                <p className="text-lg font-bold">{section.count.toLocaleString()}</p>
+                {section.show_episodes && section.episodes !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    {section.episodes.toLocaleString()} Episodes
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  // Function to render active streams as they contain HTML
+  const renderActiveStreams = () => {
+    if (!plexInfo || !plexInfo.active_users || plexInfo.active_users.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <PlayCircle className="mx-auto h-12 w-12 mb-2 opacity-20" />
+          <p>No active streams</p>
+        </div>
+      );
+    }
+
+    // Since these contain markdown, we'll render them directly
+    return (
+      <div className="space-y-2 py-2">
+        {plexInfo.active_users.map((stream, index) => (
+          <div 
+            key={index} 
+            className="p-3 rounded-md bg-card/50"
+            dangerouslySetInnerHTML={{ __html: stream }}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  if (error) {
+    return (
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>Plex Media Server</span>
+            <Badge variant="destructive">Error</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Failed to load Plex data. Please check your connection settings.
+          </p>
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => setIsEditingSettings(true)}
+            >
+              <Settings2 className="h-4 w-4 mr-2" />
+              Configure Plex
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading && !plexInfo) {
+    return (
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Plex Media Server</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isOnline = plexInfo?.status.includes("Online");
+
+  return (
+    <>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg flex items-center">
+              <span>Plex Media Server</span>
+              <Badge 
+                variant={isOnline ? "default" : "destructive"}
+                className="ml-2"
+              >
+                {isOnline ? "Online" : "Offline"}
+              </Badge>
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                title="Refresh Plex data"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddingUser(true)}
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    Add User
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingSettings(true)}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!isOnline && plexInfo?.offline_since && (
+            <div className="mb-4 p-3 bg-destructive/10 rounded-md text-sm">
+              <p className="font-medium">Server offline since: {new Date(plexInfo.offline_since).toLocaleString()}</p>
+            </div>
+          )}
+
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <div className="flex flex-col items-center justify-center p-3 bg-card/50 rounded-md">
+              <p className="text-xs text-muted-foreground">Uptime</p>
+              <p className="font-mono text-lg">{plexInfo?.uptime || "N/A"}</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-3 bg-card/50 rounded-md">
+              <p className="text-xs text-muted-foreground">Active Streams</p>
+              <p className="font-mono text-lg">{plexInfo?.active_users?.length || 0}</p>
+            </div>
+          </div>
+
+          <Tabs defaultValue="activity">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="libraries">Libraries</TabsTrigger>
+            </TabsList>
+            <TabsContent value="activity" className="mt-4">
+              <ScrollArea className="h-[400px] pr-4">
+                {renderActiveStreams()}
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="libraries">
+              {renderLibrarySections()}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddingUser} onOpenChange={setIsAddingUser}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Plex User</DialogTitle>
+          </DialogHeader>
+          <Form {...userForm}>
+            <form onSubmit={userForm.handleSubmit(handleAddUser)} className="space-y-4">
+              <FormField
+                control={userForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="user@example.com" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full">Send Invitation</Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={isEditingSettings} onOpenChange={setIsEditingSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Plex Settings</DialogTitle>
+          </DialogHeader>
+          <Form {...settingsForm}>
+            <form onSubmit={settingsForm.handleSubmit(handleUpdateSettings)} className="space-y-4">
+              <FormField
+                control={settingsForm.control}
+                name="plexUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plex Server URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://plex.example.com:32400" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={settingsForm.control}
+                name="plexToken"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plex Token</FormLabel>
+                    <FormControl>
+                      <Input placeholder="xxxxxxxxxxxxxxxxxxxx" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={handleTestConnection} className="flex-1">
+                  Test Connection
+                </Button>
+                <Button type="submit" className="flex-1">Save Settings</Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

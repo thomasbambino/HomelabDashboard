@@ -1,0 +1,135 @@
+import express from 'express';
+import { plexService } from './PlexService';
+import { isAdmin, isApproved } from './auth';
+
+export function registerPlexRoutes(app: express.Express) {
+  // Get Plex server status and basic information
+  app.get('/api/plex/status', isApproved, async (req, res) => {
+    try {
+      const serverInfo = await plexService.getServerInfo();
+      res.json(serverInfo);
+    } catch (error) {
+      console.error('Error fetching Plex status:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch Plex server status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Add a new user to Plex server
+  app.post('/api/plex/users', isAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      // Validate that it's an email
+      if (!email.includes('@') || !email.includes('.')) {
+        return res.status(400).json({ message: 'Valid email is required' });
+      }
+      
+      // Send Plex invitation
+      const response = await fetch(`https://plex.tv/api/servers/${process.env.PLEX_SERVER_ID}/shared_servers`, {
+        method: 'POST',
+        headers: {
+          'X-Plex-Token': process.env.PLEX_TOKEN || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shared_server: {
+            library_section_ids: [],  // Empty array means share all libraries
+            invited_email: email
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to send Plex invitation: ${errorText}`);
+      }
+      
+      res.json({ message: 'Plex invitation sent successfully' });
+    } catch (error) {
+      console.error('Error inviting user to Plex:', error);
+      res.status(500).json({ 
+        message: 'Failed to send Plex invitation',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Update Plex credentials
+  app.post('/api/plex/config', isAdmin, async (req, res) => {
+    try {
+      const { plexUrl, plexToken, libraryUpdateInterval } = req.body;
+      
+      // Update environment variables (this is temporary, won't persist across restarts)
+      if (plexUrl) process.env.PLEX_URL = plexUrl;
+      if (plexToken) process.env.PLEX_TOKEN = plexToken;
+      
+      // In a real implementation, you would save these to a database
+      // For now, we'll just update in-memory and acknowledge
+      
+      res.json({ 
+        message: 'Plex configuration updated',
+        note: 'Changes won\'t persist across app restarts. Consider updating your .env file.' 
+      });
+    } catch (error) {
+      console.error('Error updating Plex config:', error);
+      res.status(500).json({ 
+        message: 'Failed to update Plex configuration',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get detailed stream information
+  app.get('/api/plex/streams', isApproved, async (req, res) => {
+    try {
+      const serverInfo = await plexService.getServerInfo();
+      res.json(serverInfo.current_streams);
+    } catch (error) {
+      console.error('Error fetching Plex streams:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch Plex streams',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get library statistics
+  app.get('/api/plex/libraries', isApproved, async (req, res) => {
+    try {
+      const serverInfo = await plexService.getServerInfo();
+      res.json(serverInfo.library_stats);
+    } catch (error) {
+      console.error('Error fetching Plex libraries:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch Plex libraries',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Test connection to Plex server
+  app.get('/api/plex/test-connection', isAdmin, async (req, res) => {
+    try {
+      const connection = await plexService.connect();
+      res.json({ 
+        success: true,
+        message: 'Successfully connected to Plex server',
+        server: connection
+      });
+    } catch (error) {
+      console.error('Error connecting to Plex server:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to connect to Plex server',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+}

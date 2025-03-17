@@ -1,0 +1,91 @@
+Plex Integration for Your Homelab Dashboard
+I'll create a comprehensive Plex integration for your homelab dashboard that will provide detailed statistics similar to what you have in your Discord bot. This will include stream information, library stats, and server status.
+Implementation Plan
+The integration will consist of:
+
+Backend service for Plex API communication
+API endpoints to expose Plex data
+Frontend components to display Plex information
+Database schema updates for Plex settings
+
+Let's build this step by step.
+1. First, let's create a Plex service for the backendPlexService.tsClick to open codeTap to open2. Now, let's add API endpoints to expose the Plex dataplex-routes.tsClick to open codeTap to open3. Add the Plex routes to your server configurationIntegration Code for server/routes.tsClick to open codeTap to open4. Let's create a UI component to display Plex informationPlexDashboard.tsxClick to open codeTap to open5. Now let's create a standalone Plex Card component for your dashboard gridPlexCard.tsxClick to open codeTap to open6. Update your environment file to include Plex settingsAdd to .env fileClick to open codeTap to open7. Adding Plex to your dashboardIntegration with Dashboard PageClick to open codeTap to openImplementation Guide
+I've created a comprehensive Plex integration for your homelab dashboard. Here's how to implement it:
+1. Backend Setup
+
+Create the Plex Service
+
+Add the PlexService.ts file to your server directory
+This service handles all the communication with your Plex server using the HTTP API
+
+
+Add API Routes
+
+Add the plex-routes.ts file to your server directory
+Update your main routes.ts file to incorporate the Plex routes
+
+
+Environment Variables
+
+Add the Plex-specific environment variables to your .env file:
+
+PLEX_URL - The URL to your Plex server (e.g., https://plex.yourdomain.com:32400)
+PLEX_TOKEN - Your Plex authentication token
+PLEX_SERVER_ID - Your Plex server ID (needed for user invitation feature)
+
+
+
+
+
+2. Frontend Components
+
+Add the Plex Card Component
+
+Create the PlexCard.tsx component which will be displayed on your dashboard grid
+This shows a compact view with basic server status, library counts, and active streams
+
+
+Add the Detailed Plex Dashboard
+
+Create the PlexDashboard.tsx component that provides a detailed view
+This includes library statistics, active streams, and admin controls
+
+
+Dashboard Integration
+
+Update your Dashboard.tsx page to include the Plex components
+Add a dialog for the detailed Plex view when the card is clicked
+
+
+
+Key Features Implemented
+
+Server Status Monitoring
+
+Shows online/offline status with uptime
+Shows when the server went offline
+
+
+Library Statistics
+
+Displays counts for movies, TV shows, music, etc.
+Shows episode counts for TV libraries
+
+
+Active Stream Monitoring
+
+Shows who's watching what
+Displays playback progress with a progress bar
+Shows quality settings and client information
+Indicates if transcoding is active
+
+
+User Management
+
+Allows admins to invite users to the Plex server
+
+
+Settings Management
+
+Configure Plex URL and token
+Test connection to Plex server

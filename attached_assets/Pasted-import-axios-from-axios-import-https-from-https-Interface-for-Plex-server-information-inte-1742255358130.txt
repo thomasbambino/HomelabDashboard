@@ -1,0 +1,438 @@
+import axios from 'axios';
+import https from 'https';
+
+// Interface for Plex server information
+interface PlexServerInfo {
+  status: string;
+  uptime: string;
+  library_stats: Record<string, LibrarySection>;
+  active_users: string[];
+  current_streams: PlexStream[];
+}
+
+// Interface for library section stats
+interface LibrarySection {
+  count: number;
+  episodes?: number;
+  display_name: string;
+  emoji: string;
+  show_episodes: boolean;
+}
+
+// Interface for stream information
+interface PlexStream {
+  type: string;  // 'movie', 'episode', etc.
+  title: string;
+  grandparentTitle?: string;  // For TV shows
+  year?: number;
+  duration: number;
+  viewOffset: number;
+  usernames: string[];
+  players: {
+    state: string;
+    product: string;
+  }[];
+  media: {
+    videoResolution: string;
+    bitrate: number;
+    parts: {
+      streams: {
+        streamType: number;
+        language: string;
+        languageCode: string;
+        selected: boolean;
+      }[];
+    }[];
+  }[];
+  librarySectionTitle: string;
+  transcodeSession?: {
+    videoDecision: string;
+    audioDecision: string;
+    throttled: boolean;
+    complete: boolean;
+    progress: number;
+    speed: number;
+    context: string;
+    sourceVideoCodec: string;
+    sourceAudioCodec: string;
+    videoCodec: string;
+    audioCodec: string;
+    bitrate: number;
+  };
+  // Add additional fields as needed
+}
+
+// User mapping type
+type UserMapping = Record<string, string>;
+
+export class PlexService {
+  private plexUrl: string;
+  private plexToken: string;
+  private userMapping: UserMapping = {};
+  private libraryCache: Record<string, LibrarySection> = {};
+  private lastLibraryUpdate: Date | null = null;
+  private libraryUpdateInterval: number = 900; // 15 minutes in seconds
+  private offline_since: Date | null = null;
+  private plex_start_time: number | null = null;
+
+  constructor() {
+    this.plexUrl = process.env.PLEX_URL || '';
+    this.plexToken = process.env.PLEX_TOKEN || '';
+    
+    if (!this.plexUrl || !this.plexToken) {
+      console.error('PLEX_URL or PLEX_TOKEN not set in environment variables');
+    }
+    
+    this.loadUserMapping();
+  }
+
+  private loadUserMapping(): void {
+    try {
+      // In a real implementation, this could load from a database or file
+      // For now, we'll use a hardcoded mapping for demonstration
+      this.userMapping = {
+        'user1': 'Friendly Name 1',
+        'user2': 'Friendly Name 2'
+      };
+    } catch (error) {
+      console.error('Failed to load user mapping:', error);
+    }
+  }
+
+  // Connect to the Plex server
+  public async connect(): Promise<any> {
+    try {
+      const agent = new https.Agent({
+        rejectUnauthorized: false // Allow self-signed certificates
+      });
+
+      const response = await axios.get(`${this.plexUrl}/identity`, {
+        params: { 'X-Plex-Token': this.plexToken },
+        httpsAgent: agent,
+        timeout: 10000 // 10 seconds timeout
+      });
+
+      if (response.status === 200) {
+        if (this.plex_start_time === null) {
+          this.plex_start_time = Date.now();
+        }
+        this.offline_since = null;
+        return response.data;
+      }
+      throw new Error(`Failed to connect to Plex. Status: ${response.status}`);
+    } catch (error) {
+      this.plex_start_time = null;
+      if (this.offline_since === null) {
+        this.offline_since = new Date();
+      }
+      throw error;
+    }
+  }
+
+  // Get server information including library stats and active streams
+  public async getServerInfo(): Promise<PlexServerInfo> {
+    try {
+      await this.connect();
+      return {
+        status: "🟢 Online",
+        uptime: this.calculateUptime(),
+        library_stats: await this.getLibraryStats(),
+        active_users: await this.getActiveStreams(),
+        current_streams: await this.getSessions()
+      };
+    } catch (error) {
+      console.error('Error retrieving server info:', error);
+      return this.getOfflineInfo();
+    }
+  }
+
+  // Calculate the server uptime
+  private calculateUptime(): string {
+    if (!this.plex_start_time) {
+      return "Offline";
+    }
+    
+    const totalMinutes = Math.floor((Date.now() - this.plex_start_time) / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    return hours > 99 ? "99+ Hours" : `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+
+  // Get library statistics
+  private async getLibraryStats(): Promise<Record<string, LibrarySection>> {
+    const currentTime = new Date();
+    
+    // Return cached data if it's still valid
+    if (
+      this.lastLibraryUpdate &&
+      (currentTime.getTime() - this.lastLibraryUpdate.getTime()) / 1000 <= this.libraryUpdateInterval
+    ) {
+      return this.libraryCache;
+    }
+
+    try {
+      const agent = new https.Agent({ rejectUnauthorized: false });
+      
+      // Get all library sections
+      const response = await axios.get(`${this.plexUrl}/library/sections`, {
+        params: { 'X-Plex-Token': this.plexToken },
+        httpsAgent: agent
+      });
+
+      const sections = response.data.MediaContainer.Directory || [];
+      
+      // Default configuration
+      const plexConfig = {
+        show_all: true,
+        sections: {
+          'Movies': { 
+            display_name: 'Movies', 
+            emoji: '🎬', 
+            show_episodes: false 
+          },
+          'TV Shows': { 
+            display_name: 'TV Shows', 
+            emoji: '📺', 
+            show_episodes: true 
+          },
+          'Music': { 
+            display_name: 'Music', 
+            emoji: '🎵', 
+            show_episodes: false 
+          }
+          // Add more default mappings as needed
+        }
+      };
+      
+      const stats: Record<string, LibrarySection> = {};
+      
+      for (const section of sections) {
+        const title = section.title;
+        
+        // Get section details including item count
+        const sectionResponse = await axios.get(`${this.plexUrl}/library/sections/${section.key}/all`, {
+          params: { 
+            'X-Plex-Token': this.plexToken,
+            type: section.type
+          },
+          httpsAgent: agent
+        });
+        
+        const itemCount = sectionResponse.data.MediaContainer.size || 0;
+        let episodeCount = 0;
+        
+        // If this is a TV section, count episodes
+        if (section.type === 'show' && plexConfig.sections[title]?.show_episodes) {
+          const showsData = sectionResponse.data.MediaContainer.Metadata || [];
+          
+          for (const show of showsData) {
+            episodeCount += show.leafCount || 0;
+          }
+        }
+        
+        // Use user-configured display name and emoji, or defaults
+        const config = plexConfig.sections[title] || {
+          display_name: title,
+          emoji: section.type === 'show' ? '📺' : section.type === 'movie' ? '🎬' : '🎬',
+          show_episodes: section.type === 'show'
+        };
+        
+        stats[title] = {
+          count: itemCount,
+          episodes: config.show_episodes ? episodeCount : 0,
+          display_name: config.display_name,
+          emoji: config.emoji,
+          show_episodes: config.show_episodes
+        };
+      }
+      
+      this.libraryCache = stats;
+      this.lastLibraryUpdate = currentTime;
+      
+      return stats;
+    } catch (error) {
+      console.error('Error updating library stats:', error);
+      return this.libraryCache;
+    }
+  }
+
+  // Get information about active streams
+  private async getActiveStreams(): Promise<string[]> {
+    try {
+      const sessions = await this.getSessions();
+      return sessions.map((session, idx) => this.formatStreamInfo(session, idx + 1)).filter(Boolean);
+    } catch (error) {
+      console.error('Error getting active streams:', error);
+      return [];
+    }
+  }
+
+  // Get all current Plex sessions
+  private async getSessions(): Promise<PlexStream[]> {
+    try {
+      const agent = new https.Agent({ rejectUnauthorized: false });
+      
+      const response = await axios.get(`${this.plexUrl}/status/sessions`, {
+        params: { 'X-Plex-Token': this.plexToken },
+        httpsAgent: agent
+      });
+      
+      return response.data.MediaContainer.Metadata || [];
+    } catch (error) {
+      console.error('Error getting sessions:', error);
+      return [];
+    }
+  }
+
+  // Format stream information for display
+  private formatStreamInfo(session: PlexStream, idx: number): string | null {
+    try {
+      const user = session.usernames[0] || "Unknown";
+      const displayedUser = this.userMapping[user] || user;
+      const sectionTitle = session.librarySectionTitle || "Unknown";
+      
+      // Get the emoji for the content type
+      let contentEmoji = '🎬'; // Default emoji
+      if (this.libraryCache[sectionTitle]) {
+        contentEmoji = this.libraryCache[sectionTitle].emoji;
+      } else if (session.type === 'episode') {
+        contentEmoji = '📺';
+      }
+      
+      // Format title based on content type
+      const title = this.getFormattedTitle(session);
+      
+      // Calculate progress percentage
+      const progressPercent = session.viewOffset && session.duration
+        ? (session.viewOffset / session.duration * 100)
+        : 0;
+      
+      // Check if stream is paused
+      const isPaused = session.players && 
+                       session.players[0] && 
+                       session.players[0].state === 'paused';
+      
+      // Format progress bar
+      const progressDisplay = isPaused
+        ? "⏸️" 
+        : `[${'▓'.repeat(Math.floor(progressPercent / 10))}${'░'.repeat(10 - Math.floor(progressPercent / 10))}] ${progressPercent.toFixed(1)}%`;
+      
+      // Format timestamps
+      const currentTime = this.formatTime(session.viewOffset, session.duration);
+      const totalTime = this.formatTime(session.duration, session.duration);
+      
+      // Get quality and bitrate information
+      const media = session.media && session.media[0];
+      let quality = media ? `${media.videoResolution}p` : '1080p';
+      
+      // Fix common format issues
+      if (quality.endsWith('pp')) quality = quality.slice(0, -1);
+      if (quality === '4kp' || quality === '4Kp') quality = '4K';
+      
+      // Check if transcoding
+      const transcode = session.transcodeSession;
+      const transcodeEmoji = transcode ? "🔄" : "⏯️";
+      
+      // Get bitrate
+      const bitrate = transcode && transcode.bitrate
+        ? `${(transcode.bitrate / 1000).toFixed(1)} Mbps`
+        : media && media.bitrate
+          ? `${(media.bitrate / 1000).toFixed(1)} Mbps`
+          : "";
+      
+      // Get client name
+      const product = session.players && 
+                      session.players[0] && 
+                      session.players[0].product
+        ? session.players[0].product.replace("Plex for ", "").replace("Infuse-Library", "Infuse")
+        : "Unknown";
+      
+      // Construct the formatted info string
+      return `**\`\`\`${contentEmoji} ${title} | ${displayedUser}\n` +
+             `└─ ${progressDisplay} | ${currentTime}/${totalTime}\n` +
+             ` └─ ${transcodeEmoji} ${quality} ${bitrate} | ${product}\`\`\`**`;
+    } catch (error) {
+      console.error('Error formatting stream info:', error);
+      return `\`\`\`❓ Stream could not be loaded (# ${idx})\`\`\``;
+    }
+  }
+
+  // Format time strings
+  private formatTime(milliseconds: number, totalDuration: number): string {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    const lessThanHour = (totalDuration / 1000) < 3600;
+    
+    return lessThanHour
+      ? `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      : `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  // Format title based on content type
+  private getFormattedTitle(session: PlexStream): string {
+    if (session.grandparentTitle) {
+      // This is an episode of a TV show
+      const seriesTitle = session.grandparentTitle.split(':')[0].split('-')[0].trim();
+      
+      // Try to get season and episode info
+      let episodeInfo = '';
+      if (session.parentIndex && session.index) {
+        episodeInfo = `S${session.parentIndex.toString().padStart(2, '0')}E${session.index.toString().padStart(2, '0')}`;
+      }
+      
+      return `${seriesTitle}${episodeInfo ? ' - ' + episodeInfo : ''}`;
+    } 
+    
+    // This is a movie or other content
+    const year = session.year ? ` (${session.year})` : '';
+    return `${session.title}${year}`;
+  }
+
+  // Get info when server is offline
+  private getOfflineInfo(): PlexServerInfo {
+    const stats: Record<string, LibrarySection> = {};
+    
+    // Include cached library sections if available
+    if (Object.keys(this.libraryCache).length > 0) {
+      Object.keys(this.libraryCache).forEach(title => {
+        const section = this.libraryCache[title];
+        stats[title] = {
+          ...section,
+          count: 0,
+          episodes: 0
+        };
+      });
+    } else {
+      // Default sections if no cache is available
+      stats['Movies'] = {
+        count: 0,
+        display_name: 'Movies',
+        emoji: '🎬',
+        show_episodes: false
+      };
+      
+      stats['TV Shows'] = {
+        count: 0,
+        episodes: 0,
+        display_name: 'TV Shows',
+        emoji: '📺',
+        show_episodes: true
+      };
+    }
+    
+    return {
+      status: "🔴 Offline",
+      uptime: "Offline",
+      library_stats: stats,
+      active_users: [],
+      current_streams: [],
+      offline_since: this.offline_since ? this.offline_since.toISOString() : new Date().toISOString()
+    };
+  }
+}
+
+export const plexService = new PlexService();
