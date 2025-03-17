@@ -1,0 +1,236 @@
+import { useQuery } from "@tanstack/react-query";
+import { Progress } from "@/components/ui/progress";
+import { RefreshCw, User, Film, Tv, Pause, Play } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+
+export interface PlexStream {
+  user: string;
+  title: string;
+  type: string;
+  device: string;
+  progress: number;
+  duration: number;
+  quality: string;
+  state: string;
+}
+
+export interface PlexLibrarySection {
+  title: string;
+  type: string;
+  count: number;
+}
+
+export interface PlexServerInfo {
+  status: boolean;
+  version?: string;
+  streams: PlexStream[];
+  libraries?: PlexLibrarySection[];
+  activeStreamCount: number;
+  uptime?: string;
+}
+
+export function PlexStreams() {
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const {
+    data: plexInfo,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<PlexServerInfo>({
+    queryKey: ["/api/services/plex/details"],
+    refetchInterval: autoRefresh ? refreshInterval : false,
+  });
+
+  // Auto refresh handling
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      refetch();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, refetch]);
+
+  if (isLoading) {
+    return <PlexStreamsSkeleton />;
+  }
+
+  if (error || !plexInfo) {
+    return (
+      <div className="p-4 border rounded-md bg-muted/30">
+        <div className="text-destructive mb-2">
+          Failed to load Plex server information
+        </div>
+        <Button onClick={() => refetch()} size="sm" variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!plexInfo.status) {
+    return (
+      <div className="p-4 border rounded-md bg-muted/30">
+        <div className="text-amber-500 mb-2">Plex server is offline</div>
+        <Button onClick={() => refetch()} size="sm" variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium">
+          {plexInfo.version && (
+            <span className="text-muted-foreground mr-2">
+              v{plexInfo.version}
+            </span>
+          )}
+          {plexInfo.uptime && (
+            <span className="text-muted-foreground mr-2">
+              Uptime: {plexInfo.uptime}
+            </span>
+          )}
+          <span className="text-primary">
+            {plexInfo.activeStreamCount} active {plexInfo.activeStreamCount === 1 ? "stream" : "streams"}
+          </span>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          size="sm"
+          variant="outline"
+          className="h-7 px-2"
+        >
+          <RefreshCw className="h-3 w-3 mr-1" />
+          Refresh
+        </Button>
+      </div>
+
+      {plexInfo.streams.length === 0 ? (
+        <div className="p-4 text-center text-muted-foreground text-sm border rounded-md bg-muted/20">
+          No active streams
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {plexInfo.streams.map((stream, index) => (
+            <div
+              key={index}
+              className="p-3 border rounded-md bg-card"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center">
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center mr-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{stream.user}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {stream.device} • {stream.quality}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  {stream.type === "movie" ? (
+                    <Film className="h-4 w-4 text-muted-foreground mr-1" />
+                  ) : (
+                    <Tv className="h-4 w-4 text-muted-foreground mr-1" />
+                  )}
+                  {stream.state === "paused" ? (
+                    <Pause className="h-4 w-4 text-amber-500" />
+                  ) : (
+                    <Play className="h-4 w-4 text-green-500" />
+                  )}
+                </div>
+              </div>
+              <div className="mb-1 text-sm">{stream.title}</div>
+              <div className="relative pt-1">
+                <Progress value={stream.progress} className="h-1.5" />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <div>
+                    {formatTime(
+                      Math.floor((stream.duration / 1000) * (stream.progress / 100))
+                    )}
+                  </div>
+                  <div>{formatTime(Math.floor(stream.duration / 1000))}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plexInfo.libraries && plexInfo.libraries.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2">Libraries</h4>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {plexInfo.libraries.map((library, index) => (
+              <div
+                key={index}
+                className="p-3 border rounded-md bg-card text-center"
+              >
+                <div className="text-sm font-medium">{library.title}</div>
+                <div className="text-xl font-semibold">{library.count}</div>
+                <div className="text-xs text-muted-foreground">
+                  {library.type === "movie" ? "Movies" : library.type === "show" ? "Shows" : library.type}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlexStreamsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-7 w-20" />
+      </div>
+      <div className="space-y-3">
+        {[1, 2].map((i) => (
+          <div key={i} className="p-3 border rounded-md">
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center">
+                <Skeleton className="h-8 w-8 rounded-full mr-2" />
+                <div>
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-5 w-10" />
+            </div>
+            <Skeleton className="h-4 w-full max-w-[200px] mb-2" />
+            <Skeleton className="h-1.5 w-full mb-1" />
+            <div className="flex justify-between">
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-3 w-10" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}

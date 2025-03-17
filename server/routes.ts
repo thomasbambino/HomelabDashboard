@@ -16,6 +16,7 @@ import { User } from '@shared/schema';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
 import { ampService } from './amp-service';
+import { plexService } from './plex-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
@@ -1017,6 +1018,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching login attempts:', error);
       res.status(500).json({ message: "Failed to fetch login attempts" });
+    }
+  });
+
+  // Add endpoint for Plex server details
+  app.get("/api/services/plex/details", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const serverInfo = await plexService.getServerInfo();
+      res.json(serverInfo);
+    } catch (error) {
+      console.error('Error fetching Plex server info:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch Plex server info", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
