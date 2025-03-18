@@ -188,21 +188,55 @@ try:
             thumb_url = session.grandparentArt
             print(f"Using grandparentArt: {thumb_url}")
             
-        # Ensure we have a full URL if a thumb exists
-        if thumb_url and not thumb_url.startswith('http'):
-            # For complete URLs, need to prefix with baseURL from Plex server
-            server_url = str(plex.url)
-            # Remove any trailing slash from server_url
-            if server_url.endswith('/'):
-                server_url = server_url[:-1]
-            # Make sure thumb_url starts with a single slash
-            if thumb_url.startswith('/'):
-                thumb_url = thumb_url
-            else:
-                thumb_url = '/' + thumb_url
+        # Instead of trying to construct the full URL, look for existing direct URLs
+        # which already include the token
+        if 'thumbUrl' in dir(session) and hasattr(session, 'thumbUrl') and session.thumbUrl:
+            thumb_url = session.thumbUrl
+            print(f"Using direct thumbUrl: {thumb_url}")
+        elif 'posterUrl' in dir(session) and hasattr(session, 'posterUrl') and session.posterUrl:
+            thumb_url = session.posterUrl
+            print(f"Using direct posterUrl: {thumb_url}")
+        elif 'artUrl' in dir(session) and hasattr(session, 'artUrl') and session.artUrl:
+            thumb_url = session.artUrl
+            print(f"Using direct artUrl: {thumb_url}")
+            
+        # Extract direct URLs which include the token
+        # These are preferred because they work from anywhere
+        direct_url = None
+        if hasattr(session, 'thumbUrl') and session.thumbUrl:
+            direct_url = session.thumbUrl
+            print(f"Found direct thumbUrl: {direct_url}")
+        elif hasattr(session, 'posterUrl') and session.posterUrl:
+            direct_url = session.posterUrl
+            print(f"Found direct posterUrl: {direct_url}")
+        elif hasattr(session, 'artUrl') and session.artUrl:
+            direct_url = session.artUrl
+            print(f"Found direct artUrl: {direct_url}")
+            
+        # If we found a direct URL, use it
+        if direct_url:
+            thumb_url = direct_url
+            
+        # Convert any Python object to string to ensure we have a valid URL
+        if thumb_url and not isinstance(thumb_url, str):
+            # Try to extract the URL string from the Python object
+            try:
+                thumb_url = str(thumb_url)
+                print(f"Converted thumb_url to string: {thumb_url}")
+                # If the result contains a bound method reference, it's not a valid URL
+                if '<bound method' in thumb_url:
+                    print("Invalid URL detected (bound method), using direct URL if available")
+                    thumb_url = direct_url
+            except:
+                print("Error converting thumb_url to string, using direct URL if available")
+                thumb_url = direct_url
                 
-            thumb_url = f"{server_url}{thumb_url}"
-            print(f"Final thumbnail URL: {thumb_url}")
+        # Final check - if we have a bound method or other invalid URL, use None
+        if thumb_url and isinstance(thumb_url, str) and ('<bound method' in thumb_url or 'object at 0x' in thumb_url):
+            print(f"Invalid final URL detected, clearing: {thumb_url}")
+            thumb_url = None
+                
+        print(f"Final thumbnail URL: {thumb_url}")
         
         streams.append({
             'user': user,
