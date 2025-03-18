@@ -66,6 +66,19 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     }
     return false;
   });
+  
+  // Sync state with localStorage when adminUIVisible changes in other components
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'adminUIVisible') {
+        const newValue = e.newValue === 'true';
+        setShowAdminDetails(newValue);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
