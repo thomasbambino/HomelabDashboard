@@ -33,6 +33,8 @@ export interface PlexServerInfo {
 export function PlexStreams() {
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [localStreams, setLocalStreams] = useState<PlexStream[]>([]);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
 
   const {
     data: plexInfo,
@@ -43,6 +45,47 @@ export function PlexStreams() {
     queryKey: ["/api/services/plex/details"],
     refetchInterval: autoRefresh ? refreshInterval : false,
   });
+
+  // Update local streams whenever the server data changes
+  useEffect(() => {
+    if (plexInfo?.streams && plexInfo.streams.length > 0) {
+      setLocalStreams(plexInfo.streams);
+      setLastUpdateTime(Date.now());
+    }
+  }, [plexInfo]);
+
+  // Continuously update progress for active streams
+  useEffect(() => {
+    if (!localStreams.length || !lastUpdateTime) return;
+
+    const progressInterval = setInterval(() => {
+      setLocalStreams(prevStreams => 
+        prevStreams.map(stream => {
+          // Only update progress for playing streams
+          if (stream.state === 'playing') {
+            const elapsedMs = Date.now() - lastUpdateTime;
+            const elapsedSec = elapsedMs / 1000;
+            
+            // Calculate how much progress to add
+            // 1000ms duration = 100% progress
+            const progressIncrement = (elapsedSec / (stream.duration / 1000)) * 100;
+            
+            // Cap at 100% and ensure we don't go backwards
+            return {
+              ...stream,
+              progress: Math.min(100, stream.progress + progressIncrement)
+            };
+          }
+          return stream;
+        })
+      );
+      
+      // Update the last time we calculated
+      setLastUpdateTime(Date.now());
+    }, 1000); // Update every second
+    
+    return () => clearInterval(progressInterval);
+  }, [localStreams, lastUpdateTime]);
 
   // Auto refresh handling
   useEffect(() => {
@@ -81,24 +124,19 @@ export function PlexStreams() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">
-          {plexInfo.version && (
-            <span className="text-muted-foreground mr-2">
-              v{plexInfo.version}
-            </span>
-          )}
           <span className="text-primary">
             {plexInfo.activeStreamCount} active {plexInfo.activeStreamCount === 1 ? "stream" : "streams"}
           </span>
         </div>
       </div>
 
-      {plexInfo.streams.length === 0 ? (
+      {localStreams.length === 0 ? (
         <div className="p-4 text-center text-muted-foreground text-sm border rounded-md bg-muted/20">
           No active streams
         </div>
       ) : (
         <div className="space-y-3">
-          {plexInfo.streams.map((stream, index) => (
+          {localStreams.map((stream, index) => (
             <div
               key={index}
               className="p-3 border rounded-md bg-card"

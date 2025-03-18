@@ -30,7 +30,7 @@ export class PlexService {
   private token: string;
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
-  private cacheTTL: number = 120000; // 2 minutes cache
+  private cacheTTL: number = 30000; // 30 seconds cache
 
   constructor() {
     // We only need the token for Plex.tv API
