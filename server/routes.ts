@@ -1025,7 +1025,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/services/plex/details", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      // Fetch the Plex server info, which will now use database caching
       const serverInfo = await plexService.getServerInfo();
       res.json(serverInfo);
     } catch (error) {
