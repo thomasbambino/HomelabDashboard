@@ -689,62 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new route for service status logs with filtering
-  app.get("/api/services/status-logs", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const filters: {
-        serviceId?: number;
-        startDate?: Date;
-        endDate?: Date;
-        status?: boolean;
-      } = {};
-
-      console.log('Raw query params:', req.query);
-
-      // Parse serviceId
-      if (req.query.serviceId) {
-        const serviceId = parseInt(req.query.serviceId as string);
-        if (!isNaN(serviceId)) {
-          filters.serviceId = serviceId;
-          console.log('Parsed serviceId:', filters.serviceId);
-        }
-      }
-
-      // Parse status
-      if (req.query.status) {
-        filters.status = req.query.status === 'true';
-        console.log('Parsed status:', filters.status);
-      }
-
-      // Parse dates
-      if (req.query.startDate) {
-        filters.startDate = new Date(req.query.startDate as string);
-      }
-
-      if (req.query.endDate) {
-        filters.endDate = new Date(req.query.endDate as string);
-      }
-
-      console.log('Final filters:', filters);
-
-      const logs = await storage.getServiceStatusLogs(filters);
-
-      // Fetch service details for each log
-      const logsWithServiceDetails = await Promise.all(
-        logs.map(async (log) => {
-          const service = await storage.getService(log.serviceId);
-          return { ...log, service };
-        })
-      );
-
-      console.log('Returning logs count:', logsWithServiceDetails.length);
-      res.json(logsWithServiceDetails);
-    } catch (error) {
-      console.error('Error fetching statuslogs:', error);
-      res.status(500).json({ message: "Failed to fetch status logs" });
-    }
-  });
+  // Service status logs endpoint removed to reduce database usage
   // Inside /api/register route
   app.post("/api/register", async (req, res) => {
     if (req.isAuthenticated()) {
