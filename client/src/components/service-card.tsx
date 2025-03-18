@@ -287,7 +287,8 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               </DialogContent>
             </Dialog>
           )}
-          {isAdmin && showAdminControls && (
+          {/* Only show admin controls if admin and adminUIVisible is true */}
+          {isAdmin && showAdminControls && showAdminDetails && (
             <>
               <Button variant="ghost" size="icon" onClick={() => setShowEdit(true)}>
                 <Settings className="h-4 w-4" />
