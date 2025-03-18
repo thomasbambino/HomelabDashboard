@@ -55,6 +55,9 @@ export class PlexService {
   }
 
   async getServerInfo(): Promise<PlexServerInfo> {
+    // For debugging purposes - reset retry counter
+    this.connectionRetries = 0;
+    
     // Check if we have the required credentials
     if (!this.token) {
       console.error('Plex token not provided');
@@ -66,14 +69,11 @@ export class PlexService {
       };
     }
 
-    // Use cached data if it's still valid
-    const now = Date.now();
-    if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
-      console.log('Using cached Plex server info');
-      return this.cachedServerInfo;
-    }
+    // Skip cache for debugging
+    console.log('Forcing refresh of Plex server info for debugging');
     
     // Reset retry counter if it's been over 5 minutes since last attempt
+    const now = Date.now();
     if (now - this.lastFetchTime > 300000) { // 5 minutes
       this.connectionRetries = 0;
     }
@@ -156,17 +156,53 @@ try:
         
         # Get thumbnail URL - prefer the specific item's thumb, but fall back to parent/grandparent
         thumb_url = None
+        
+        # Debug available session attributes
+        print("Session attributes for debugging thumbnails:")
+        for attr in dir(session):
+            if not attr.startswith('_') and attr not in ['TYPE', 'TAG', 'METADATA_TYPE']:
+                try:
+                    value = getattr(session, attr)
+                    if 'thumb' in attr.lower() or 'image' in attr.lower() or 'poster' in attr.lower() or 'art' in attr.lower():
+                        print(f"  {attr}: {value}")
+                except:
+                    pass
+                    
+        # Try to get thumbnails in order of preference
         if hasattr(session, 'thumb') and session.thumb:
             thumb_url = session.thumb
+            print(f"Using thumb: {thumb_url}")
         elif hasattr(session, 'parentThumb') and session.parentThumb:
             thumb_url = session.parentThumb
+            print(f"Using parentThumb: {thumb_url}")
         elif hasattr(session, 'grandparentThumb') and session.grandparentThumb:
             thumb_url = session.grandparentThumb
+            print(f"Using grandparentThumb: {thumb_url}")
+        elif hasattr(session, 'art') and session.art:
+            thumb_url = session.art
+            print(f"Using art: {thumb_url}")
+        elif hasattr(session, 'parentArt') and session.parentArt:
+            thumb_url = session.parentArt
+            print(f"Using parentArt: {thumb_url}")
+        elif hasattr(session, 'grandparentArt') and session.grandparentArt:
+            thumb_url = session.grandparentArt
+            print(f"Using grandparentArt: {thumb_url}")
             
         # Ensure we have a full URL if a thumb exists
         if thumb_url and not thumb_url.startswith('http'):
             # For complete URLs, need to prefix with baseURL from Plex server
-            thumb_url = f"{plex.url}{thumb_url}"
+            server_url = str(plex.url)
+            # Remove any trailing slash from server_url
+            if server_url.endswith('/'):
+                server_url = server_url[:-1]
+            # Make sure thumb_url starts with a single slash
+            if thumb_url.startswith('/'):
+                thumb_url = thumb_url
+            else:
+                thumb_url = '/' + thumb_url
+                
+            thumb_url = f"{server_url}{thumb_url}"
+            print(f"Final thumbnail URL: {thumb_url}")
         
         streams.append({
             'user': user,
