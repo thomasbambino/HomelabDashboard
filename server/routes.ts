@@ -1021,10 +1021,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add endpoint for Plex server details - public access allowed for widget functionality
+  // Add endpoint for Plex server details
   app.get("/api/services/plex/details", async (req, res) => {
-    // No authentication required for this endpoint to allow the dashboard to function
-    // without requiring login just to show media thumbnails
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const serverInfo = await plexService.getServerInfo();
       res.json(serverInfo);
