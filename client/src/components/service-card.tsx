@@ -57,9 +57,9 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const [showPlexDialog, setShowPlexDialog] = useState(false);
   // Remove showPlexStreams state as we now use showAdminDetails instead
   const [showAdminDetails, setShowAdminDetails] = useState(() => {
-    // Initialize from localStorage if available
+    // Initialize from localStorage, using the shared adminUIVisible key
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('showPlexAdminDetails');
+      const saved = localStorage.getItem('adminUIVisible');
       return saved !== null ? saved === 'true' : false;
     }
     return false;
@@ -82,11 +82,17 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
     if (!isAdmin) return;
     
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      // Look for Ctrl+H (or Cmd+H on Mac)
+      if (e.key === 'h' && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        e.preventDefault(); // Prevent browser's history shortcut
+        
+        // Use the same localStorage key that other admin elements use
+        const storageKey = 'adminUIVisible';
+        
         setShowAdminDetails(prevState => {
           const newState = !prevState;
-          // Save to localStorage
-          localStorage.setItem('showPlexAdminDetails', String(newState));
+          // Save to the shared localStorage
+          localStorage.setItem(storageKey, String(newState));
           return newState;
         });
       }
@@ -324,7 +330,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Stream Details</h3>
-                  <div className="text-xs text-muted-foreground">Press 'h' to hide</div>
+                  <div className="text-xs text-muted-foreground">Press Ctrl+H to hide</div>
                 </div>
                 
                 <div className="pt-2">
