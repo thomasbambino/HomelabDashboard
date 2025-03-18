@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
-import { RefreshCw, User, Film, Tv, Pause, Play } from "lucide-react";
+import { User, Film, Tv, Pause, Play } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
 export interface PlexStream {
@@ -63,13 +62,9 @@ export function PlexStreams() {
   if (error || !plexInfo) {
     return (
       <div className="p-4 border rounded-md bg-muted/30">
-        <div className="text-destructive mb-2">
+        <div className="text-destructive">
           Failed to load Plex server information
         </div>
-        <Button onClick={() => refetch()} size="sm" variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
       </div>
     );
   }
@@ -77,11 +72,7 @@ export function PlexStreams() {
   if (!plexInfo.status) {
     return (
       <div className="p-4 border rounded-md bg-muted/30">
-        <div className="text-amber-500 mb-2">Plex server is offline</div>
-        <Button onClick={() => refetch()} size="sm" variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="text-amber-500">Plex server is offline</div>
       </div>
     );
   }
@@ -95,24 +86,10 @@ export function PlexStreams() {
               v{plexInfo.version}
             </span>
           )}
-          {plexInfo.uptime && (
-            <span className="text-muted-foreground mr-2">
-              Uptime: {plexInfo.uptime}
-            </span>
-          )}
           <span className="text-primary">
             {plexInfo.activeStreamCount} active {plexInfo.activeStreamCount === 1 ? "stream" : "streams"}
           </span>
         </div>
-        <Button
-          onClick={() => refetch()}
-          size="sm"
-          variant="outline"
-          className="h-7 px-2"
-        >
-          <RefreshCw className="h-3 w-3 mr-1" />
-          Refresh
-        </Button>
       </div>
 
       {plexInfo.streams.length === 0 ? (
@@ -194,9 +171,8 @@ export function PlexStreams() {
 function PlexStreamsSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center">
         <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-7 w-20" />
       </div>
       <div className="space-y-3">
         {[1, 2].map((i) => (
