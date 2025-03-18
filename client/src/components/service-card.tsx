@@ -55,11 +55,13 @@ interface ServiceCardProps {
 export function ServiceCard({ service, isDragging, showAdminControls = true }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showPlexDialog, setShowPlexDialog] = useState(false);
-  // Remove showPlexStreams state as we now use showAdminDetails instead
+  // Use adminUIVisible to control the visibility of admin details in sync with other admin elements
   const [showAdminDetails, setShowAdminDetails] = useState(() => {
     // Initialize from localStorage, using the shared adminUIVisible key
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('adminUIVisible');
+      // When adminUIVisible is 'true', we display admin details
+      // When adminUIVisible is 'false' or not set, we hide admin details
       return saved !== null ? saved === 'true' : false;
     }
     return false;
@@ -330,7 +332,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Stream Details</h3>
-                  <div className="text-xs text-muted-foreground">Press Ctrl+H to hide</div>
+                  <div className="text-xs text-muted-foreground">Press Ctrl+H to toggle admin UI</div>
                 </div>
                 
                 <div className="pt-2">
