@@ -193,25 +193,7 @@ export function PlexStreams() {
         </div>
       )}
 
-      {plexInfo.libraries && plexInfo.libraries.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium mb-2">Libraries</h4>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {plexInfo.libraries.map((library, index) => (
-              <div
-                key={index}
-                className="p-3 border rounded-md bg-card text-center"
-              >
-                <div className="text-sm font-medium">{library.title}</div>
-                <div className="text-xl font-semibold">{library.count}</div>
-                <div className="text-xs text-muted-foreground">
-                  {library.type === "movie" ? "Movies" : library.type === "show" ? "Shows" : library.type}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+{/* Libraries section removed as requested */}
     </div>
   );
 }
