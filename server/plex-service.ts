@@ -31,20 +31,31 @@ export class PlexService {
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
   private cacheTTL: number = 30000; // 30 seconds cache
+  private connectionRetries: number = 0;
+  private maxRetries: number = 3;
+  private baseUrl: string;
 
   constructor() {
-    // We only need the token for Plex.tv API
+    // We need both the token for Plex.tv API and the server URL
     this.token = process.env.PLEX_TOKEN || '';
+    this.baseUrl = process.env.PLEX_URL || '';
 
     if (!this.token) {
       console.warn('Plex token not configured in environment variables');
     }
+    
+    if (!this.baseUrl) {
+      console.warn('Plex server URL not configured in environment variables');
+    }
   }
 
   async getServerInfo(): Promise<PlexServerInfo> {
+    // Check if we have the required credentials
     if (!this.token) {
+      console.error('Plex token not provided');
       return {
         status: false,
+        error: 'Plex token not configured',
         streams: [],
         activeStreamCount: 0
       };
@@ -56,6 +67,31 @@ export class PlexService {
       console.log('Using cached Plex server info');
       return this.cachedServerInfo;
     }
+    
+    // Reset retry counter if it's been over 5 minutes since last attempt
+    if (now - this.lastFetchTime > 300000) { // 5 minutes
+      this.connectionRetries = 0;
+    }
+    
+    // Don't keep retrying too frequently if failing
+    if (this.connectionRetries >= this.maxRetries) {
+      // If we have cached data despite exceeding retries, return the cached data
+      if (this.cachedServerInfo) {
+        console.log('Using cached Plex server info (hit retry limit)');
+        return this.cachedServerInfo;
+      }
+      
+      // Otherwise return error state
+      return {
+        status: false,
+        error: 'Failed to connect to Plex server after multiple attempts',
+        streams: [],
+        activeStreamCount: 0
+      };
+    }
+    
+    // Increment the retry counter
+    this.connectionRetries++;
 
     try {
       // Use Python and plexapi to get the server info via Plex.tv API
