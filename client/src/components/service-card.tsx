@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { prefetchPlexData } from "../lib/plexCache";
+import { prefetchPlexData, refreshPlexData } from "../lib/plexCache";
 import {
   AlertDialog,
   AlertDialogAction,
