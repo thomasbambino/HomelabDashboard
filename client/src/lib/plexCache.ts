@@ -1,4 +1,4 @@
-import { queryClient } from "./queryClient";
+import { queryClient, apiRequest } from "./queryClient";
 import { PlexServerInfo } from "../components/plex-streams";
 
 // The query key for Plex server data
@@ -21,15 +21,32 @@ const initialPlexData: PlexServerInfo = {
 // This ensures data shows up instantly when components load
 queryClient.setQueryData([PLEX_QUERY_KEY], initialPlexData);
 
+// Set up the default query function for Plex data
+queryClient.setDefaultOptions({
+  queries: {
+    queryFn: async ({ queryKey }) => {
+      const [url] = queryKey as [string];
+      if (url === PLEX_QUERY_KEY) {
+        const response = await apiRequest("GET", url);
+        if (!response.ok) {
+          throw new Error("Failed to fetch Plex data");
+        }
+        return response.json();
+      }
+    }
+  }
+});
+
 // Immediately start fetching data when module loads
 // Don't wait for component mount
 (async function loadInitialPlexData() {
   try {
-    await queryClient.prefetchQuery({
-      queryKey: [PLEX_QUERY_KEY],
-      staleTime: 30000, // 30 seconds
-    });
-    console.log("Initial Plex data loaded on module import");
+    const response = await apiRequest("GET", PLEX_QUERY_KEY);
+    if (response.ok) {
+      const data = await response.json();
+      queryClient.setQueryData([PLEX_QUERY_KEY], data);
+      console.log("Initial Plex data loaded on module import");
+    }
   } catch (error) {
     console.error("Failed to load initial Plex data", error);
   }
@@ -47,11 +64,12 @@ export async function prefetchPlexData(): Promise<void> {
   
   // Then fetch the real data
   try {
-    await queryClient.prefetchQuery({
-      queryKey: [PLEX_QUERY_KEY],
-      staleTime: 30000, // 30 seconds
-    });
-    console.log("Plex data prefetched successfully");
+    const response = await apiRequest("GET", PLEX_QUERY_KEY);
+    if (response.ok) {
+      const data = await response.json();
+      queryClient.setQueryData([PLEX_QUERY_KEY], data);
+      console.log("Plex data prefetched successfully");
+    }
   } catch (error) {
     console.error("Failed to prefetch Plex data", error);
   }
@@ -62,8 +80,12 @@ export async function prefetchPlexData(): Promise<void> {
  */
 export async function refreshPlexData(): Promise<void> {
   try {
-    await queryClient.invalidateQueries({ queryKey: [PLEX_QUERY_KEY] });
-    console.log("Plex data refreshed");
+    const response = await apiRequest("GET", PLEX_QUERY_KEY);
+    if (response.ok) {
+      const data = await response.json();
+      queryClient.setQueryData([PLEX_QUERY_KEY], data);
+      console.log("Plex data refreshed");
+    }
   } catch (error) {
     console.error("Failed to refresh Plex data", error);
   }

@@ -2,15 +2,35 @@ import { useQuery } from "@tanstack/react-query";
 import { Film, Tv, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlexServerInfo } from "./plex-streams";
-import { PLEX_QUERY_KEY, prefetchPlexData } from "../lib/plexCache";
-import { useEffect } from "react";
+import { PLEX_QUERY_KEY, prefetchPlexData, refreshPlexData } from "../lib/plexCache";
+import { useEffect, useState } from "react";
+import { apiRequest } from "../lib/queryClient";
 
 export function PlexSummary() {
-  // Prefetch Plex data when component mounts to ensure we have data
+  const [isFetching, setIsFetching] = useState(false);
+  
+  // Fetch data directly when component mounts
   useEffect(() => {
-    prefetchPlexData();
+    const fetchData = async () => {
+      setIsFetching(true);
+      try {
+        await prefetchPlexData();
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    
+    fetchData();
+    
+    // Set up a refresh interval
+    const interval = setInterval(() => {
+      refreshPlexData();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
+  // Get data from the cache via query
   const {
     data: plexInfo,
     isLoading,
@@ -32,8 +52,11 @@ export function PlexSummary() {
     }
   });
 
-  // Only show skeleton if truly loading with no data
-  if (isLoading && !plexInfo) {
+  // Only show skeleton if both are true: 
+  // 1. We're loading the query AND 
+  // 2. We're directly fetching AND
+  // 3. We don't have any data
+  if ((isLoading || isFetching) && !plexInfo) {
     return <PlexSummarySkeleton />;
   }
 
