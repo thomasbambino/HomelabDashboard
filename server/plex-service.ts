@@ -31,7 +31,7 @@ export class PlexService {
   private token: string;
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
-  private cacheTTL: number = 5000; // 5 seconds cache for faster refreshes (reduced from 15s)
+  private cacheTTL: number = 15000; // 15 seconds cache for faster refreshes
   private connectionRetries: number = 0;
   private maxRetries: number = 3;
   private baseUrl: string;
@@ -134,96 +134,36 @@ try:
     plex = servers[0].connect()`}
     
     # Get current streams
-    try:
-        # First try using direct sessions method
-        sessions = plex.sessions()
-        print(f"Found {len(sessions)} active sessions using plex.sessions()")
+    sessions = plex.sessions()
+    streams = []
+    
+    for session in sessions:
+        user = session.usernames[0] if session.usernames else 'Unknown'
+        title = session.title
+        media_type = session.type
         
-        # Debugging: Print out raw session data 
-        for i, session in enumerate(sessions):
-            print(f"Session {i+1} details: {vars(session)}")
-            
-        # As a backup, also try getting active sessions via activity
-        activity = None
-        try:
-            activity = plex.activities()
-            print(f"Activity data available: {bool(activity)}")
-            if activity:
-                print(f"Activity types: {[a.type for a in activity]}")
-        except Exception as act_err:
-            print(f"Error getting activities: {str(act_err)}")
-            
-        streams = []
+        # Get device info
+        device = session.players[0].product if session.players else 'Unknown'
+        state = session.players[0].state if session.players else 'unknown'
         
-        for session in sessions:
-            try:
-                user = session.usernames[0] if hasattr(session, 'usernames') and session.usernames else 'Unknown'
-                title = session.title
-                media_type = session.type
-                
-                # Get device info with error handling
-                device = 'Unknown'
-                state = 'unknown'
-                if hasattr(session, 'players') and session.players:
-                    device = session.players[0].product if hasattr(session.players[0], 'product') else 'Unknown'
-                    state = session.players[0].state if hasattr(session.players[0], 'state') else 'unknown'
-                
-                # Calculate progress with better error handling
-                duration = 0
-                view_offset = 0
-                if hasattr(session, 'duration'):
-                    duration = session.duration
-                if hasattr(session, 'viewOffset'):
-                    view_offset = session.viewOffset
-                
-                progress = 0
-                if duration > 0 and view_offset >= 0:
-                    progress = (view_offset / duration * 100)
-                
-                # Get quality with error handling
-                quality = 'Unknown'
-                if hasattr(session, 'media') and session.media:
-                    quality = session.media[0].videoResolution if hasattr(session.media[0], 'videoResolution') else 'Unknown'
-                
-                streams.append({
-                    'user': user,
-                    'title': title,
-                    'type': media_type,
-                    'device': device,
-                    'progress': progress,
-                    'duration': duration,
-                    'quality': quality,
-                    'state': state
-                })
-                print(f"Added stream: {title} for user {user}")
-            except Exception as session_err:
-                print(f"Error processing session: {str(session_err)}")
-                # Try to extract minimal information
-                try:
-                    fallback_title = session.title if hasattr(session, 'title') else 'Unknown Title'
-                    fallback_user = session.usernames[0] if hasattr(session, 'usernames') and session.usernames else 'Unknown User'
-                    fallback_type = session.type if hasattr(session, 'type') else 'Unknown Type'
-                    
-                    streams.append({
-                        'user': fallback_user,
-                        'title': fallback_title,
-                        'type': fallback_type,
-                        'device': 'Error retrieving device',
-                        'progress': 0,
-                        'duration': 0,
-                        'quality': 'Unknown',
-                        'state': 'unknown'
-                    })
-                    print(f"Added fallback stream: {fallback_title}")
-                except:
-                    print("Failed to extract even fallback data for this session")
-                
-        # Verify the streams data
-        print(f"Found a total of {len(streams)} streams")
-        print(f"Streams data: {streams}")
-    except Exception as e:
-        print(f"Error getting sessions: {str(e)}")
-        streams = []
+        # Calculate progress
+        duration = session.duration if hasattr(session, 'duration') else 0
+        view_offset = session.viewOffset if hasattr(session, 'viewOffset') else 0
+        progress = (view_offset / duration * 100) if duration > 0 else 0
+        
+        # Get quality
+        quality = session.media[0].videoResolution if session.media else 'Unknown'
+        
+        streams.append({
+            'user': user,
+            'title': title,
+            'type': media_type,
+            'device': device,
+            'progress': progress,
+            'duration': duration,
+            'quality': quality,
+            'state': state
+        })
     
     # Get libraries
     libraries = []
@@ -273,21 +213,16 @@ except Exception as e:
 `;
 
       return new Promise((resolve, reject) => {
-        console.log('Spawning Python to fetch Plex data');
         const python = spawn('python3', ['-c', pythonScript]);
         let result = '';
         let error = '';
 
         python.stdout.on('data', (data) => {
-          const chunk = data.toString();
-          console.log('Python stdout:', chunk);
-          result += chunk;
+          result += data.toString();
         });
 
         python.stderr.on('data', (data) => {
-          const chunk = data.toString();
-          console.error('Python stderr:', chunk);
-          error += chunk;
+          error += data.toString();
         });
 
         python.on('close', (code) => {

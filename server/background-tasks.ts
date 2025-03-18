@@ -3,7 +3,7 @@ import { plexService } from './plex-service';
 /**
  * The interval (in milliseconds) at which the background tasks will run
  */
-const REFRESH_INTERVAL = 5000; // 5 seconds (reduced from 15 seconds)
+const REFRESH_INTERVAL = 15000; // 15 seconds
 
 /**
  * Refreshes Plex data in the background regardless of whether users are connected
