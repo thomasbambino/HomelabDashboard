@@ -107,15 +107,26 @@ from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 import json
 import time
+import sys
+
+# Redirect any debug output to stderr instead of stdout
+# to avoid breaking our JSON output
+def debug_print(msg):
+    print(msg, file=sys.stderr)
 
 try:
+    # Create a plex_token variable for thumbnail URLs
+    plex_token = '${this.token}'
+    
     # Determine connection method based on available credentials
     ${directServer ? 
       `# Connect directly to server using URL and token
-    plex = PlexServer('${this.baseUrl}', '${this.token}')` 
+    debug_print(f"Connecting directly to Plex server at ${this.baseUrl}")
+    plex = PlexServer('${this.baseUrl}', plex_token)` 
       : 
       `# Connect via Plex.tv account using token
-    account = MyPlexAccount(token='${this.token}')
+    debug_print("Connecting via Plex.tv account")
+    account = MyPlexAccount(token=plex_token)
     
     # Get the first available server from the account
     resources = account.resources()
@@ -131,6 +142,7 @@ try:
         exit()
     
     # Connect to the first server
+    debug_print(f"Connecting to server: {servers[0].name}")
     plex = servers[0].connect()`}
     
     # Get current streams
@@ -138,91 +150,29 @@ try:
     streams = []
     
     for session in sessions:
+        # Basic stream info
         user = session.usernames[0] if session.usernames else 'Unknown'
         title = session.title
         media_type = session.type
         
-        # Get device info
+        # Device info
         device = session.players[0].product if session.players else 'Unknown'
         state = session.players[0].state if session.players else 'unknown'
         
-        # Calculate progress
+        # Calculate progress percentage
         duration = session.duration if hasattr(session, 'duration') else 0
         view_offset = session.viewOffset if hasattr(session, 'viewOffset') else 0
         progress = (view_offset / duration * 100) if duration > 0 else 0
         
-        # Get quality
+        # Quality info
         quality = session.media[0].videoResolution if session.media else 'Unknown'
         
-        # Get thumbnail URL - prefer the specific item's thumb, but fall back to parent/grandparent
+        # Thumbnail handling - only use direct URLs
         thumb_url = None
         
-        # Debug available session attributes
-        print("Session attributes for debugging thumbnails:")
-        for attr in dir(session):
-            if not attr.startswith('_') and attr not in ['TYPE', 'TAG', 'METADATA_TYPE']:
-                try:
-                    value = getattr(session, attr)
-                    if 'thumb' in attr.lower() or 'image' in attr.lower() or 'poster' in attr.lower() or 'art' in attr.lower():
-                        print(f"  {attr}: {value}")
-                except:
-                    pass
-                    
-        # Try to get thumbnails in order of preference
-        if hasattr(session, 'thumb') and session.thumb:
-            thumb_url = session.thumb
-            print(f"Using thumb: {thumb_url}")
-        elif hasattr(session, 'parentThumb') and session.parentThumb:
-            thumb_url = session.parentThumb
-            print(f"Using parentThumb: {thumb_url}")
-        elif hasattr(session, 'grandparentThumb') and session.grandparentThumb:
-            thumb_url = session.grandparentThumb
-            print(f"Using grandparentThumb: {thumb_url}")
-        elif hasattr(session, 'art') and session.art:
-            thumb_url = session.art
-            print(f"Using art: {thumb_url}")
-        elif hasattr(session, 'parentArt') and session.parentArt:
-            thumb_url = session.parentArt
-            print(f"Using parentArt: {thumb_url}")
-        elif hasattr(session, 'grandparentArt') and session.grandparentArt:
-            thumb_url = session.grandparentArt
-            print(f"Using grandparentArt: {thumb_url}")
-            
-        # Ensure we have a full URL if a thumb exists
-        if thumb_url and not thumb_url.startswith('http'):
-            # For complete URLs, need to prefix with baseURL from Plex server
-            server_url = str(plex.url)
-            # Remove any trailing slash from server_url
-            if server_url.endswith('/'):
-                server_url = server_url[:-1]
-            # Make sure thumb_url starts with a single slash
-            if thumb_url.startswith('/'):
-                thumb_url = thumb_url
-            else:
-                thumb_url = '/' + thumb_url
-                
-            thumb_url = f"{server_url}{thumb_url}"
-            print(f"Final thumbnail URL: {thumb_url}")
-            
-        # Attempt to use thumbUrl which has full path with token
-        if hasattr(session, 'thumbUrl') and session.thumbUrl:
+        # Use thumbUrl which already has the token embedded
+        if hasattr(session, 'thumbUrl') and session.thumbUrl and isinstance(session.thumbUrl, str):
             thumb_url = session.thumbUrl
-            print(f"Using direct thumbUrl: {thumb_url}")
-            
-        # Convert any Python object to string to ensure we have a valid URL
-        if thumb_url and not isinstance(thumb_url, str):
-            try:
-                thumb_url = str(thumb_url)
-                print(f"Converted thumb_url to string: {thumb_url}")
-                # If the result contains a bound method reference, it's not a valid URL
-                if '<bound method' in thumb_url:
-                    print("Invalid URL detected, falling back to default user icon")
-                    thumb_url = None
-            except:
-                print("Error converting thumb_url to string")
-                thumb_url = None
-                
-        print(f"Final thumbnail URL: {thumb_url}")
         
         streams.append({
             'user': user,
@@ -263,7 +213,7 @@ try:
         minutes, seconds = divmod(remainder, 60)
         uptime = f"{days}d {hours}h {minutes}m"
     
-    # Output JSON
+    # Output clean JSON
     result = {
         'status': True,
         'version': version,
