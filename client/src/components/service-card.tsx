@@ -36,7 +36,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlexStreams } from "./plex-streams";
-
+import { PlexSummary } from "./plex-summary";
 
 // Add email schema for validation
 const plexAccountSchema = z.object({
@@ -277,32 +277,42 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
         )}
         
         {isPlex && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Plex Media Server</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2"
-                onClick={() => setShowPlexStreams(!showPlexStreams)}
-              >
-                {showPlexStreams ? (
-                  <>
-                    <ChevronUp className="h-4 w-4 mr-1" />
-                    Hide Details
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-1" />
-                    Show Details
-                  </>
-                )}
-              </Button>
+          <div className="space-y-4">
+            {/* Show PlexSummary for all users */}
+            <div>
+              <PlexSummary />
             </div>
             
-            {showPlexStreams && (
-              <div className="pt-2">
-                <PlexStreams />
+            {/* Show Details button and streams for admins only */}
+            {isAdmin && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Stream Details</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 px-2"
+                    onClick={() => setShowPlexStreams(!showPlexStreams)}
+                  >
+                    {showPlexStreams ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Hide Details
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Show Details
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {showPlexStreams && (
+                  <div className="pt-2">
+                    <PlexStreams />
+                  </div>
+                )}
               </div>
             )}
           </div>
