@@ -28,6 +28,9 @@ export interface PlexServerInfo {
 
 export class PlexService {
   private token: string;
+  private lastFetchTime: number = 0;
+  private cachedServerInfo: PlexServerInfo | null = null;
+  private cacheTTL: number = 120000; // 2 minutes cache
 
   constructor() {
     // We only need the token for Plex.tv API
@@ -45,6 +48,13 @@ export class PlexService {
         streams: [],
         activeStreamCount: 0
       };
+    }
+
+    // Use cached data if it's still valid
+    const now = Date.now();
+    if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
+      console.log('Using cached Plex server info');
+      return this.cachedServerInfo;
     }
 
     try {
@@ -178,6 +188,10 @@ except Exception as e:
           } else {
             try {
               const data = JSON.parse(result);
+              // Update the cache
+              this.cachedServerInfo = data;
+              this.lastFetchTime = Date.now();
+              console.log('Updated Plex server info cache');
               resolve(data);
             } catch (e) {
               console.error('Failed to parse Python output as JSON', e);
