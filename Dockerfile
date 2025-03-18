@@ -3,6 +3,13 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Install Python and plexapi for Plex integration
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip curl && \
+    pip3 install plexapi && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package*.json ./
 COPY tsconfig.json ./
@@ -21,6 +28,13 @@ FROM node:20-slim AS runner
 
 WORKDIR /app
 
+# Install Python and plexapi for Plex integration
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip curl postgresql-client && \
+    pip3 install plexapi && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy package files and install production dependencies
 COPY package*.json ./
 RUN npm ci --production
@@ -32,10 +46,11 @@ COPY --from=builder /app/dist ./dist
 COPY tsconfig.json ./
 COPY .env.example ./.env
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-USER nextjs
+# Copy uploads folder to ensure it exists
+RUN mkdir -p uploads
+
+# Create volumes for persistent data
+VOLUME ["/app/uploads"]
 
 # Expose the port
 EXPOSE 5000
