@@ -98,6 +98,11 @@ export interface IStorage {
   getGameServer(id: number): Promise<GameServer | undefined>;
   deleteUser(id: number): Promise<User | undefined>;
   getAllLoginAttempts(): Promise<LoginAttempt[]>;
+  
+  // Plex data caching
+  getCachedPlexData(): Promise<string | null>;
+  saveCachedPlexData(data: string): Promise<void>;
+  getPlexDataUpdateTime(): Promise<Date | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -512,6 +517,28 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loginAttempts)
       .orderBy(desc(loginAttempts.timestamp));
+  }
+
+  // Plex data caching methods
+  async getCachedPlexData(): Promise<string | null> {
+    const settings = await this.getSettings();
+    return settings.cached_plex_data || null;
+  }
+
+  async saveCachedPlexData(data: string): Promise<void> {
+    const settings = await this.getSettings();
+    await db
+      .update(settingsTable)
+      .set({
+        cached_plex_data: data,
+        plex_data_updated_at: new Date()
+      })
+      .where(eq(settingsTable.id, settings.id));
+  }
+
+  async getPlexDataUpdateTime(): Promise<Date | null> {
+    const settings = await this.getSettings();
+    return settings.plex_data_updated_at || null;
   }
 }
 

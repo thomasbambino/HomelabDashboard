@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { storage } from './storage.js';
 
 export interface PlexStream {
   user: string;
@@ -50,11 +51,35 @@ export class PlexService {
       };
     }
 
-    // Use cached data if it's still valid
+    // First check memory cache
     const now = Date.now();
     if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
-      console.log('Using cached Plex server info');
+      console.log('Using memory-cached Plex server info');
       return this.cachedServerInfo;
+    }
+
+    // Then check database cache
+    const cachedData = await storage.getCachedPlexData();
+    const lastUpdateTime = await storage.getPlexDataUpdateTime();
+
+    // Check if the cache is still valid (less than 5 minutes old)
+    const dbCacheValid = lastUpdateTime && (now - lastUpdateTime.getTime() < 300000);
+
+    // If we have valid DB cached data, use it
+    if (cachedData && dbCacheValid) {
+      try {
+        console.log('Using database-cached Plex server info');
+        const parsedData = JSON.parse(cachedData) as PlexServerInfo;
+        
+        // Update the memory cache too
+        this.cachedServerInfo = parsedData;
+        this.lastFetchTime = now;
+        
+        return parsedData;
+      } catch (e) {
+        console.error('Failed to parse cached Plex data from database:', e);
+        // Continue with fresh fetch if cache parsing fails
+      }
     }
 
     try {
@@ -188,10 +213,21 @@ except Exception as e:
           } else {
             try {
               const data = JSON.parse(result);
-              // Update the cache
+              // Update the memory cache
               this.cachedServerInfo = data;
               this.lastFetchTime = Date.now();
-              console.log('Updated Plex server info cache');
+              console.log('Updated Plex server info memory cache');
+              
+              // Also save to database for persistence
+              storage.saveCachedPlexData(JSON.stringify(data))
+                .then(() => {
+                  console.log('Updated Plex server info database cache');
+                })
+                .catch(dbError => {
+                  console.error('Failed to save Plex data to database:', dbError);
+                  // Continue even if DB save fails
+                });
+              
               resolve(data);
             } catch (e) {
               console.error('Failed to parse Python output as JSON', e);
