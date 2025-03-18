@@ -14,6 +14,49 @@ export function GameServerSummary() {
     refetchInterval: 15000, // 15 seconds - same as Plex
     staleTime: 10000, // 10 seconds before data is considered stale
   });
+  
+  // Share the adminUIVisible state to match the Ctrl+H behavior in other components
+  const [showAdminDetails, setShowAdminDetails] = useState(() => {
+    // Initialize from localStorage using the shared adminUIVisible key
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('adminUIVisible');
+      return saved === 'true'; // true when 'true', false otherwise
+    }
+    return false;
+  });
+  
+  // Sync state with localStorage changes from other components
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'adminUIVisible') {
+        const newValue = e.newValue === 'true';
+        setShowAdminDetails(newValue);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+  
+  // Handle keyboard shortcut for toggling admin details
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Look for Ctrl+H (or Cmd+H on Mac)
+      if (e.key === 'h' && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        e.preventDefault(); // Prevent browser's history shortcut
+        
+        setShowAdminDetails(prevState => {
+          const newState = !prevState;
+          // Save to the shared localStorage key
+          localStorage.setItem('adminUIVisible', String(newState));
+          return newState;
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (isLoading) {
     return <GameServerSummarySkeleton />;
@@ -96,7 +139,8 @@ export function GameServerSummary() {
           </div>
         )}
         
-        {totalPlayers === 0 && (
+        {/* Only show "No active players" message when showAdminDetails is true */}
+        {totalPlayers === 0 && showAdminDetails && (
           <div className="p-3 text-center text-muted-foreground text-sm border rounded-md bg-muted/20 mt-2">
             No active players on any server
           </div>
