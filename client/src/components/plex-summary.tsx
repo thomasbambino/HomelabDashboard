@@ -11,7 +11,10 @@ export function PlexSummary() {
     error,
   } = useQuery<PlexServerInfo>({
     queryKey: [PLEX_QUERY_KEY],
-    staleTime: 30000, // 30 seconds before data is considered stale
+    staleTime: 10000, // 10 seconds before data is considered stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000, // Refresh every 15 seconds
   });
 
   if (isLoading) {

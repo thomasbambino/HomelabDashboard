@@ -33,7 +33,7 @@ export interface PlexServerInfo {
 }
 
 export function PlexStreams() {
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+  const [refreshInterval, setRefreshInterval] = useState(15000); // 15 seconds - more frequent updates
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [localStreams, setLocalStreams] = useState<PlexStream[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
@@ -46,7 +46,9 @@ export function PlexStreams() {
   } = useQuery<PlexServerInfo>({
     queryKey: [PLEX_QUERY_KEY],
     refetchInterval: autoRefresh ? refreshInterval : false,
-    staleTime: 30000, // 30 seconds before data is considered stale
+    staleTime: 10000, // 10 seconds before data is considered stale
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
   // Update local streams whenever the server data changes

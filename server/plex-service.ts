@@ -31,7 +31,7 @@ export class PlexService {
   private token: string;
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
-  private cacheTTL: number = 30000; // 30 seconds cache
+  private cacheTTL: number = 15000; // 15 seconds cache for faster refreshes
   private connectionRetries: number = 0;
   private maxRetries: number = 3;
   private baseUrl: string;

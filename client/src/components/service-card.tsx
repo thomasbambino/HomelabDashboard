@@ -84,11 +84,18 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isPlex = service.name.toLowerCase().includes('plex');
   
-  // Prefetch Plex data as soon as a Plex card is rendered
+  // Prefetch and refresh Plex data at regular intervals
   useEffect(() => {
     if (isPlex) {
-      // Prefetch Plex data to ensure it's available instantly
+      // Initial prefetch to ensure data is available instantly
       prefetchPlexData();
+
+      // Set up automatic refresh for Plex data every 20 seconds
+      const refreshInterval = setInterval(() => {
+        refreshPlexData();
+      }, 20000); // 20 seconds
+      
+      return () => clearInterval(refreshInterval);
     }
   }, [isPlex]);
   
