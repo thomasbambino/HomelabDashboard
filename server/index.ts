@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startServiceChecker } from "./service-checker";
 import { setupDefaultTemplates } from "./email-templates";
+import { startBackgroundTasks } from "./background-tasks";
 
 const app = express();
 app.use(express.json());
@@ -57,6 +58,9 @@ app.use((req, res, next) => {
 
   // Start the service checker
   startServiceChecker();
+  
+  // Start background tasks for Plex data refreshing
+  startBackgroundTasks();
 
   if (app.get("env") === "development") {
     await setupVite(app, server);
