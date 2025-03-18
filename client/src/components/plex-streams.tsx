@@ -46,6 +46,18 @@ export function PlexStreams() {
     queryKey: [PLEX_QUERY_KEY],
     refetchInterval: autoRefresh ? refreshInterval : false,
     staleTime: 30000, // 30 seconds before data is considered stale
+    // Use placeholders for initial data to avoid loading state
+    placeholderData: {
+      status: true,
+      streams: [],
+      libraries: [
+        { title: "Movies", type: "movie", count: 0 },
+        { title: "TV Shows", type: "show", count: 0 }
+      ],
+      activeStreamCount: 0,
+      version: "Loading...",
+      uptime: "Connecting..."
+    }
   });
 
   // Update local streams whenever the server data changes
@@ -100,7 +112,8 @@ export function PlexStreams() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, refetch]);
 
-  if (isLoading) {
+  // Only show loading skeleton if we're loading AND don't have any data yet
+  if (isLoading && !plexInfo) {
     return <PlexStreamsSkeleton />;
   }
 

@@ -2,9 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Film, Tv, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlexServerInfo } from "./plex-streams";
-import { PLEX_QUERY_KEY } from "../lib/plexCache";
+import { PLEX_QUERY_KEY, prefetchPlexData } from "../lib/plexCache";
+import { useEffect } from "react";
 
 export function PlexSummary() {
+  // Prefetch Plex data when component mounts to ensure we have data
+  useEffect(() => {
+    prefetchPlexData();
+  }, []);
+
   const {
     data: plexInfo,
     isLoading,
@@ -12,13 +18,32 @@ export function PlexSummary() {
   } = useQuery<PlexServerInfo>({
     queryKey: [PLEX_QUERY_KEY],
     staleTime: 30000, // 30 seconds before data is considered stale
+    // Use placeholders for initial data to avoid loading state
+    placeholderData: {
+      status: true,
+      streams: [],
+      libraries: [
+        { title: "Movies", type: "movie", count: 0 },
+        { title: "TV Shows", type: "show", count: 0 }
+      ],
+      activeStreamCount: 0,
+      version: "Loading...",
+      uptime: "Connecting..."
+    }
   });
 
-  if (isLoading) {
+  // Only show skeleton if truly loading with no data
+  if (isLoading && !plexInfo) {
     return <PlexSummarySkeleton />;
   }
 
-  if (error || !plexInfo) {
+  // Handle truly empty state (should never happen due to placeholderData)
+  if (!plexInfo) {
+    return <PlexSummarySkeleton />;
+  }
+
+  // Handle error state
+  if (error) {
     return (
       <div className="text-destructive text-sm">
         Failed to load Plex info
@@ -26,6 +51,7 @@ export function PlexSummary() {
     );
   }
 
+  // Handle offline state
   if (!plexInfo.status) {
     return (
       <div className="text-amber-500 text-sm">
