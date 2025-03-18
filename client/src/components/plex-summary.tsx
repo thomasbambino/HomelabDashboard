@@ -30,6 +30,11 @@ export function PlexSummary() {
     return (
       <div className="text-amber-500 text-sm">
         Plex server is offline
+        {plexInfo.error && (
+          <span className="block text-xs text-muted-foreground mt-1">
+            Reason: {plexInfo.error}
+          </span>
+        )}
       </div>
     );
   }

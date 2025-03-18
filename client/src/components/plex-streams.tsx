@@ -29,6 +29,7 @@ export interface PlexServerInfo {
   libraries?: PlexLibrarySection[];
   activeStreamCount: number;
   uptime?: string;
+  error?: string; // Add error field for better diagnostics
 }
 
 export function PlexStreams() {
@@ -117,7 +118,12 @@ export function PlexStreams() {
   if (!plexInfo.status) {
     return (
       <div className="p-4 border rounded-md bg-muted/30">
-        <div className="text-amber-500">Plex server is offline</div>
+        <div className="text-amber-500 font-medium">Plex server is offline</div>
+        {plexInfo.error && (
+          <div className="text-xs text-muted-foreground mt-2">
+            <span className="font-medium">Error details:</span> {plexInfo.error}
+          </div>
+        )}
       </div>
     );
   }

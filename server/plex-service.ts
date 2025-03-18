@@ -24,6 +24,7 @@ export interface PlexServerInfo {
   libraries?: PlexLibrarySection[];
   activeStreamCount: number;
   uptime?: string;
+  error?: string; // Add error field for better diagnostics
 }
 
 export class PlexService {
@@ -94,14 +95,22 @@ export class PlexService {
     this.connectionRetries++;
 
     try {
-      // Use Python and plexapi to get the server info via Plex.tv API
+      // Use Python and plexapi to get the server info
+      const directServer = this.baseUrl ? true : false;
+      
       const pythonScript = `
 from plexapi.myplex import MyPlexAccount
+from plexapi.server import PlexServer
 import json
 import time
 
 try:
-    # Connect via Plex.tv account using token
+    # Determine connection method based on available credentials
+    ${directServer ? 
+      `# Connect directly to server using URL and token
+    plex = PlexServer('${this.baseUrl}', '${this.token}')` 
+      : 
+      `# Connect via Plex.tv account using token
     account = MyPlexAccount(token='${this.token}')
     
     # Get the first available server from the account
@@ -118,7 +127,7 @@ try:
         exit()
     
     # Connect to the first server
-    plex = servers[0].connect()
+    plex = servers[0].connect()`}
     
     # Get current streams
     sessions = plex.sessions()
