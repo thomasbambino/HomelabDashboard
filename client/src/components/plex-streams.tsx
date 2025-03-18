@@ -3,7 +3,9 @@ import { Progress } from "@/components/ui/progress";
 import { User, Film, Tv, Pause, Play } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
-import { PLEX_QUERY_KEY } from "../lib/plexCache";
+import { PLEX_QUERY_KEY, prefetchPlexData, refreshPlexData } from "../lib/plexCache";
+import { apiRequest } from "../lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export interface PlexStream {
   user: string;
@@ -32,10 +34,50 @@ export interface PlexServerInfo {
 }
 
 export function PlexStreams() {
+  const { user } = useAuth();
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [localStreams, setLocalStreams] = useState<PlexStream[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+  const [isFetching, setIsFetching] = useState(false);
+  
+  // Directly fetch data when component mounts or auth changes
+  useEffect(() => {
+    if (!user) return; // Don't fetch if not authenticated
+    
+    const fetchPlexData = async () => {
+      setIsFetching(true);
+      try {
+        const response = await apiRequest("GET", PLEX_QUERY_KEY);
+        if (response.ok) {
+          const data = await response.json();
+          // Log success to debug
+          console.log("Plex data direct fetch successful:", data?.activeStreamCount || 0, "streams");
+          
+          if (data.streams && Array.isArray(data.streams)) {
+            setLocalStreams(data.streams);
+            setLastUpdateTime(Date.now());
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching Plex data:", error);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    
+    // Initial fetch
+    fetchPlexData();
+    
+    // Set up refresh interval for direct fetch
+    const interval = setInterval(() => {
+      if (autoRefresh && user) {
+        fetchPlexData();
+      }
+    }, refreshInterval);
+    
+    return () => clearInterval(interval);
+  }, [user, autoRefresh, refreshInterval]);
 
   const {
     data: plexInfo,
@@ -44,6 +86,7 @@ export function PlexStreams() {
     refetch,
   } = useQuery<PlexServerInfo>({
     queryKey: [PLEX_QUERY_KEY],
+    enabled: !!user, // Only run query if authenticated
     refetchInterval: autoRefresh ? refreshInterval : false,
     staleTime: 30000, // 30 seconds before data is considered stale
     // Use placeholders for initial data to avoid loading state
@@ -112,12 +155,13 @@ export function PlexStreams() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, refetch]);
 
-  // Only show loading skeleton if we're loading AND don't have any data yet
-  if (isLoading && !plexInfo) {
+  // Only show loading skeleton if we're still loading/fetching AND don't have any data yet
+  if ((isLoading || isFetching) && !plexInfo && localStreams.length === 0) {
     return <PlexStreamsSkeleton />;
   }
 
-  if (error || !plexInfo) {
+  // If we have error but we have localStreams, show those instead of error
+  if (error && !plexInfo && localStreams.length === 0) {
     return (
       <div className="p-4 border rounded-md bg-muted/30">
         <div className="text-destructive">
@@ -127,7 +171,17 @@ export function PlexStreams() {
     );
   }
 
-  if (!plexInfo.status) {
+  // Use either plexInfo from query or construct a dynamic one based on local data
+  const displayInfo = plexInfo || {
+    status: true,
+    streams: localStreams,
+    libraries: [],
+    activeStreamCount: localStreams.length,
+    version: "Unknown",
+    uptime: "Unknown"
+  };
+
+  if (!displayInfo.status) {
     return (
       <div className="p-4 border rounded-md bg-muted/30">
         <div className="text-amber-500">Plex server is offline</div>
@@ -140,7 +194,7 @@ export function PlexStreams() {
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">
           <span className="text-primary">
-            {plexInfo.activeStreamCount} active {plexInfo.activeStreamCount === 1 ? "stream" : "streams"}
+            {displayInfo.activeStreamCount} active {displayInfo.activeStreamCount === 1 ? "stream" : "streams"}
           </span>
         </div>
       </div>
@@ -198,11 +252,11 @@ export function PlexStreams() {
         </div>
       )}
 
-      {plexInfo.libraries && plexInfo.libraries.length > 0 && (
+      {displayInfo.libraries && displayInfo.libraries.length > 0 && (
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Libraries</h4>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {plexInfo.libraries.map((library, index) => (
+            {displayInfo.libraries.map((library, index) => (
               <div
                 key={index}
                 className="p-3 border rounded-md bg-card text-center"
