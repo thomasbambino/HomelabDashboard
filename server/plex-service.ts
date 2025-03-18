@@ -219,6 +219,7 @@ except Exception as e:
               console.log('Updated Plex server info memory cache');
               
               // Also save to database for persistence
+              // Fire and forget DB cache save - we don't want to block on this
               storage.saveCachedPlexData(JSON.stringify(data))
                 .then(() => {
                   console.log('Updated Plex server info database cache');
