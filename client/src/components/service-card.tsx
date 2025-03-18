@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, ExternalLink, Settings, Trash2, UserPlus } from "lucide-react";
 import { EditServiceDialog } from "./edit-service-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { prefetchPlexData } from "../lib/plexCache";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,14 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isPlex = service.name.toLowerCase().includes('plex');
+  
+  // Prefetch Plex data as soon as a Plex card is rendered
+  useEffect(() => {
+    if (isPlex) {
+      // Prefetch Plex data to ensure it's available instantly
+      prefetchPlexData();
+    }
+  }, [isPlex]);
 
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),

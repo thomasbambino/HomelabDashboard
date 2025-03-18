@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { User, Film, Tv, Pause, Play } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
+import { PLEX_QUERY_KEY } from "../lib/plexCache";
 
 export interface PlexStream {
   user: string;
@@ -42,8 +43,9 @@ export function PlexStreams() {
     error,
     refetch,
   } = useQuery<PlexServerInfo>({
-    queryKey: ["/api/services/plex/details"],
+    queryKey: [PLEX_QUERY_KEY],
     refetchInterval: autoRefresh ? refreshInterval : false,
+    staleTime: 30000, // 30 seconds before data is considered stale
   });
 
   // Update local streams whenever the server data changes

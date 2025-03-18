@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Film, Tv, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlexServerInfo } from "./plex-streams";
+import { PLEX_QUERY_KEY } from "../lib/plexCache";
 
 export function PlexSummary() {
   const {
@@ -9,8 +10,8 @@ export function PlexSummary() {
     isLoading,
     error,
   } = useQuery<PlexServerInfo>({
-    queryKey: ["/api/services/plex/details"],
-    refetchInterval: 30000, // 30 seconds
+    queryKey: [PLEX_QUERY_KEY],
+    staleTime: 30000, // 30 seconds before data is considered stale
   });
 
   if (isLoading) {
