@@ -154,6 +154,20 @@ try:
         # Get quality
         quality = session.media[0].videoResolution if session.media else 'Unknown'
         
+        # Get thumbnail URL - prefer the specific item's thumb, but fall back to parent/grandparent
+        thumb_url = None
+        if hasattr(session, 'thumb') and session.thumb:
+            thumb_url = session.thumb
+        elif hasattr(session, 'parentThumb') and session.parentThumb:
+            thumb_url = session.parentThumb
+        elif hasattr(session, 'grandparentThumb') and session.grandparentThumb:
+            thumb_url = session.grandparentThumb
+            
+        # Ensure we have a full URL if a thumb exists
+        if thumb_url and not thumb_url.startswith('http'):
+            # For complete URLs, need to prefix with baseURL from Plex server
+            thumb_url = f"{plex.url}{thumb_url}"
+        
         streams.append({
             'user': user,
             'title': title,
@@ -162,7 +176,8 @@ try:
             'progress': progress,
             'duration': duration,
             'quality': quality,
-            'state': state
+            'state': state,
+            'thumb': thumb_url
         })
     
     # Get libraries

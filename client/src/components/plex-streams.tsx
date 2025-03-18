@@ -14,6 +14,7 @@ export interface PlexStream {
   duration: number;
   quality: string;
   state: string;
+  thumb?: string; // Optional thumbnail URL for the media
 }
 
 export interface PlexLibrarySection {
@@ -153,9 +154,26 @@ export function PlexStreams() {
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center mr-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  {stream.thumb ? (
+                    <div className="h-10 w-16 rounded overflow-hidden mr-2 bg-muted flex-shrink-0">
+                      <img 
+                        src={stream.thumb} 
+                        alt="Media thumbnail"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          // Fallback to user icon if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<div class="h-full w-full flex items-center justify-center"><svg class="h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-16 rounded bg-muted flex items-center justify-center mr-2 flex-shrink-0">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm font-medium">{stream.user}</div>
                     <div className="text-xs text-muted-foreground">
@@ -209,7 +227,7 @@ function PlexStreamsSkeleton() {
           <div key={i} className="p-3 border rounded-md">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center">
-                <Skeleton className="h-8 w-8 rounded-full mr-2" />
+                <Skeleton className="h-10 w-16 rounded mr-2" />
                 <div>
                   <Skeleton className="h-4 w-24 mb-1" />
                   <Skeleton className="h-3 w-16" />
