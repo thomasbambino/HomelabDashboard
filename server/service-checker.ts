@@ -7,12 +7,11 @@ import { services, gameServers } from "@shared/schema";
 // Cache to store the last known status of each service
 const statusCache = new Map<number, { status: boolean; lastCheck: number; consecutiveFailures: number }>();
 
-async function checkHttpService(url: string): Promise<{ status: boolean; responseTime?: number; error?: string }> {
+async function checkHttpService(url: string): Promise<{ status: boolean; error?: string }> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const startTime = Date.now();
     const response = await fetch(url, {
       method: 'GET',  // Using GET instead of HEAD as it's more widely supported
       signal: controller.signal,
@@ -20,12 +19,10 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
         'User-Agent': 'ServiceHealthChecker/1.0'
       }
     });
-    const endTime = Date.now();
 
     clearTimeout(timeout);
     return {
-      status: response.ok,
-      responseTime: endTime - startTime
+      status: response.ok
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -39,7 +36,6 @@ async function checkHttpService(url: string): Promise<{ status: boolean; respons
 
     return {
       status: false,
-      responseTime: undefined,
       error: isNetworkError ? 'network_error' : 'service_error'
     };
   }
@@ -64,8 +60,8 @@ async function updateServiceStatus(service: Service) {
   }
 
   // Perform the service check
-  const { status, responseTime, error } = await checkHttpService(service.url);
-  console.log(`Service ${service.name} status check:`, { status, responseTime, error });
+  const { status, error } = await checkHttpService(service.url);
+  console.log(`Service ${service.name} status check:`, { status, error });
 
   // Update consecutive failures count
   if (!status) {
@@ -79,15 +75,11 @@ async function updateServiceStatus(service: Service) {
   const isOffline = !status && cachedStatus.consecutiveFailures >= 2;
   const currentStatus = !isOffline; // If not offline, then it's online
 
-  // Only update database and create log if status has significantly changed
+  // Only update database if status has significantly changed
   const hasStatusChanged = cachedStatus.status !== currentStatus;
 
   if (hasStatusChanged) {
     try {
-      // Log the status change
-      await storage.createServiceStatusLog(service.id, currentStatus, responseTime);
-      console.log(`Status change logged for service ${service.name}: ${currentStatus ? 'Online' : 'Offline'}, Response time: ${responseTime}ms`);
-
       // Update service status in database
       await db
         .update(services)
@@ -107,8 +99,7 @@ async function updateServiceStatus(service: Service) {
           stack: error.stack,
           serviceId: service.id,
           serviceName: service.name,
-          status: currentStatus,
-          responseTime
+          status: currentStatus
         });
       }
     }
