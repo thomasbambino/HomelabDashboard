@@ -55,7 +55,15 @@ interface ServiceCardProps {
 export function ServiceCard({ service, isDragging, showAdminControls = true }: ServiceCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showPlexDialog, setShowPlexDialog] = useState(false);
-  const [showPlexStreams, setShowPlexStreams] = useState(false);
+  // Remove showPlexStreams state as we now use showAdminDetails instead
+  const [showAdminDetails, setShowAdminDetails] = useState(() => {
+    // Initialize from localStorage if available
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showPlexAdminDetails');
+      return saved !== null ? saved === 'true' : false;
+    }
+    return false;
+  });
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
@@ -68,6 +76,25 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
       prefetchPlexData();
     }
   }, [isPlex]);
+  
+  // Handle keyboard shortcut for toggling admin details
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'h' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        setShowAdminDetails(prevState => {
+          const newState = !prevState;
+          // Save to localStorage
+          localStorage.setItem('showPlexAdminDetails', String(newState));
+          return newState;
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdmin]);
 
   const form = useForm<PlexAccountFormData>({
     resolver: zodResolver(plexAccountSchema),
@@ -292,36 +319,17 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               <PlexSummary />
             </div>
             
-            {/* Show Details button and streams for admins only */}
-            {isAdmin && (
+            {/* Only render stream details for admins when showAdminDetails is true */}
+            {isAdmin && showAdminDetails && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Stream Details</h3>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 px-2"
-                    onClick={() => setShowPlexStreams(!showPlexStreams)}
-                  >
-                    {showPlexStreams ? (
-                      <>
-                        <ChevronUp className="h-4 w-4 mr-1" />
-                        Hide Details
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 mr-1" />
-                        Show Details
-                      </>
-                    )}
-                  </Button>
+                  <div className="text-xs text-muted-foreground">Press 'h' to hide</div>
                 </div>
                 
-                {showPlexStreams && (
-                  <div className="pt-2">
-                    <PlexStreams />
-                  </div>
-                )}
+                <div className="pt-2">
+                  <PlexStreams />
+                </div>
               </div>
             )}
           </div>
