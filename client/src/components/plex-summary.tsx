@@ -2,35 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Film, Tv, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlexServerInfo } from "./plex-streams";
-import { PLEX_QUERY_KEY, prefetchPlexData, refreshPlexData } from "../lib/plexCache";
-import { useEffect, useState } from "react";
-import { apiRequest } from "../lib/queryClient";
+import { PLEX_QUERY_KEY } from "../lib/plexCache";
 
 export function PlexSummary() {
-  const [isFetching, setIsFetching] = useState(false);
-  
-  // Fetch data directly when component mounts
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsFetching(true);
-      try {
-        await prefetchPlexData();
-      } finally {
-        setIsFetching(false);
-      }
-    };
-    
-    fetchData();
-    
-    // Set up a refresh interval
-    const interval = setInterval(() => {
-      refreshPlexData();
-    }, 30000); // Refresh every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // Get data from the cache via query
   const {
     data: plexInfo,
     isLoading,
@@ -38,35 +12,13 @@ export function PlexSummary() {
   } = useQuery<PlexServerInfo>({
     queryKey: [PLEX_QUERY_KEY],
     staleTime: 30000, // 30 seconds before data is considered stale
-    // Use placeholders for initial data to avoid loading state
-    placeholderData: {
-      status: true,
-      streams: [],
-      libraries: [
-        { title: "Movies", type: "movie", count: 0 },
-        { title: "TV Shows", type: "show", count: 0 }
-      ],
-      activeStreamCount: 0,
-      version: "Loading...",
-      uptime: "Connecting..."
-    }
   });
 
-  // Only show skeleton if both are true: 
-  // 1. We're loading the query AND 
-  // 2. We're directly fetching AND
-  // 3. We don't have any data
-  if ((isLoading || isFetching) && !plexInfo) {
+  if (isLoading) {
     return <PlexSummarySkeleton />;
   }
 
-  // Handle truly empty state (should never happen due to placeholderData)
-  if (!plexInfo) {
-    return <PlexSummarySkeleton />;
-  }
-
-  // Handle error state
-  if (error) {
+  if (error || !plexInfo) {
     return (
       <div className="text-destructive text-sm">
         Failed to load Plex info
@@ -74,7 +26,6 @@ export function PlexSummary() {
     );
   }
 
-  // Handle offline state
   if (!plexInfo.status) {
     return (
       <div className="text-amber-500 text-sm">
