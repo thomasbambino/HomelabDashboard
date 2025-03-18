@@ -55,9 +55,6 @@ export class PlexService {
   }
 
   async getServerInfo(): Promise<PlexServerInfo> {
-    // For debugging purposes - reset retry counter
-    this.connectionRetries = 0;
-    
     // Check if we have the required credentials
     if (!this.token) {
       console.error('Plex token not provided');
@@ -69,11 +66,14 @@ export class PlexService {
       };
     }
 
-    // Skip cache for debugging
-    console.log('Forcing refresh of Plex server info for debugging');
+    // Use cached data if it's still valid
+    const now = Date.now();
+    if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
+      console.log('Using cached Plex server info');
+      return this.cachedServerInfo;
+    }
     
     // Reset retry counter if it's been over 5 minutes since last attempt
-    const now = Date.now();
     if (now - this.lastFetchTime > 300000) { // 5 minutes
       this.connectionRetries = 0;
     }
@@ -107,26 +107,15 @@ from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 import json
 import time
-import sys
-
-# Redirect any debug output to stderr instead of stdout
-# to avoid breaking our JSON output
-def debug_print(msg):
-    print(msg, file=sys.stderr)
 
 try:
-    # Create a plex_token variable for thumbnail URLs
-    plex_token = '${this.token}'
-    
     # Determine connection method based on available credentials
     ${directServer ? 
       `# Connect directly to server using URL and token
-    debug_print(f"Connecting directly to Plex server at ${this.baseUrl}")
-    plex = PlexServer('${this.baseUrl}', plex_token)` 
+    plex = PlexServer('${this.baseUrl}', '${this.token}')` 
       : 
       `# Connect via Plex.tv account using token
-    debug_print("Connecting via Plex.tv account")
-    account = MyPlexAccount(token=plex_token)
+    account = MyPlexAccount(token='${this.token}')
     
     # Get the first available server from the account
     resources = account.resources()
@@ -142,7 +131,6 @@ try:
         exit()
     
     # Connect to the first server
-    debug_print(f"Connecting to server: {servers[0].name}")
     plex = servers[0].connect()`}
     
     # Get current streams
@@ -150,29 +138,35 @@ try:
     streams = []
     
     for session in sessions:
-        # Basic stream info
         user = session.usernames[0] if session.usernames else 'Unknown'
         title = session.title
         media_type = session.type
         
-        # Device info
+        # Get device info
         device = session.players[0].product if session.players else 'Unknown'
         state = session.players[0].state if session.players else 'unknown'
         
-        # Calculate progress percentage
+        # Calculate progress
         duration = session.duration if hasattr(session, 'duration') else 0
         view_offset = session.viewOffset if hasattr(session, 'viewOffset') else 0
         progress = (view_offset / duration * 100) if duration > 0 else 0
         
-        # Quality info
+        # Get quality
         quality = session.media[0].videoResolution if session.media else 'Unknown'
         
-        # Thumbnail handling - only use direct URLs
+        # Get thumbnail URL - prefer the specific item's thumb, but fall back to parent/grandparent
         thumb_url = None
-        
-        # Use thumbUrl which already has the token embedded
-        if hasattr(session, 'thumbUrl') and session.thumbUrl and isinstance(session.thumbUrl, str):
-            thumb_url = session.thumbUrl
+        if hasattr(session, 'thumb') and session.thumb:
+            thumb_url = session.thumb
+        elif hasattr(session, 'parentThumb') and session.parentThumb:
+            thumb_url = session.parentThumb
+        elif hasattr(session, 'grandparentThumb') and session.grandparentThumb:
+            thumb_url = session.grandparentThumb
+            
+        # Ensure we have a full URL if a thumb exists
+        if thumb_url and not thumb_url.startswith('http'):
+            # For complete URLs, need to prefix with baseURL from Plex server
+            thumb_url = f"{plex.url}{thumb_url}"
         
         streams.append({
             'user': user,
@@ -213,7 +207,7 @@ try:
         minutes, seconds = divmod(remainder, 60)
         uptime = f"{days}d {hours}h {minutes}m"
     
-    # Output clean JSON
+    # Output JSON
     result = {
         'status': True,
         'version': version,
