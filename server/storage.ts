@@ -268,51 +268,27 @@ export class DatabaseStorage implements IStorage {
     return updatedSettings;
   }
 
+  // Disabled to reduce database usage - no longer logging service status changes
   async createServiceStatusLog(serviceId: number, status: boolean, responseTime?: number): Promise<ServiceStatusLog> {
-    const [newLog] = await db.insert(serviceStatusLogs)
-      .values({
-        serviceId,
-        status,
-        responseTime,
-        timestamp: new Date(),
-      })
-      .returning();
-    return newLog;
+    // Create a dummy log object without inserting into database
+    return {
+      id: 0,
+      serviceId: serviceId,
+      status: status,
+      responseTime: responseTime || 0,
+      timestamp: new Date()
+    } as ServiceStatusLog;
   }
 
+  // Disabled to reduce database usage - no longer retrieving historical service status logs
   async getServiceStatusLogs(filters?: {
     serviceId?: number;
     startDate?: Date;
     endDate?: Date;
     status?: boolean;
   }): Promise<ServiceStatusLog[]> {
-    let conditions = [];
-
-    if (filters?.serviceId !== undefined) {
-      conditions.push(eq(serviceStatusLogs.serviceId, filters.serviceId));
-    }
-
-    if (filters?.status !== undefined) {
-      conditions.push(eq(serviceStatusLogs.status, filters.status));
-    }
-
-    if (filters?.startDate && filters?.endDate) {
-      conditions.push(
-        and(
-          gte(serviceStatusLogs.timestamp, filters.startDate),
-          lte(serviceStatusLogs.timestamp, filters.endDate)
-        )
-      );
-    }
-
-    const query = conditions.length > 0
-      ? db.select().from(serviceStatusLogs).where(and(...conditions))
-      : db.select().from(serviceStatusLogs);
-
-    const logs = await query.orderBy(desc(serviceStatusLogs.timestamp));
-
-    // Since we're only storing status changes now, we don't need additional filtering
-    return logs;
+    // Return empty array instead of querying database
+    return [];
   }
 
   async getService(id: number): Promise<Service | undefined> {
