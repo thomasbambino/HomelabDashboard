@@ -54,6 +54,8 @@ export const settings = pgTable("settings", {
   admin_show_service_url: boolean("admin_show_service_url").default(true),
   admin_show_uptime_log: boolean("admin_show_uptime_log").default(false),
   admin_show_status_badge: boolean("admin_show_status_badge").default(true),
+  cached_plex_data: text("cached_plex_data"), // Store serialized Plex server info
+  plex_data_updated_at: timestamp("plex_data_updated_at"), // Last update timestamp
 });
 
 export const services = pgTable("services", {
