@@ -43,7 +43,11 @@ export class PlexService {
   }
 
   async getServerInfo(): Promise<PlexServerInfo> {
+    // For debugging - log the current token status
+    console.log(`Plex token available: ${!!this.token}`);
+    
     if (!this.token) {
+      console.warn('No Plex token available, returning empty data');
       return {
         status: false,
         streams: [],
@@ -59,27 +63,32 @@ export class PlexService {
     }
 
     // Then check database cache
-    const cachedData = await storage.getCachedPlexData();
-    const lastUpdateTime = await storage.getPlexDataUpdateTime();
+    try {
+      const cachedData = await storage.getCachedPlexData();
+      const lastUpdateTime = await storage.getPlexDataUpdateTime();
 
-    // Check if the cache is still valid (less than 5 minutes old)
-    const dbCacheValid = lastUpdateTime && (now - lastUpdateTime.getTime() < 300000);
+      // Check if the cache is still valid (less than 5 minutes old)
+      const dbCacheValid = lastUpdateTime && (now - lastUpdateTime.getTime() < 300000);
 
-    // If we have valid DB cached data, use it
-    if (cachedData && dbCacheValid) {
-      try {
-        console.log('Using database-cached Plex server info');
-        const parsedData = JSON.parse(cachedData) as PlexServerInfo;
-        
-        // Update the memory cache too
-        this.cachedServerInfo = parsedData;
-        this.lastFetchTime = now;
-        
-        return parsedData;
-      } catch (e) {
-        console.error('Failed to parse cached Plex data from database:', e);
-        // Continue with fresh fetch if cache parsing fails
+      // If we have valid DB cached data, use it
+      if (cachedData && dbCacheValid) {
+        try {
+          console.log('Using database-cached Plex server info');
+          const parsedData = JSON.parse(cachedData) as PlexServerInfo;
+          
+          // Update the memory cache too
+          this.cachedServerInfo = parsedData;
+          this.lastFetchTime = now;
+          
+          return parsedData;
+        } catch (e) {
+          console.error('Failed to parse cached Plex data from database:', e);
+          // Continue with fresh fetch if cache parsing fails
+        }
       }
+    } catch (dbError) {
+      console.error('Error accessing database cache:', dbError);
+      // Continue with fresh fetch if DB access fails
     }
 
     try {
