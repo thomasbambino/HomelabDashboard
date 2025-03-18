@@ -43,10 +43,14 @@ export class PlexService {
 
     if (!this.token) {
       console.warn('Plex token not configured in environment variables');
+    } else {
+      console.log('Plex token configured successfully');
     }
     
     if (!this.baseUrl) {
-      console.warn('Plex server URL not configured in environment variables');
+      console.log('No direct Plex server URL configured, will connect via plex.tv account');
+    } else {
+      console.log(`Using direct Plex server URL: ${this.baseUrl}`);
     }
   }
 
@@ -227,6 +231,7 @@ except Exception as e:
             console.error(`Error: ${error}`);
             resolve({
               status: false,
+              error: `Failed to communicate with Plex server (Exit code: ${code}). Error: ${error.substring(0, 200)}${error.length > 200 ? '...' : ''}`,
               streams: [],
               activeStreamCount: 0
             });
@@ -243,6 +248,7 @@ except Exception as e:
               console.error('Raw output:', result);
               resolve({
                 status: false,
+                error: `Failed to parse Plex server response: ${e instanceof Error ? e.message : 'Unknown error'}`,
                 streams: [],
                 activeStreamCount: 0
               });
@@ -254,6 +260,7 @@ except Exception as e:
       console.error('Error fetching Plex server info:', error);
       return {
         status: false,
+        error: `Server error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
         streams: [],
         activeStreamCount: 0
       };
