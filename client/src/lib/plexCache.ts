@@ -27,7 +27,7 @@ export async function prefetchPlexData(): Promise<void> {
   try {
     await queryClient.prefetchQuery({
       queryKey: [PLEX_QUERY_KEY],
-      staleTime: 30000, // 30 seconds
+      staleTime: 10000, // 10 seconds - make it stale faster to encourage refreshes
     });
     console.log("Plex data prefetched successfully");
   } catch (error) {
