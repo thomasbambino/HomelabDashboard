@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlexStreams } from "./plex-streams";
 import { PlexSummary } from "./plex-summary";
+import { GameServerSummary } from "./game-server-summary";
 
 // Add email schema for validation
 const plexAccountSchema = z.object({
@@ -83,6 +84,7 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isPlex = service.name.toLowerCase().includes('plex');
+  const isAMP = service.name.toLowerCase().includes('amp');
   
   // Prefetch and refresh Plex data at regular intervals
   useEffect(() => {
@@ -358,6 +360,23 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
                 <div className="pt-2">
                   <PlexStreams />
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Display Game Server Summary for AMP Server */}
+        {isAMP && (
+          <div className="space-y-4">
+            {/* Show GameServerSummary for all users */}
+            <div>
+              <GameServerSummary />
+            </div>
+            
+            {/* Add admin note about Ctrl+H toggle */}
+            {isAdmin && (
+              <div className="text-xs text-muted-foreground text-right">
+                Press Ctrl+H to toggle admin UI
               </div>
             )}
           </div>
