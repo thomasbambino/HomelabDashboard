@@ -39,6 +39,12 @@ import { Label } from "@/components/ui/label";
 import { PlexStreams } from "./plex-streams";
 import { PlexSummary } from "./plex-summary";
 import { GameServerSummary } from "./game-server-summary";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Add email schema for validation
 const plexAccountSchema = z.object({
@@ -214,13 +220,24 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             {service.icon && (
-              <div className="w-6 h-6 flex items-center justify-center">
-                <img
-                  src={service.icon}
-                  alt={`${service.name} icon`}
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-6 h-6 flex items-center justify-center cursor-pointer">
+                      <img
+                        src={service.icon}
+                        alt={`${service.name} icon`}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  {isAdmin && (
+                    <TooltipContent side="bottom">
+                      <p>Press Ctrl+H to toggle admin UI</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
             <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
           </div>
@@ -354,7 +371,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Stream Details</h3>
-                  <div className="text-xs text-muted-foreground">Press Ctrl+H to toggle admin UI</div>
                 </div>
                 
                 <div className="pt-2">
@@ -372,13 +388,6 @@ export function ServiceCard({ service, isDragging, showAdminControls = true }: S
             <div>
               <GameServerSummary />
             </div>
-            
-            {/* Add admin note about Ctrl+H toggle */}
-            {isAdmin && (
-              <div className="text-xs text-muted-foreground text-right">
-                Press Ctrl+H to toggle admin UI
-              </div>
-            )}
           </div>
         )}
         
