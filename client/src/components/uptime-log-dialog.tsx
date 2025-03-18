@@ -21,4 +21,3 @@ export function UptimeLogDialog({ children }: UptimeLogDialogProps) {
   // Always return null - uptime logging disabled
   return null;
 }
-}

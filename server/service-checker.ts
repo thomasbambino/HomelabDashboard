@@ -7,13 +7,14 @@ import { services, gameServers } from "@shared/schema";
 // Cache to store the last known status of each service
 const statusCache = new Map<number, { status: boolean; lastCheck: number; consecutiveFailures: number }>();
 
+// Simplified HTTP service check that only reports status (no response time tracking)
 async function checkHttpService(url: string): Promise<{ status: boolean; error?: string }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeout = setTimeout(() => controller.abort(), 5000); // Reduced to 5 second timeout
 
     const response = await fetch(url, {
-      method: 'GET',  // Using GET instead of HEAD as it's more widely supported
+      method: 'GET',
       signal: controller.signal,
       headers: {
         'User-Agent': 'ServiceHealthChecker/1.0'
@@ -28,7 +29,7 @@ async function checkHttpService(url: string): Promise<{ status: boolean; error?:
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`Service check failed for URL ${url}:`, errorMessage);
 
-    // Categorize the error
+    // Simple error categorization
     const isNetworkError = errorMessage.includes('fetch failed') || 
                           errorMessage.includes('network') ||
                           errorMessage.includes('ECONNREFUSED') ||
