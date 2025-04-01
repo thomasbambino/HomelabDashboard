@@ -172,32 +172,31 @@ export function GameServerList({ className }: GameServerListProps) {
         </div>
       )}
 
-      {/* Offline servers - grouped by type */}
+      {/* Offline servers - simple list but sorted by type */}
       {showOfflineServers && (
-        <div className="space-y-6">
-          {Object.keys(offlineServersByType).map(type => (
-            <div key={type} className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                {capitalizeGameType(type)} Servers
-              </h3>
-              <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
-                {offlineServersByType[type].map((server) => (
-                  <div
-                    key={server.instanceId}
-                    ref={el => el && observeServer(server.instanceId, el)}
-                    className="min-h-[200px]"
-                  >
-                    {visibleServers.has(server.instanceId) && (
-                      <GameServerCard server={server} />
-                    )}
-                    {!visibleServers.has(server.instanceId) && (
-                      <div className="h-full w-full rounded-lg border bg-card animate-pulse" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="mt-4">
+          <h3 className="text-sm font-medium text-muted-foreground border-b pb-1 mb-3">
+            Offline Servers
+          </h3>
+          <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
+            {/* Flatten the offline servers by type, but keep them sorted */}
+            {Object.keys(offlineServersByType).sort().flatMap(type => 
+              offlineServersByType[type].map(server => (
+                <div
+                  key={server.instanceId}
+                  ref={el => el && observeServer(server.instanceId, el)}
+                  className="min-h-[200px]"
+                >
+                  {visibleServers.has(server.instanceId) && (
+                    <GameServerCard server={server} />
+                  )}
+                  {!visibleServers.has(server.instanceId) && (
+                    <div className="h-full w-full rounded-lg border bg-card animate-pulse" />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
