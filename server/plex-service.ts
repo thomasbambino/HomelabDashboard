@@ -31,7 +31,7 @@ export class PlexService {
   private token: string;
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
-  private cacheTTL: number = 15000; // 15 seconds cache for faster refreshes
+  private cacheTTL: number = 30000; // 30 seconds cache (increased from 15 seconds)
   private connectionRetries: number = 0;
   private maxRetries: number = 3;
   private baseUrl: string;
@@ -69,7 +69,8 @@ export class PlexService {
     // Use cached data if it's still valid
     const now = Date.now();
     if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
-      console.log('Using cached Plex server info');
+      // Reduced logging - no need to log cache hits
+      // console.log('Using cached Plex server info');
       return this.cachedServerInfo;
     }
     
@@ -107,6 +108,7 @@ from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 import json
 import time
+import sys
 
 try:
     # Determine connection method based on available credentials
@@ -180,14 +182,24 @@ try:
             'thumb': thumb_url
         })
     
-    # Get libraries
+    # Get libraries - optimized to use built-in totalSize instead of loading all items
     libraries = []
     for section in plex.library.sections():
+        # Get counts more efficiently without loading all items
         count = 0
-        if section.type == 'movie':
-            count = len(section.all())
-        elif section.type == 'show':
-            count = len(section.all())
+        try:
+            # Use the totalSize attribute if available instead of loading all items
+            if hasattr(section, 'totalSize'):
+                count = section.totalSize
+            # Fallback to the size method which is more efficient than loading all items
+            elif hasattr(section, 'size'):
+                count = section.size()
+            # Legacy fallback only if neither method is available
+            else:
+                count = len(section.all()) if section.type in ['movie', 'show'] else 0
+        except Exception as e:
+            print(f"Error getting count for section {section.title}: {e}", file=sys.stderr)
+            count = 0
         
         libraries.append({
             'title': section.title,
@@ -256,7 +268,8 @@ except Exception as e:
               // Update the cache
               this.cachedServerInfo = data;
               this.lastFetchTime = Date.now();
-              console.log('Updated Plex server info cache');
+              // Reduced logging - no need to log every cache update
+              // console.log('Updated Plex server info cache');
               resolve(data);
             } catch (e) {
               console.error('Failed to parse Python output as JSON', e);

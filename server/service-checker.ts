@@ -43,7 +43,8 @@ async function checkHttpService(url: string): Promise<{ status: boolean; error?:
 }
 
 async function updateServiceStatus(service: Service) {
-  console.log(`Checking service ${service.name} (${service.url})`);
+  // Reduced logging - only log actual status updates
+  // console.log(`Checking service ${service.name} (${service.url})`);
 
   // Get cached status
   const cachedStatus = statusCache.get(service.id) || { 
@@ -62,7 +63,10 @@ async function updateServiceStatus(service: Service) {
 
   // Perform the service check
   const { status, error } = await checkHttpService(service.url);
-  console.log(`Service ${service.name} status check:`, { status, error });
+  // Only log errors or status changes, not successful checks
+  if (error || status !== cachedStatus.status) {
+    console.log(`Service ${service.name} status check:`, { status, error });
+  }
 
   // Update consecutive failures count
   if (!status) {
@@ -105,17 +109,28 @@ async function updateServiceStatus(service: Service) {
       }
     }
   } else {
-    // Even if status hasn't changed, update the lastChecked timestamp
-    try {
-      await db
-        .update(services)
-        .set({ 
-          lastChecked: new Date().toISOString(),
-          lastError: error ? `${error} at ${new Date().toISOString()}` : null
-        })
-        .where(eq(services.id, service.id));
-    } catch (error) {
-      console.error('Error updating lastChecked timestamp:', error);
+    // Only update lastChecked if significant time has passed (every 5 minutes)
+    // or if there's a new error to report
+    const fiveMinutesAgo = new Date();
+    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+    
+    const shouldUpdateTimestamp = 
+      !service.lastChecked || 
+      new Date(service.lastChecked) < fiveMinutesAgo || 
+      (error && (!service.lastError || !service.lastError.includes(error)));
+    
+    if (shouldUpdateTimestamp) {
+      try {
+        await db
+          .update(services)
+          .set({ 
+            lastChecked: new Date().toISOString(),
+            lastError: error ? `${error} at ${new Date().toISOString()}` : null
+          })
+          .where(eq(services.id, service.id));
+      } catch (error) {
+        console.error('Error updating lastChecked timestamp:', error);
+      }
     }
   }
 
@@ -131,12 +146,19 @@ async function updateGameServerMetrics(gameServers: GameServer[]) {
   for (const server of gameServers) {
     if (!server.hidden) {
       try {
-        // Update metrics every time this is called (every 10 seconds)
-        await storage.updateGameServer({
-          id: server.id,
-          lastStatusCheck: new Date()
-        });
-        console.log(`Updated metrics for game server ${server.name}`);
+        // Only update metrics if the last update was more than 30 seconds ago
+        // This reduces database operations even if the function is called more frequently
+        const thirtySecondsAgo = new Date(Date.now() - 30000);
+        
+        if (!server.lastStatusCheck || new Date(server.lastStatusCheck) < thirtySecondsAgo) {
+          await storage.updateGameServer({
+            id: server.id,
+            lastStatusCheck: new Date()
+          });
+          // Reduced logging - only for debugging
+          // console.log(`Updated metrics for game server ${server.name}`);
+        }
+        // Removed skipping log message to reduce console clutter
       } catch (error) {
         console.error(`Error updating game server ${server.name} metrics:`, error);
       }
@@ -144,7 +166,7 @@ async function updateGameServerMetrics(gameServers: GameServer[]) {
   }
 }
 
-async function checkServicesWithRateLimit(services: Service[], gameServers: GameServer[], batchSize: number = 3) {
+async function checkServicesWithRateLimit(services: Service[], gameServers: GameServer[], batchSize: number = 5) { // Increased batch size from 3 to 5
   // First check game servers as they need more frequent updates
   for (const server of gameServers) {
     if (!server.hidden && (!server.lastStatusCheck || 
@@ -165,7 +187,7 @@ async function checkServicesWithRateLimit(services: Service[], gameServers: Game
     const batch = services.slice(i, i + batchSize);
     await Promise.all(batch.map(updateServiceStatus));
     if (i + batchSize < services.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay between batches
+      await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 1000ms to 500ms delay between batches
     }
   }
 }
@@ -183,7 +205,7 @@ export async function startServiceChecker() {
     console.error('Error in initial service check:', error);
   }
 
-  // Check game server metrics every 10 seconds
+  // Check game server metrics every 30 seconds (increased from 10)
   setInterval(async () => {
     try {
       const allGameServers = await db.select().from(gameServers);
@@ -191,7 +213,7 @@ export async function startServiceChecker() {
     } catch (error) {
       console.error('Error updating game server metrics:', error);
     }
-  }, 10000); // Exactly 10 seconds for metrics updates
+  }, 30000); // Increased from 10000 to 30000 for less frequent updates
 
   // Check services and server status
   setInterval(async () => {
@@ -202,5 +224,5 @@ export async function startServiceChecker() {
     } catch (error) {
       console.error('Error checking services:', error);
     }
-  }, 3000); // General status check interval
+  }, 15000); // Increased from 3000 to 15000 for less frequent checks
 }

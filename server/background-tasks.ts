@@ -3,7 +3,7 @@ import { plexService } from './plex-service';
 /**
  * The interval (in milliseconds) at which the background tasks will run
  */
-const REFRESH_INTERVAL = 15000; // 15 seconds
+const REFRESH_INTERVAL = 30000; // 30 seconds (increased from 15 seconds)
 
 /**
  * Refreshes Plex data in the background regardless of whether users are connected
@@ -11,10 +11,12 @@ const REFRESH_INTERVAL = 15000; // 15 seconds
  */
 async function refreshPlexData(): Promise<void> {
   try {
-    console.log('Background task: Refreshing Plex data');
+    // Reduced logging - no need to log every refresh
+    // console.log('Background task: Refreshing Plex data'); 
     await plexService.getServerInfo();
-    console.log('Background task: Plex data refreshed successfully');
+    // console.log('Background task: Plex data refreshed successfully');
   } catch (error) {
+    // Always log errors
     console.error('Background task: Failed to refresh Plex data', error);
   }
 }
