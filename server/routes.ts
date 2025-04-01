@@ -204,10 +204,10 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
           icon: typeof result === 'string' ? result : result.url,
         });
       } else {
-        console.log('Updating existing server record:', server.name);
-        // Update existing server with new icon
+        console.log('Updating existing server record:', server.name, 'ID:', server.id);
+        // Update existing server with new icon, ensuring we include the ID field
         server = await storage.updateGameServer({
-          ...server,
+          id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
           icon: typeof result === 'string' ? result : result.url,
         });
       }
@@ -387,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         server = await storage.updateGameServer({
-          ...server,
+          id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
           hidden: hidden
         });
       }
