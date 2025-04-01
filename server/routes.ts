@@ -159,19 +159,53 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     let inputBuffer: Buffer;
     let filename: string;
 
-    if (req.file) {
-      // Handle direct file upload
-      inputBuffer = fs.readFileSync(req.file.path);
-      filename = req.file.filename;
-      // Delete the original uploaded file since we'll create resized version
-      fs.unlinkSync(req.file.path);
-    } else if (req.body.imageUrl) {
-      // Handle URL-based upload
-      const { buffer } = await downloadImage(req.body.imageUrl);
-      inputBuffer = buffer;
-      filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
-    } else {
-      return res.status(400).json({ message: "No file or URL provided" });
+    console.log('Upload request details:', {
+      hasFile: !!req.file,
+      hasImageUrl: !!req.body.imageUrl,
+      fileDetails: req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null
+    });
+
+    try {
+      if (req.file) {
+        // Handle direct file upload
+        console.log('Reading file from path:', req.file.path);
+        if (!fs.existsSync(req.file.path)) {
+          return res.status(400).json({ message: "Uploaded file doesn't exist at expected path" });
+        }
+        
+        inputBuffer = fs.readFileSync(req.file.path);
+        console.log('File read successfully, size:', inputBuffer.length, 'bytes');
+        
+        filename = req.file.filename;
+        
+        // Delete the original uploaded file since we'll create resized version
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log('Original file deleted');
+        } catch (deleteErr) {
+          console.error('Error deleting original file:', deleteErr);
+          // Continue even if delete fails
+        }
+      } else if (req.body.imageUrl) {
+        // Handle URL-based upload
+        console.log('Downloading image from URL:', req.body.imageUrl);
+        const { buffer } = await downloadImage(req.body.imageUrl);
+        inputBuffer = buffer;
+        console.log('Image downloaded successfully, size:', inputBuffer.length, 'bytes');
+        
+        filename = `url-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
+      } else {
+        console.error('No file or URL provided in request:', req.body);
+        return res.status(400).json({ message: "No file or URL provided" });
+      }
+    } catch (fileProcessingError) {
+      console.error('Error processing uploaded file:', fileProcessingError);
+      return res.status(500).json({ message: "Error processing uploaded file: " + (fileProcessingError instanceof Error ? fileProcessingError.message : String(fileProcessingError)) });
     }
 
     const uploadDir = path.join(process.cwd(), 'uploads');
