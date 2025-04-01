@@ -4,7 +4,7 @@ import { GameServerCard } from "./game-server-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 interface GameServerListProps {
   className?: string;
@@ -21,6 +21,50 @@ export function GameServerList({ className }: GameServerListProps) {
   // Track which servers are visible
   const [visibleServers, setVisibleServers] = useState<Set<string>>(new Set());
   const observerMap = useRef(new Map<string, IntersectionObserver>());
+
+  // Sort servers: Online first, grouped by type, then offline
+  const sortedServers = useMemo(() => {
+    if (!servers) return [];
+    
+    // Group servers by type
+    const serversByType = servers.reduce((groups, server) => {
+      const type = server.type || 'unknown';
+      if (!groups[type]) {
+        groups[type] = [];
+      }
+      groups[type].push(server);
+      return groups;
+    }, {} as Record<string, GameServer[]>);
+    
+    // First, collect online servers grouped by type
+    const result: GameServer[] = [];
+    
+    // Add online servers first, grouped by type
+    Object.keys(serversByType).sort().forEach(type => {
+      // Get all online servers of this type
+      const onlineServersOfType = serversByType[type].filter(server => server.status);
+      
+      // Sort online servers of this type by name
+      onlineServersOfType.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      // Add them to result
+      result.push(...onlineServersOfType);
+    });
+    
+    // Then add offline servers, also grouped by type
+    Object.keys(serversByType).sort().forEach(type => {
+      // Get all offline servers of this type
+      const offlineServersOfType = serversByType[type].filter(server => !server.status);
+      
+      // Sort offline servers of this type by name
+      offlineServersOfType.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      // Add them to result
+      result.push(...offlineServersOfType);
+    });
+    
+    return result;
+  }, [servers]);
 
   useEffect(() => {
     // Cleanup observers when component unmounts
@@ -61,7 +105,7 @@ export function GameServerList({ className }: GameServerListProps) {
 
   return (
     <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
-      {servers?.map((server) => (
+      {sortedServers.map((server) => (
         <div
           key={server.instanceId}
           ref={el => el && observeServer(server.instanceId, el)}
@@ -80,7 +124,7 @@ export function GameServerList({ className }: GameServerListProps) {
           <div className="animate-pulse">Loading game servers...</div>
         </div>
       )}
-      {servers?.length === 0 && (
+      {sortedServers.length === 0 && (
         <div className="col-span-full text-center text-muted-foreground">
           No game servers found
         </div>
