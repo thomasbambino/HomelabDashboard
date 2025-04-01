@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema } from "@shared/schema";
+import { insertServiceSchema, insertGameServerSchema, updateServiceSchema, updateGameServerSchema, GameServer } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { ZodError } from "zod";
 import multer from "multer";
@@ -20,6 +20,7 @@ import { plexService } from './plex-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
+import { db } from './db';
 
 
 const plexInviteSchema = z.object({
@@ -145,11 +146,12 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
       return res.status(400).json({ message: "Instance ID is required for game server icons" });
     }
 
+    let instance;
     if (type === 'game') {
       console.log('Processing icon upload for instance:', instanceId);
       // Verify instance exists before proceeding
       const instances = await ampService.getInstances();
-      const instance = instances.find(i => i.InstanceID === instanceId);
+      instance = instances.find((i: any) => i.InstanceID === instanceId);
       if (!instance) {
         return res.status(404).json({ message: "Game server not found in AMP" });
       }
@@ -217,78 +219,112 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
 
     // If this is a game server icon, ensure the server exists in database
     // For game servers, handle the icon update
-  if (type === 'game') {
-      console.log('Handling game server icon upload');
-      
-      // Get server ID from request (may be sent by frontend)
-      const idStr = req.body.id;
-      const id = idStr ? parseInt(idStr) : undefined;
-      console.log('ID from request body:', id, 'instanceId:', instanceId);
-      
-      if (!instanceId && !id) {
-        return res.status(400).json({ message: "Either instanceId or server id is required for game server icons" });
-      }
+    if (type === 'game') {
+      try {
+        console.log('Handling game server icon upload');
+        
+        // Get server ID from request (may be sent by frontend)
+        const idStr = req.body.id;
+        const id = idStr ? parseInt(idStr) : undefined;
+        console.log('ID from request body:', id, 'instanceId:', instanceId);
+        
+        if (!instanceId && !id) {
+          return res.status(400).json({ message: "Either instanceId or server id is required for game server icons" });
+        }
 
-      // Find server record via instanceId or id
-      let server;
-      if (instanceId) {
-        console.log('Looking up server by instanceId:', instanceId);
-        server = await storage.getGameServerByInstanceId(instanceId);
-      } 
-      
-      if (!server && id) {
-        console.log('Looking up server by id:', id);
-        server = await storage.getGameServer(id);
-      }
-      
-      if (!server) {
-        console.log('Creating new server record for instance:', instanceId);
-        if (!instanceId) {
-          return res.status(404).json({ message: "Cannot create new server without instanceId" });
+        // Find server record via instanceId or id
+        let server;
+        if (instanceId) {
+          console.log('Looking up server by instanceId:', instanceId);
+          server = await storage.getGameServerByInstanceId(instanceId);
+        } 
+        
+        if (!server && id) {
+          console.log('Looking up server by id:', id);
+          server = await storage.getGameServer(id);
         }
         
-        // Get instance details from AMP
-        const instances = await ampService.getInstances();
-        const instance = instances.find(i => i.InstanceID === instanceId);
-        if (!instance) {
-          return res.status(404).json({ message: "Game server not found in AMP" });
-        }
+        if (!server) {
+          console.log('Creating new server record for instance:', instanceId);
+          if (!instanceId) {
+            return res.status(404).json({ message: "Cannot create new server without instanceId" });
+          }
+          
+          // Get instance details from AMP
+          const instances = await ampService.getInstances();
+          const instance = instances.find((i: any) => i.InstanceID === instanceId);
+          if (!instance) {
+            return res.status(404).json({ message: "Game server not found in AMP" });
+          }
 
-        // Create new server record
-        server = await storage.createGameServer({
-          instanceId,
-          name: instance.FriendlyName,
-          type: instance.FriendlyName.toLowerCase().split(' ')[0],
-          icon: typeof result === 'string' ? result : result.url,
-        });
-        console.log('Created new server record with ID:', server.id);
-      } else {
-        console.log('Updating existing server record:', server.name, 'ID:', server.id);
-        // Update existing server with new icon, ensuring we include the ID field
-        try {
-          const updateData = {
-            id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
+          // Create new server record
+          server = await storage.createGameServer({
+            instanceId,
+            name: instance.FriendlyName,
+            type: instance.FriendlyName.toLowerCase().split(' ')[0],
             icon: typeof result === 'string' ? result : result.url,
-          };
-          console.log('Update data being sent:', JSON.stringify(updateData));
-          const updatedServer = await storage.updateGameServer(updateData);
-          if (updatedServer) {
-            server = updatedServer;
-            console.log('Server updated successfully with new icon');
-          } else {
-            console.error('Update returned no server!');
-            throw new Error('Server update failed - no server returned');
+          });
+          console.log('Created new server record with ID:', server.id);
+        } else {
+          console.log('Updating existing server record:', server.name, 'ID:', server.id);
+          // Update existing server with new icon, ensuring we include the ID field
+          try {
+            // IMPORTANT: Create a clean object with just the id and icon fields
+            // We were creating a primary key constraint violation by not properly handling the server object
+            const updateData: { id: number; icon: string } = {
+              id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
+              icon: typeof result === 'string' ? result : result.url,
+            };
+            
+            console.log('Update data being sent:', JSON.stringify(updateData));
+            
+            // Use a direct SQL query to update just the icon field
+            try {
+              // Manually construct and execute SQL to avoid potential Drizzle ORM issues
+              const sql = `UPDATE "gameServers" SET "icon" = $1 WHERE "id" = $2 RETURNING *`;
+              const res = await db.execute(sql, [updateData.icon, updateData.id]);
+              console.log('Manual SQL update result:', res);
+              
+              // Fall back to the Drizzle ORM if needed
+              if (!res || !res.length) {
+                console.log('Falling back to Drizzle ORM for update');
+                const updatedServer = await storage.updateGameServer(updateData);
+                server = updatedServer || server;
+              } else {
+                // Construct a server object from the SQL result
+                server = res[0] as GameServer;
+              }
+            } catch (sqlError) {
+              console.error('SQL update error:', sqlError);
+              console.log('Falling back to Drizzle ORM for update after SQL error');
+              try {
+                const updatedServer = await storage.updateGameServer(updateData);
+                if (updatedServer) {
+                  server = updatedServer;
+                  console.log('Server updated successfully with new icon');
+                } else {
+                  console.error('Update returned no server!');
+                  throw new Error('Server update failed - no server returned');
+                }
+              } catch (updateError) {
+                console.error('Error updating game server icon:', updateError);
+                if (updateError instanceof Error) {
+                  console.error('Error details:', updateError.message, updateError.stack);
+                }
+                throw updateError;
+              }
+            }
+          } catch (updateError) {
+            console.error('Error in server update process:', updateError);
+            throw updateError;
           }
-        } catch (updateError) {
-          console.error('Error updating game server icon:', updateError);
-          if (updateError instanceof Error) {
-            console.error('Error details:', updateError.message, updateError.stack);
-          }
-          throw updateError;
         }
+        
+        console.log('Server updated successfully:', server.name, 'with icon:', server.icon);
+      } catch (finalError) {
+        console.error('Final error in game server icon handling:', finalError);
+        throw finalError;
       }
-
-      console.log('Server updated successfully:', server.name, 'with icon:', server.icon);
     }
 
     // For site uploads, handle both URLs
