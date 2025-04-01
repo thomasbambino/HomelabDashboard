@@ -1,0 +1,79 @@
+I'll help investigate the performance issues. Let me check several key areas that could be causing slow loading times.
+
+First, let me look at the server's main entry point and routes to see if there are any heavy operations during startup or request handling.
+
+
+Read file: server/index.ts
+Let me also check the service checker and background tasks since they run continuously:
+
+
+Read file: server/service-checker.ts
+
+Read file: server/background-tasks.ts
+Let me also check the Plex service implementation since it's a key part of the system:
+
+
+
+Read file: server/plex-service.ts
+After analyzing the code, I've identified several potential causes for the slow loading times:
+
+1. **Frequent Service Checks**:
+   - The service checker runs every 3 seconds (`setInterval` with 3000ms)
+   - It performs HTTP checks on all services with only a 5-second timeout
+   - Each batch of services (3 at a time) has a 1-second delay between batches
+   - This could be causing significant load if you have many services
+
+2. **Plex Data Loading**:
+   - The Plex service is refreshing data every 15 seconds
+   - Each refresh involves spawning a Python process to communicate with Plex
+   - The Python script is doing heavy operations like:
+     - Fetching all library sections
+     - Counting all items in each library
+     - Getting detailed stream information
+   - This is particularly expensive if you have large libraries
+
+3. **Game Server Metrics**:
+   - Game server metrics are being updated every 10 seconds
+   - This is happening independently of the service checks
+
+4. **Database Operations**:
+   - Each service check results in database updates
+   - The system is doing frequent database writes for status updates
+
+Here are my recommendations to improve the loading times:
+
+1. **Optimize Service Checks**:
+   ```typescript
+   // Increase the check interval from 3 seconds to something like 10-15 seconds
+   setInterval(async () => {
+     // ... existing code ...
+   }, 15000); // Change from 3000 to 15000
+   ```
+
+2. **Optimize Plex Data Loading**:
+   ```typescript
+   // Increase the cache TTL from 15 seconds to 30 seconds
+   private cacheTTL: number = 30000; // 30 seconds cache
+   
+   // Reduce the refresh interval from 15 seconds to 30 seconds
+   const REFRESH_INTERVAL = 30000; // 30 seconds
+   ```
+
+3. **Optimize Game Server Updates**:
+   ```typescript
+   // Increase the metrics update interval from 10 seconds to 30 seconds
+   setInterval(async () => {
+     // ... existing code ...
+   }, 30000); // Change from 10000 to 30000
+   ```
+
+4. **Batch Database Updates**:
+   - Instead of updating the database for each service check, batch the updates
+   - Only update the database when there's a significant change in status
+
+5. **Implement Progressive Loading**:
+   - Load critical data first (service status)
+   - Load secondary data (Plex info, game server metrics) in the background
+   - Show loading states for non-critical information
+
+Would you like me to implement any of these optimizations? I can help modify the code to improve the loading times.
