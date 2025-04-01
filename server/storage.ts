@@ -214,23 +214,82 @@ export class DatabaseStorage implements IStorage {
 
   async updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined> {
     console.log('STORAGE: updateGameServer called with data:', JSON.stringify(server));
-    try {
-      const [updatedServer] = await db
-        .update(gameServers)
-        .set({
-          ...server,
-          lastStatusCheck: new Date()
-        })
-        .where(eq(gameServers.id, server.id))
-        .returning();
-      console.log('STORAGE: updateGameServer succeeded, returning:', JSON.stringify(updatedServer));
-      return updatedServer;
-    } catch (error) {
-      console.error('STORAGE: updateGameServer FAILED with error:', error);
-      if (error instanceof Error) {
-        console.error('STORAGE: error stack:', error.stack);
+    
+    // For icon updates, try a different approach due to potential conflicts
+    if (server.icon) {
+      console.log('STORAGE: Icon update detected, using special handling');
+      try {
+        // Try the ORM approach first
+        const [updatedServer] = await db
+          .update(gameServers)
+          .set({
+            ...server,
+            lastStatusCheck: new Date()
+          })
+          .where(eq(gameServers.id, server.id))
+          .returning();
+        
+        console.log('STORAGE: Icon update succeeded with ORM, returning:', JSON.stringify(updatedServer));
+        return updatedServer;
+      } catch (ormError) {
+        console.error('STORAGE: ORM update failed for icon, trying direct SQL:', ormError);
+        
+        // On ORM failure, try direct SQL
+        try {
+          // Create a prepared statement to update just the icon
+          const sqlQuery = `
+            UPDATE "gameServers" 
+            SET "icon" = $1, "lastStatusCheck" = $2 
+            WHERE "id" = $3 
+            RETURNING *
+          `;
+          
+          console.log('STORAGE: Executing direct SQL with values:', [server.icon, new Date(), server.id]);
+          const result = await pool.query(sqlQuery, [server.icon, new Date(), server.id]);
+          
+          if (result.rows && result.rows.length > 0) {
+            console.log('STORAGE: Direct SQL icon update succeeded, returning:', JSON.stringify(result.rows[0]));
+            return result.rows[0] as GameServer;
+          } else {
+            console.error('STORAGE: Direct SQL returned no rows');
+            throw new Error('No rows returned from direct SQL update');
+          }
+        } catch (sqlError) {
+          console.error('STORAGE: Even direct SQL update failed:', sqlError);
+          if (sqlError instanceof Error) {
+            console.error('STORAGE: SQL error stack:', sqlError.stack);
+            
+            // Look for specific error patterns
+            if (sqlError.message.includes('duplicate key')) {
+              console.error('STORAGE: Primary key conflict detected');
+            }
+          }
+          
+          // If all else fails, throw the original ORM error for consistency
+          throw ormError;
+        }
       }
-      throw error;
+    } else {
+      // For non-icon updates, use the standard approach
+      try {
+        const [updatedServer] = await db
+          .update(gameServers)
+          .set({
+            ...server,
+            lastStatusCheck: new Date()
+          })
+          .where(eq(gameServers.id, server.id))
+          .returning();
+        
+        console.log('STORAGE: Standard update succeeded, returning:', JSON.stringify(updatedServer));
+        return updatedServer;
+      } catch (error) {
+        console.error('STORAGE: updateGameServer FAILED with error:', error);
+        if (error instanceof Error) {
+          console.error('STORAGE: error stack:', error.stack);
+        }
+        throw error;
+      }
     }
   }
 

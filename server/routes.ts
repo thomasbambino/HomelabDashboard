@@ -20,7 +20,7 @@ import { plexService } from './plex-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
-import { db } from './db';
+import { db, pool } from './db';
 
 
 const plexInviteSchema = z.object({
@@ -300,7 +300,12 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
           console.log('Updating icon for existing server ID:', server.id);
           
           try {
-            // Use a simple SQL UPDATE to avoid ORM complexity
+            // Add extensive diagnostic information
+            console.log('DIAGNOSTIC: Server object before update:', JSON.stringify(server));
+            console.log('DIAGNOSTIC: Icon URL value:', iconUrl);
+            console.log('DIAGNOSTIC: Server ID for update:', server.id);
+            
+            // Use simpler prepared statement approach
             const updateQuery = `
               UPDATE "gameServers"
               SET "icon" = $1
@@ -309,29 +314,86 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
             `;
             
             const values = [iconUrl, server.id];
-            console.log('Executing update with values:', JSON.stringify(values));
+            console.log('DIAGNOSTIC: Executing update with values:', JSON.stringify(values));
             
-            const result = await db.execute(updateQuery, values);
-            
-            if (result && Array.isArray(result) && result.length > 0) {
-              server = result[0];
-              console.log('Server updated successfully through SQL');
-            } else {
-              console.error('SQL update returned no results');
-              throw new Error('Database update failed - no rows returned');
+            try {
+              // First try with db.execute
+              console.log('DIAGNOSTIC: Attempting SQL update with db.execute');
+              const result = await db.execute(updateQuery, values);
+              console.log('DIAGNOSTIC: SQL execute result type:', typeof result);
+              console.log('DIAGNOSTIC: SQL execute result structure:', result ? JSON.stringify(Object.keys(result)) : 'null');
+              
+              if (result && Array.isArray(result) && result.length > 0) {
+                server = result[0];
+                console.log('DIAGNOSTIC: Server updated successfully through SQL');
+              } else {
+                // Try with direct PostgreSQL query as backup
+                console.log('DIAGNOSTIC: db.execute returned no results, trying direct pool query');
+                const poolResult = await pool.query(updateQuery, values);
+                console.log('DIAGNOSTIC: Pool query result:', poolResult ? JSON.stringify(poolResult.rows) : 'null');
+                
+                if (poolResult && poolResult.rows && poolResult.rows.length > 0) {
+                  server = poolResult.rows[0];
+                  console.log('DIAGNOSTIC: Server updated successfully through pool query');
+                } else {
+                  console.error('DIAGNOSTIC: All SQL update methods returned no results');
+                  throw new Error('Database update failed - no rows returned from any method');
+                }
+              }
+            } catch (innerSqlError) {
+              console.error('DIAGNOSTIC: Inner SQL execution error:', innerSqlError);
+              if (innerSqlError instanceof Error) {
+                console.error('DIAGNOSTIC: Inner SQL stack trace:', innerSqlError.stack);
+              }
+              throw innerSqlError;
             }
           } catch (sqlError) {
-            console.error('Error updating server icon with SQL:', sqlError);
-            throw sqlError;
+            console.error('DIAGNOSTIC: Outer error updating server icon with SQL:', sqlError);
+            if (sqlError instanceof Error) {
+              console.error('DIAGNOSTIC: Outer SQL error stack trace:', sqlError.stack);
+            }
+            
+            // Try one last fallback with Drizzle ORM
+            try {
+              console.log('DIAGNOSTIC: Last attempt with Drizzle ORM update');
+              const updatedServer = await storage.updateGameServer({
+                id: server.id,
+                icon: iconUrl
+              });
+              if (updatedServer) {
+                server = updatedServer;
+                console.log('DIAGNOSTIC: Server updated successfully with ORM fallback');
+              } else {
+                throw new Error('ORM update returned no server object');
+              }
+            } catch (ormError) {
+              console.error('DIAGNOSTIC: Even ORM fallback failed:', ormError);
+              throw sqlError; // Throw the original error for consistency
+            }
           }
         }
         
         console.log('Server operation completed successfully - ID:', server.id, 'Icon:', server.icon);
       } catch (finalError) {
         console.error('Error handling game server icon:', finalError);
+        // More detailed error message for frontend 
+        let detailedError = "Unknown error";
+        if (finalError instanceof Error) {
+          detailedError = `${finalError.name}: ${finalError.message}`;
+          if (finalError.stack) {
+            console.error('Stack:', finalError.stack);
+          }
+        }
+        
+        // Check for specific error patterns
+        if (detailedError.includes('duplicate key')) {
+          detailedError = "Database primary key conflict - Please try again with another image";
+        }
+        
         return res.status(500).json({ 
           message: "Failed to process game server icon",
-          error: finalError instanceof Error ? finalError.message : "Unknown error" 
+          error: detailedError,
+          details: finalError instanceof Error ? finalError.stack : null
         });
       }
     }
