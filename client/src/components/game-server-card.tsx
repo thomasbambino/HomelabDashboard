@@ -46,27 +46,52 @@ export function GameServerCard({ server }: GameServerCardProps) {
   // Icon upload mutation
   const uploadIconMutation = useMutation({
     mutationFn: async (file: File) => {
+      // Gather server info for debugging
+      console.log('FRONTEND: Uploading icon for server - Full server data:', JSON.stringify(server));
+      console.log('FRONTEND: Server ID type:', typeof server.id);
+      console.log('FRONTEND: Server ID value:', server.id);
+      console.log('FRONTEND: InstanceID type:', typeof server.instanceId);
+      console.log('FRONTEND: InstanceID value:', server.instanceId);
+      
       const formData = new FormData();
       formData.append('image', file);
       formData.append('instanceId', server.instanceId);
+      // Also add the ID as a fallback
+      formData.append('id', server.id?.toString() || '');
+      
+      console.log('FRONTEND: Uploading icon for server:', server.instanceId, server.name);
+      
+      try {
+        const response = await fetch('/api/upload/game', {
+          method: 'POST',
+          body: formData,
+        });
 
-      console.log('Uploading icon for server:', server.instanceId, server.name);
+        // Log raw response for debugging
+        console.log('FRONTEND: Upload raw response status:', response.status);
+        const responseText = await response.text();
+        console.log('FRONTEND: Upload raw response text:', responseText);
+        
+        if (!response.ok) {
+          let errorMessage = 'Failed to upload icon';
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          } catch (parseError) {
+            console.error('FRONTEND: Error parsing error response:', parseError);
+          }
+          throw new Error(errorMessage);
+        }
 
-      const response = await fetch('/api/upload/game', {
-        method: 'POST',
-        body: formData,
-      });
+        // Parse the response again since we already consumed it as text
+        const data = JSON.parse(responseText);
+        console.log('FRONTEND: Upload parsed response:', data);
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Upload error response:', error);
-        throw new Error(error.message || 'Failed to upload icon');
+        return data.url;
+      } catch (error) {
+        console.error('FRONTEND: Upload fetch error:', error);
+        throw error;
       }
-
-      const data = await response.json();
-      console.log('Upload response:', data);
-
-      return data.url;
     },
     onSuccess: (url) => {
       console.log('Icon upload successful for server:', server.name, 'URL:', url);
