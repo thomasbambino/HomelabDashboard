@@ -172,8 +172,13 @@ export function GameServerList({ className }: GameServerListProps) {
         </div>
       )}
 
-      {/* Offline servers - simple list but sorted by type */}
-      {showOfflineServers && (
+      {/* Offline servers - simple list but sorted by type, with animation */}
+      <div 
+        className={cn(
+          "transition-[max-height,opacity] duration-300 ease-in-out overflow-hidden",
+          showOfflineServers ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
         <div className="mt-4">
           <h3 className="text-sm font-medium text-muted-foreground border-b pb-1 mb-3">
             Offline Servers
@@ -185,7 +190,10 @@ export function GameServerList({ className }: GameServerListProps) {
                 <div
                   key={server.instanceId}
                   ref={el => el && observeServer(server.instanceId, el)}
-                  className="min-h-[200px]"
+                  className="min-h-[200px] transition-transform duration-300 ease-in-out"
+                  style={{
+                    transform: showOfflineServers ? 'translateY(0)' : 'translateY(20px)',
+                  }}
                 >
                   {visibleServers.has(server.instanceId) && (
                     <GameServerCard server={server} />
@@ -198,7 +206,7 @@ export function GameServerList({ className }: GameServerListProps) {
             )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Loading state */}
       {!servers && isLoading && (
