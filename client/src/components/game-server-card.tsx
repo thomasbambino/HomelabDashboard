@@ -21,7 +21,7 @@ export function GameServerCard({ server }: GameServerCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ["/api/settings"],

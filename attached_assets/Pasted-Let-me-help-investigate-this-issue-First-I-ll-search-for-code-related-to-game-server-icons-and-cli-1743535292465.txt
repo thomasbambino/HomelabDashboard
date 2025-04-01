@@ -1,0 +1,77 @@
+Let me help investigate this issue. First, I'll search for code related to game server icons and click handlers.
+
+
+Search files...
+After analyzing the code, I can see that the game server icon upload functionality is implemented in the `GameServerCard` component. The issue might be related to the admin check or the click handler not being properly triggered. Let me check the implementation more closely.
+
+The relevant code is in `client/src/components/game-server-card.tsx`. The icon upload functionality is wrapped in an admin check:
+
+```typescript
+{server.icon ? (
+  <div className="relative">
+    {isAdmin ? (
+      <label
+        htmlFor={`icon-upload-${server.instanceId}`}
+        className="cursor-pointer"
+        title="Click to change icon"
+      >
+        <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain hover:opacity-80 transition-opacity" />
+        <input
+          type="file"
+          id={`icon-upload-${server.instanceId}`}
+          className="hidden"
+          accept="image/png,image/jpeg"
+          onChange={handleIconUpload}
+          disabled={uploadIconMutation.isPending}
+        />
+      </label>
+    ) : (
+      <img src={server.icon} alt={`${server.name} icon`} className="w-6 h-6 object-contain" />
+    )}
+  </div>
+) : (
+  // Similar structure for when there's no icon
+)}
+```
+
+The issue could be one of these:
+
+1. The `isAdmin` check might not be working correctly. Let's verify the user's admin status is being properly set.
+2. The click handler might not be properly attached to the label.
+3. The file input might be disabled or not properly configured.
+
+Let me check how the admin status is being determined:
+
+
+Read file: client/src/hooks/use-auth.ts
+
+Read file: client/src/hooks/use-auth.tsx
+Let me also check the schema to see how the user role is defined:
+
+
+
+Read file: shared/schema.ts
+After analyzing the code, I can see that the issue might be related to how the admin check is being performed. The code is checking `user?.role === 'admin'`, but according to the schema, there are multiple admin roles: 'superadmin' and 'admin'.
+
+Let's modify the admin check in the `GameServerCard` component to include both admin roles. I'll create an edit to fix this:
+
+
+```typescript jsx:client/src/components/game-server-card.tsx
+// ... existing code ...
+const { user } = useAuth();
+const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+// ... existing code ...
+```
+The linter errors are related to TypeScript module resolution and are not directly related to our fix. The main change we made was to update the admin check to include both 'admin' and 'superadmin' roles.
+
+This change should fix the issue with the game server icon upload functionality. The problem was that the code was only checking for the 'admin' role, but not the 'superadmin' role, which is also an administrative role according to the schema.
+
+To verify if this fixes the issue:
+1. Make sure you're logged in with either an 'admin' or 'superadmin' role
+2. Try clicking on a game server icon again
+3. You should now see the file upload dialog
+
+If you're still experiencing issues after this change, please let me know and I can help investigate further. We might need to:
+1. Check if the user's role is being properly loaded
+2. Verify the click handler is being triggered
+3. Check if there are any console errors when clicking the icon
