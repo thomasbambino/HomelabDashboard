@@ -206,10 +206,20 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
       } else {
         console.log('Updating existing server record:', server.name, 'ID:', server.id);
         // Update existing server with new icon, ensuring we include the ID field
-        server = await storage.updateGameServer({
-          id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
-          icon: typeof result === 'string' ? result : result.url,
-        });
+        try {
+          const updateData = {
+            id: server.id,  // Make sure we include the ID to avoid primary key constraint violation
+            icon: typeof result === 'string' ? result : result.url,
+          };
+          console.log('Update data being sent:', JSON.stringify(updateData));
+          server = await storage.updateGameServer(updateData);
+        } catch (updateError) {
+          console.error('Error updating game server icon:', updateError);
+          if (updateError instanceof Error) {
+            console.error('Error details:', updateError.message, updateError.stack);
+          }
+          throw updateError;
+        }
       }
 
       console.log('Server updated successfully:', server.name, 'with icon:', server.icon);
