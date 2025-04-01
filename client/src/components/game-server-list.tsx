@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { GameServer } from "@shared/schema";
 import { GameServerCard } from "./game-server-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, EyeIcon, EyeOffIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRef, useEffect, useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 
 interface GameServerListProps {
   className?: string;
@@ -18,13 +19,15 @@ export function GameServerList({ className }: GameServerListProps) {
     retry: 3, // Retry failed requests up to 3 times
   });
 
-  // Track which servers are visible
+  // Track which servers are visible (for intersection observer)
   const [visibleServers, setVisibleServers] = useState<Set<string>>(new Set());
+  // Track whether to show offline servers
+  const [showOfflineServers, setShowOfflineServers] = useState(false);
   const observerMap = useRef(new Map<string, IntersectionObserver>());
 
-  // Sort servers: Online first, grouped by type, then offline
-  const sortedServers = useMemo(() => {
-    if (!servers) return [];
+  // Create groups: Online servers and offline servers (both grouped by type)
+  const { onlineServers, offlineServersByType } = useMemo(() => {
+    if (!servers) return { onlineServers: [], offlineServersByType: {} };
     
     // Group servers by type
     const serversByType = servers.reduce((groups, server) => {
@@ -37,7 +40,8 @@ export function GameServerList({ className }: GameServerListProps) {
     }, {} as Record<string, GameServer[]>);
     
     // First, collect online servers grouped by type
-    const result: GameServer[] = [];
+    const onlineResult: GameServer[] = [];
+    const offlineByType: Record<string, GameServer[]> = {};
     
     // Add online servers first, grouped by type
     Object.keys(serversByType).sort().forEach(type => {
@@ -48,23 +52,32 @@ export function GameServerList({ className }: GameServerListProps) {
       onlineServersOfType.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       
       // Add them to result
-      result.push(...onlineServersOfType);
+      onlineResult.push(...onlineServersOfType);
     });
     
-    // Then add offline servers, also grouped by type
+    // Group offline servers by type
     Object.keys(serversByType).sort().forEach(type => {
       // Get all offline servers of this type
       const offlineServersOfType = serversByType[type].filter(server => !server.status);
       
-      // Sort offline servers of this type by name
-      offlineServersOfType.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      
-      // Add them to result
-      result.push(...offlineServersOfType);
+      // If there are offline servers of this type, add them to the offlineByType object
+      if (offlineServersOfType.length > 0) {
+        // Sort offline servers of this type by name
+        offlineServersOfType.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        offlineByType[type] = offlineServersOfType;
+      }
     });
     
-    return result;
+    return { onlineServers: onlineResult, offlineServersByType: offlineByType };
   }, [servers]);
+
+  // Calculate the number of offline servers
+  const offlineServerCount = useMemo(() => {
+    return Object.values(offlineServersByType).reduce(
+      (count, serverGroup) => count + serverGroup.length, 
+      0
+    );
+  }, [offlineServersByType]);
 
   useEffect(() => {
     // Cleanup observers when component unmounts
@@ -103,29 +116,101 @@ export function GameServerList({ className }: GameServerListProps) {
     );
   }
 
+  const capitalizeGameType = (type: string) =>
+    type.split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
   return (
-    <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
-      {sortedServers.map((server) => (
-        <div
-          key={server.instanceId}
-          ref={el => el && observeServer(server.instanceId, el)}
-          className="min-h-[200px]"
-        >
-          {visibleServers.has(server.instanceId) && (
-            <GameServerCard server={server} />
-          )}
-          {!visibleServers.has(server.instanceId) && (
-            <div className="h-full w-full rounded-lg border bg-card animate-pulse" />
-          )}
+    <div className="space-y-6">
+      {/* Online servers */}
+      <div className="space-y-4">
+        {onlineServers.length > 0 && (
+          <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
+            {onlineServers.map((server) => (
+              <div
+                key={server.instanceId}
+                ref={el => el && observeServer(server.instanceId, el)}
+                className="min-h-[200px]"
+              >
+                {visibleServers.has(server.instanceId) && (
+                  <GameServerCard server={server} />
+                )}
+                {!visibleServers.has(server.instanceId) && (
+                  <div className="h-full w-full rounded-lg border bg-card animate-pulse" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {onlineServers.length === 0 && !isLoading && (
+          <div className="text-center py-4 bg-muted/30 rounded-lg text-muted-foreground">
+            No online servers found
+          </div>
+        )}
+      </div>
+
+      {/* Show/Hide Offline Servers Button */}
+      {offlineServerCount > 0 && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowOfflineServers(!showOfflineServers)}
+            className="flex items-center gap-2"
+          >
+            {showOfflineServers ? (
+              <>
+                <EyeOffIcon className="h-4 w-4" />
+                <span>Hide Offline Servers ({offlineServerCount})</span>
+              </>
+            ) : (
+              <>
+                <EyeIcon className="h-4 w-4" />
+                <span>Show Offline Servers ({offlineServerCount})</span>
+              </>
+            )}
+          </Button>
         </div>
-      ))}
+      )}
+
+      {/* Offline servers - grouped by type */}
+      {showOfflineServers && (
+        <div className="space-y-6">
+          {Object.keys(offlineServersByType).map(type => (
+            <div key={type} className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                {capitalizeGameType(type)} Servers
+              </h3>
+              <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3", className)}>
+                {offlineServersByType[type].map((server) => (
+                  <div
+                    key={server.instanceId}
+                    ref={el => el && observeServer(server.instanceId, el)}
+                    className="min-h-[200px]"
+                  >
+                    {visibleServers.has(server.instanceId) && (
+                      <GameServerCard server={server} />
+                    )}
+                    {!visibleServers.has(server.instanceId) && (
+                      <div className="h-full w-full rounded-lg border bg-card animate-pulse" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Loading state */}
       {!servers && isLoading && (
-        <div className="col-span-full flex items-center justify-center text-muted-foreground">
+        <div className="flex items-center justify-center text-muted-foreground">
           <div className="animate-pulse">Loading game servers...</div>
         </div>
       )}
-      {sortedServers.length === 0 && (
-        <div className="col-span-full text-center text-muted-foreground">
+      
+      {/* No servers state */}
+      {servers?.length === 0 && (
+        <div className="text-center text-muted-foreground">
           No game servers found
         </div>
       )}
