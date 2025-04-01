@@ -213,15 +213,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateGameServer(server: UpdateGameServer): Promise<GameServer | undefined> {
-    const [updatedServer] = await db
-      .update(gameServers)
-      .set({
-        ...server,
-        lastStatusCheck: new Date()
-      })
-      .where(eq(gameServers.id, server.id))
-      .returning();
-    return updatedServer;
+    console.log('STORAGE: updateGameServer called with data:', JSON.stringify(server));
+    try {
+      const [updatedServer] = await db
+        .update(gameServers)
+        .set({
+          ...server,
+          lastStatusCheck: new Date()
+        })
+        .where(eq(gameServers.id, server.id))
+        .returning();
+      console.log('STORAGE: updateGameServer succeeded, returning:', JSON.stringify(updatedServer));
+      return updatedServer;
+    } catch (error) {
+      console.error('STORAGE: updateGameServer FAILED with error:', error);
+      if (error instanceof Error) {
+        console.error('STORAGE: error stack:', error.stack);
+      }
+      throw error;
+    }
   }
 
   async deleteService(id: number): Promise<Service | undefined> {
