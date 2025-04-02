@@ -1,0 +1,131 @@
+I'll help you remove the chat system from the app. Here's a systematic approach:
+
+1. First, let's remove the chat-related components:
+
+
+Ran tool
+I see I don't have permission to delete files directly. Let me outline all the steps needed to remove the chat system:
+
+1. **Files to Delete**:
+   - `client/src/components/chat-room.tsx`
+   - `client/src/components/ChatPanel.tsx`
+   - `client/src/components/ChatPublicRoom.tsx`
+   - `client/src/components/ChatGroupList.tsx`
+   - `client/src/components/ChatPrivateList.tsx`
+   - `client/src/components/chat-button.tsx`
+   - `client/src/lib/chat.ts`
+   - `client/src/lib/chat-context.tsx`
+
+2. **Code Changes Needed**:
+
+Let's start by removing the chat-related code from `App.tsx`:
+
+
+```typescript jsx:App.tsx
+// ... existing code ...
+function App() {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <div className="min-h-screen bg-background text-foreground">
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <FaviconUpdater />
+            <Router />
+            <Toaster />
+            <div className="fixed bottom-4 right-4 flex items-center gap-2" style={{ zIndex: 9999 }}>
+              <DiscordButton />
+            </div>
+          </AuthProvider>
+        </QueryClientProvider>
+      </div>
+    </ThemeProvider>
+  );
+}
+// ... existing code ...
+```
+Now let's remove the chat-related routes from `server/routes.ts`:
+
+
+```typescript:server/routes.ts
+// ... existing code ...
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Add cookie parser middleware before session setup
+  app.use(cookieParser());
+
+  // ... existing code ...
+
+  // Remove all chat-related routes
+  // ... existing code ...
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
+// ... existing code ...
+```
+Let me try a more specific edit to remove the chat routes:
+
+
+
+```typescript:server/routes.ts
+// ... existing code ...
+  // Remove all chat-related routes
+  app.get("/api/game-servers/:instanceId/debug", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // ... existing code ...
+  });
+
+  // Remove chat server initialization
+  const httpServer = createServer(app);
+  return httpServer;
+}
+// ... existing code ...
+```
+I apologize for the difficulty with the file edits. Let me provide a complete list of what needs to be done to remove the chat system:
+
+1. **Files to Delete** (you'll need to delete these manually):
+   ```
+   client/src/components/chat-room.tsx
+   client/src/components/ChatPanel.tsx
+   client/src/components/ChatPublicRoom.tsx
+   client/src/components/ChatGroupList.tsx
+   client/src/components/ChatPrivateList.tsx
+   client/src/components/chat-button.tsx
+   client/src/lib/chat.ts
+   client/src/lib/chat-context.tsx
+   ```
+
+2. **Code Changes Needed**:
+
+   a. In `App.tsx`:
+   - Remove the `ChatProvider` import
+   - Remove the `ChatButton` import
+   - Remove the `ChatProvider` wrapper
+   - Remove the `ChatButton` component from the UI
+
+   b. In `server/routes.ts`:
+   - Remove all `/api/chat/*` endpoints
+   - Remove chat server initialization
+   - Remove chat-related middleware
+
+   c. In `shared/schema.ts`:
+   - Remove chat-related tables (chat_rooms, chat_messages, chat_members)
+
+3. **Dependencies to Remove**:
+   - Remove `stream-chat` package from `package.json`
+   - Remove any chat-related environment variables from `.env`
+
+4. **Database Changes**:
+   - Create a migration to drop the chat-related tables:
+     ```sql
+     DROP TABLE IF EXISTS chat_messages;
+     DROP TABLE IF EXISTS chat_members;
+     DROP TABLE IF EXISTS chat_rooms;
+     ```
+
+5. **Clean Up Tasks**:
+   - Remove any chat-related types from `shared/types.ts`
+   - Remove chat-related API calls from `client/src/lib/api.ts`
+   - Remove chat-related environment variables from `.env.example`
+   - Update any documentation that references the chat system
+
+Would you like me to help you with any specific part of this cleanup process? I can provide more detailed instructions for any of these steps.
