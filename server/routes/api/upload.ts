@@ -1,13 +1,13 @@
 import express, { Router } from 'express';
-import { upload } from '../utils/file-upload';
+import { upload, downloadImage, resizeAndSaveImage } from '../utils/file-upload';
 import { isAuthenticated } from '../middleware/auth-middleware';
 import { storage } from '../../storage';
 import path from 'path';
 import fs from 'fs';
-import { serviceRegistry } from '../../services/service-registry';
+import { getServiceRegistry } from '../../services';
 
 const router = Router();
-const ampService = serviceRegistry.getService('amp');
+const ampService = getServiceRegistry().getService('amp-service');
 
 /**
  * Handle image uploads for various entity types

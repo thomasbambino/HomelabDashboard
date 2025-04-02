@@ -12,9 +12,6 @@ export * from './email-service';
 
 // Import services and service registry
 import { serviceRegistry } from './service-registry';
-
-// Export serviceRegistry as services for backward compatibility
-export const services = serviceRegistry;
 import { ampService } from './amp-service';
 import { plexService } from './plex-service';
 import { serviceCheckerService } from './service-checker';

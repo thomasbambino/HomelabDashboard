@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { storage } from '../../../storage';
-import { isAuthenticated, hasMinRole, canModifyUser } from '../../middleware/auth-middleware';
+import { isAuthenticated, isAdmin, isSuperAdmin, canModifyUser } from '../../middleware/auth-middleware';
 import { asyncHandler } from '../../middleware/error-handler';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { serviceRegistry } from '../../../services/service-registry';
+import { services } from '../../../services';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ router.get('/profile', isAuthenticated, asyncHandler(async (req, res) => {
 }));
 
 // Get list of all users (admin only)
-router.get('/', isAuthenticated, hasMinRole('admin'), asyncHandler(async (req, res) => {
+router.get('/', isAuthenticated, isAdmin, asyncHandler(async (req, res) => {
   try {
     const users = await storage.getAllUsers();
     
@@ -73,7 +73,7 @@ router.patch('/:id', isAuthenticated, asyncHandler(async (req, res) => {
   const requestingUser = req.user as any;
   
   // Check if user has permission to update this user
-  if (requestingUser.id !== userId && !['admin', 'superadmin'].includes(requestingUser.role)) {
+  if (!canModifyUser(requestingUser, userId)) {
     return res.status(403).json({ message: 'You do not have permission to update this user' });
   }
   
@@ -130,7 +130,7 @@ router.delete('/:id', isAuthenticated, asyncHandler(async (req, res) => {
   const requestingUser = req.user as any;
   
   // Check if user has permission to delete this user
-  if (requestingUser.id !== userId && !['admin', 'superadmin'].includes(requestingUser.role)) {
+  if (!canModifyUser(requestingUser, userId)) {
     return res.status(403).json({ message: 'You do not have permission to delete this user' });
   }
   
@@ -159,7 +159,7 @@ router.delete('/:id', isAuthenticated, asyncHandler(async (req, res) => {
 }));
 
 // Approve a pending user (admin only)
-router.post('/:id/approve', isAuthenticated, hasMinRole('admin'), asyncHandler(async (req, res) => {
+router.post('/:id/approve', isAuthenticated, isAdmin, asyncHandler(async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   
   try {
@@ -178,7 +178,7 @@ router.post('/:id/approve', isAuthenticated, hasMinRole('admin'), asyncHandler(a
     
     // Send approval email notification
     try {
-      const emailService = await import('../../../services').then(m => m.services.get('email'));
+      const emailService = services.get('email');
       if (emailService) {
         await emailService.sendUserNotification(
           user.email,
@@ -207,7 +207,7 @@ router.post('/:id/approve', isAuthenticated, hasMinRole('admin'), asyncHandler(a
 }));
 
 // Reject a pending user (admin only)
-router.post('/:id/reject', isAuthenticated, hasMinRole('admin'), asyncHandler(async (req, res) => {
+router.post('/:id/reject', isAuthenticated, isAdmin, asyncHandler(async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   
   try {
@@ -229,7 +229,7 @@ router.post('/:id/reject', isAuthenticated, hasMinRole('admin'), asyncHandler(as
     
     // Send rejection email notification
     try {
-      const emailService = await import('../../../services').then(m => m.services.get('email'));
+      const emailService = services.get('email');
       if (emailService) {
         await emailService.sendUserNotification(
           userEmail,
