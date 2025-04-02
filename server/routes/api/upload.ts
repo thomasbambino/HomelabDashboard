@@ -4,10 +4,10 @@ import { isAuthenticated } from '../middleware/auth-middleware';
 import { storage } from '../../storage';
 import path from 'path';
 import fs from 'fs';
-import { getServiceRegistry } from '../../services';
+import { services } from '../../services';
 
 const router = Router();
-const ampService = getServiceRegistry().getService('amp-service');
+const ampService = services.ampService;
 
 /**
  * Handle image uploads for various entity types

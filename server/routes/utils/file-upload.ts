@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import * as https from 'https';
+import * as http from 'http';
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -146,4 +148,102 @@ export async function processBase64Image(base64Data: string, filePrefix: string)
     console.error('Error processing base64 image:', error);
     throw new Error(`Failed to process base64 image: ${error.message}`);
   }
+}
+
+/**
+ * Download an image from a given URL and return its buffer and content type
+ * 
+ * @param url - The URL of the image to download
+ * @returns Promise with the image buffer and content type
+ */
+export async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http;
+    protocol.get(url, (res) => {
+      const contentType = res.headers['content-type'] || '';
+      
+      // Check if the response is an image
+      if (!contentType || !['image/jpeg', 'image/png'].includes(contentType)) {
+        reject(new Error('Invalid image type'));
+        return;
+      }
+
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      res.on('end', () => resolve({
+        buffer: Buffer.concat(chunks),
+        contentType
+      }));
+    }).on('error', reject);
+  });
+}
+
+/**
+ * Resize and save an image to the uploads directory
+ * 
+ * @param inputBuffer - Buffer containing the image data
+ * @param basePath - Base path for saving the image
+ * @param filename - Name for the saved file
+ * @param type - Type of image ('site', 'service', 'game')
+ * @returns Path to the saved image or object with paths for site logos
+ */
+export async function resizeAndSaveImage(inputBuffer: Buffer, basePath: string, filename: string, type: string): Promise<string | { url: string; largeUrl: string }> {
+  await ensureUploadsDirectory();
+  
+  if (type === 'site') {
+    // For site logos, create both small and large versions
+    const smallFilename = `site_small_${filename}`;
+    const largeFilename = `site_large_${filename}`;
+    const smallPath = path.join(basePath, smallFilename);
+    const largePath = path.join(basePath, largeFilename);
+
+    // Create small version (32x32) for header
+    await sharp(inputBuffer)
+      .resize(32, 32, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png({ quality: 90 })
+      .toFile(smallPath);
+
+    // Create large version (128x128) for login page
+    await sharp(inputBuffer)
+      .resize(128, 128, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png({ quality: 100 })
+      .toFile(largePath);
+
+    return {
+      url: `/uploads/${smallFilename}`,
+      largeUrl: `/uploads/${largeFilename}`
+    };
+  }
+
+  // For other types, create a single resized version
+  let size: number;
+  switch (type) {
+    case 'service':
+      size = 48; // Medium icon for service cards
+      break;
+    case 'game':
+      size = 64; // Larger icon for game servers
+      break;
+    default:
+      size = 32;
+  }
+
+  const outputFilename = `${type}_${filename}`;
+  const outputPath = path.join(basePath, outputFilename);
+
+  await sharp(inputBuffer)
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png({ quality: 90 })
+    .toFile(outputPath);
+
+  return `/uploads/${outputFilename}`;
 }

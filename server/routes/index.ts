@@ -2,6 +2,7 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import path from 'path';
+import { createServer, Server } from 'http';
 import { setupAuth } from '../auth';
 import cookieParser from 'cookie-parser';
 import apiRoutes from './api';
@@ -11,8 +12,9 @@ import { storage } from '../storage';
 
 /**
  * Sets up all Express routes and middleware for the application
+ * @returns The HTTP server instance
  */
-export function setupRoutes(app: Express) {
+export async function registerRoutes(app: Express) {
   // Basic middleware
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -60,4 +62,8 @@ export function setupRoutes(app: Express) {
       status: 404
     });
   });
+
+  // Create and return the HTTP server
+  const server = createServer(app);
+  return server;
 }

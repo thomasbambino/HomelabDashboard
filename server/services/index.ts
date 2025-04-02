@@ -17,6 +17,15 @@ import { plexService } from './plex-service';
 import { serviceCheckerService } from './service-checker';
 import { emailService } from './email-service';
 
+// Export bundled services
+export const services = {
+  serviceRegistry,
+  ampService,
+  plexService,
+  serviceCheckerService,
+  emailService
+};
+
 /**
  * Initialize all services and register them with the service registry
  */
