@@ -24,7 +24,6 @@ export function UserPreferencesDialog({ user }: { user: User }) {
       show_refresh_interval: user.show_refresh_interval ?? true,
       show_last_checked: user.show_last_checked ?? true,
       show_service_url: user.show_service_url ?? true,
-      show_uptime_log: user.show_uptime_log ?? false,
     },
   });
 
@@ -83,22 +82,6 @@ export function UserPreferencesDialog({ user }: { user: User }) {
               <form onSubmit={form.handleSubmit((data) => updatePreferencesMutation.mutate(data))} className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="show_uptime_log"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="show_uptime_log" className="text-sm cursor-pointer">Show Uptime Log</Label>
-                            <Switch
-                              id="show_uptime_log"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </div>
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={form.control}
                       name="show_refresh_interval"

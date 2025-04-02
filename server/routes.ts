@@ -882,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Service status logs endpoint removed to reduce database usage
+  // No uptime logging endpoints - completely removed from the application
   // Inside /api/register route
   app.post("/api/register", async (req, res) => {
     if (req.isAuthenticated()) {
