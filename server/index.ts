@@ -1,9 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { startServiceChecker } from "./service-checker";
-import { setupDefaultTemplates } from "./email-templates";
 import { startBackgroundTasks } from "./background-tasks";
+import { initializeServices } from "./services";
 
 const app = express();
 app.use(express.json());
@@ -43,8 +42,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Set up default email templates
-  await setupDefaultTemplates();
+  // Initialize all services
+  await initializeServices();
 
   const server = await registerRoutes(app);
 
@@ -55,9 +54,6 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
-
-  // Start the service checker
-  startServiceChecker();
   
   // Start background tasks for Plex data refreshing
   startBackgroundTasks();
