@@ -5,7 +5,7 @@ import { asyncHandler } from '../../middleware/error-handler';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import passport from 'passport';
-import { services } from '../../../services';
+import { serviceRegistry } from '../../../services/service-registry';
 
 const router = Router();
 
@@ -106,7 +106,7 @@ router.post('/register', asyncHandler(async (req, res) => {
     
     // Send admin notification email that a new user registered
     try {
-      const emailService = services.get('email');
+      const emailService = serviceRegistry.get('email');
       if (emailService) {
         await emailService.sendAdminNotification(
           'New User Registration',

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { isAdmin, isAuthenticated } from '../../middleware/auth-middleware';
 import { asyncHandler } from '../../middleware/error-handler';
-import { services } from '../../../services';
+import { serviceRegistry } from '../../../services/service-registry';
 
 const router = Router();
 
@@ -105,7 +105,7 @@ router.delete('/:id', isAdmin, asyncHandler(async (req, res) => {
 // Get Plex service details
 router.get('/plex/details', isAuthenticated, asyncHandler(async (req, res) => {
   try {
-    const plexService = services.get('plex');
+    const plexService = serviceRegistry.get('plex');
     if (!plexService) {
       return res.status(500).json({ message: 'Plex service not available' });
     }

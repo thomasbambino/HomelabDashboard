@@ -57,7 +57,8 @@ export class AMPService implements IService {
         console.log('AMP Service initialized successfully');
       } catch (error) {
         console.error('Failed to initialize AMP Service:', error);
-        throw error;
+        // Don't throw error to allow application to start without AMP
+        this.initialized = false;
       }
     } else {
       console.warn('AMP Service not fully configured - missing credentials');

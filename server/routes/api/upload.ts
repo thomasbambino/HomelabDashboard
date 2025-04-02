@@ -4,10 +4,11 @@ import { isAuthenticated } from '../middleware/auth-middleware';
 import { storage } from '../../storage';
 import path from 'path';
 import fs from 'fs';
-import { getServiceRegistry } from '../../services';
+import { serviceRegistry } from '../../services/service-registry';
 
 const router = Router();
-const ampService = getServiceRegistry().getService('amp-service');
+// We'll fetch the AMP service in each route handler instead of here
+// to ensure services are loaded before routes are called
 
 /**
  * Handle image uploads for various entity types
@@ -28,6 +29,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
     if (type === 'game') {
       console.log('Processing icon upload for instance:', instanceId);
       // Verify instance exists before proceeding
+      const ampService = serviceRegistry.get('amp');
       const instances = await ampService.getInstances();
       instance = instances.find((i: any) => i.InstanceID === instanceId);
       if (!instance) {
@@ -149,6 +151,7 @@ const handleUpload = async (req: express.Request, res: express.Response, type: '
           
           // Get instance details from AMP
           try {
+            const ampService = serviceRegistry.get('amp');
             const instances = await ampService.getInstances();
             const instance = instances.find(i => i.InstanceID === instanceId);
             

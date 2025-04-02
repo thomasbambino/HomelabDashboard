@@ -4,7 +4,7 @@ import { isAuthenticated, isAdmin, isSuperAdmin, canModifyUser } from '../../mid
 import { asyncHandler } from '../../middleware/error-handler';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { services } from '../../../services';
+import { serviceRegistry } from '../../../services/service-registry';
 
 const router = Router();
 
@@ -178,7 +178,7 @@ router.post('/:id/approve', isAuthenticated, isAdmin, asyncHandler(async (req, r
     
     // Send approval email notification
     try {
-      const emailService = services.get('email');
+      const emailService = serviceRegistry.get('email');
       if (emailService) {
         await emailService.sendUserNotification(
           user.email,
@@ -229,7 +229,7 @@ router.post('/:id/reject', isAuthenticated, isAdmin, asyncHandler(async (req, re
     
     // Send rejection email notification
     try {
-      const emailService = services.get('email');
+      const emailService = serviceRegistry.get('email');
       if (emailService) {
         await emailService.sendUserNotification(
           userEmail,

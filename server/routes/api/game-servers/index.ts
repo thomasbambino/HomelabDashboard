@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { isAdmin, isAuthenticated } from '../../middleware/auth-middleware';
 import { asyncHandler } from '../../middleware/error-handler';
-import { services } from '../../../services';
+import { serviceRegistry } from '../../../services/service-registry';
 
 const router = Router();
 
@@ -122,7 +122,7 @@ router.post('/:id/start', isAdmin, asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Game server not found' });
     }
     
-    const ampService = services.get('amp');
+    const ampService = serviceRegistry.get('amp');
     if (!ampService) {
       return res.status(500).json({ message: 'AMP service not available' });
     }
@@ -152,7 +152,7 @@ router.post('/:id/stop', isAdmin, asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Game server not found' });
     }
     
-    const ampService = services.get('amp');
+    const ampService = serviceRegistry.get('amp');
     if (!ampService) {
       return res.status(500).json({ message: 'AMP service not available' });
     }
@@ -182,7 +182,7 @@ router.post('/:id/restart', isAdmin, asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Game server not found' });
     }
     
-    const ampService = services.get('amp');
+    const ampService = serviceRegistry.get('amp');
     if (!ampService) {
       return res.status(500).json({ message: 'AMP service not available' });
     }
@@ -212,7 +212,7 @@ router.post('/:id/kill', isAdmin, asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Game server not found' });
     }
     
-    const ampService = services.get('amp');
+    const ampService = serviceRegistry.get('amp');
     if (!ampService) {
       return res.status(500).json({ message: 'AMP service not available' });
     }
@@ -242,7 +242,7 @@ router.get('/:id/players', isAuthenticated, asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Game server not found' });
     }
     
-    const ampService = services.get('amp');
+    const ampService = serviceRegistry.get('amp');
     if (!ampService) {
       return res.status(500).json({ message: 'AMP service not available' });
     }
