@@ -3,8 +3,8 @@ import passport from "passport";
 import { storage } from "../storage";
 import { hashPassword, generateTemporaryPassword } from "./password";
 import { getClientIp, getIpInfo } from "./utils/ip";
-import { checkRateLimit } from "./utils/rate-limit";
-import { isAdmin, canModifyUser, isSuperAdmin } from "./middleware";
+import { rateLimitMiddleware, checkRateLimit } from "./utils/rate-limit";
+import { hasMinRole, canManageUser, hasRole, AuthenticatedRequest } from "./middleware";
 import { sendEmail } from "../email";
 
 const router = Router();
@@ -12,7 +12,7 @@ const router = Router();
 /**
  * Register a new user
  */
-router.post("/register", async (req, res, next) => {
+router.post("/register", rateLimitMiddleware('registration'), async (req, res, next) => {
   const { username, password, email } = req.body;
 
   if (!email) {
@@ -49,7 +49,7 @@ router.post("/register", async (req, res, next) => {
 /**
  * Log in an existing user
  */
-router.post("/login", checkRateLimit, async (req, res, next) => {
+router.post("/login", rateLimitMiddleware('login'), async (req, res, next) => {
   try {
     const identifier = req.body.username;
     const clientIp = await getClientIp(req);
@@ -132,7 +132,7 @@ router.post("/login", checkRateLimit, async (req, res, next) => {
 /**
  * Change user's password
  */
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", rateLimitMiddleware('password-change'), async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
   const { newPassword } = req.body;
@@ -157,7 +157,7 @@ router.post("/change-password", async (req, res) => {
 /**
  * Request a password reset
  */
-router.post("/request-reset", checkRateLimit, async (req, res) => {
+router.post("/request-reset", rateLimitMiddleware('reset'), async (req, res) => {
   const { identifier } = req.body;
 
   try {
@@ -224,7 +224,7 @@ router.get("/user", (req, res) => {
 /**
  * Admin: Reset a user's password
  */
-router.post("/admin/reset-user-password", isAdmin, async (req, res) => {
+router.post("/admin/reset-user-password", hasMinRole('admin'), rateLimitMiddleware('admin-action'), async (req, res) => {
   const { userId } = req.body;
   const user = await storage.getUser(userId);
 

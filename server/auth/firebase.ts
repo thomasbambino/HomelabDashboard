@@ -18,10 +18,8 @@ try {
 
 /**
  * Configure Firebase authentication strategy for Passport
- * 
- * @param passport Passport instance
  */
-export function configureFirebaseStrategy(passport: passport.PassportStatic): void {
+export function configureFirebaseStrategy(): void {
   passport.use('firebase', new CustomStrategy(async (req, done) => {
     try {
       // Get the client IP for rate limiting and logging

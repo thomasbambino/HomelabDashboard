@@ -186,3 +186,55 @@ export function verifyTimedToken(
 export function generateSecret(length: number = 32): string {
   return crypto.randomBytes(length).toString('hex');
 }
+
+/**
+ * Generate a temporary password for user accounts
+ * Creates a password that is secure but readable by users
+ * 
+ * @param length Length of the password (default: 10)
+ * @returns A secure random password
+ */
+export function generateTemporaryPassword(length: number = 10): string {
+  // Define character sets
+  const uppercaseChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Excluding I, O which can be confused
+  const lowercaseChars = 'abcdefghijkmnpqrstuvwxyz'; // Excluding l, o which can be confused
+  const numberChars = '23456789'; // Excluding 0, 1 which can be confused
+  const specialChars = '@#$%^&*-_=+?';
+  
+  // Combine all character sets
+  const allChars = uppercaseChars + lowercaseChars + numberChars + specialChars;
+  
+  // Initialize password
+  let password = '';
+  
+  // Ensure password has at least one of each character type
+  password += uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length));
+  password += lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length));
+  password += numberChars.charAt(Math.floor(Math.random() * numberChars.length));
+  password += specialChars.charAt(Math.floor(Math.random() * specialChars.length));
+  
+  // Fill the rest of the password with random characters
+  for (let i = password.length; i < length; i++) {
+    password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+  }
+  
+  // Shuffle the password to make it more random
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+/**
+ * Check if a password hash needs to be updated to a newer algorithm
+ * 
+ * @param password Plain text password
+ * @param hash Existing hash
+ * @returns New hash if rehash is needed, null otherwise
+ */
+export async function needsRehash(password: string, hash: string): Promise<string | null> {
+  // If using fallback but bcrypt is now available
+  if (hash.startsWith('pbkdf2:') && bcrypt) {
+    return await hashPassword(password);
+  }
+  
+  // No rehash needed
+  return null;
+}

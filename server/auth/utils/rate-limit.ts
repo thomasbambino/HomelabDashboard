@@ -16,6 +16,34 @@ const RATE_LIMIT_CONFIGS = {
     blockSeconds: 300 // 5 minutes block
   },
   
+  // Registration attempts (3 per 5 minutes)
+  registration: {
+    maxAttempts: 3,
+    windowSeconds: 300, // 5 minutes
+    blockSeconds: 900 // 15 minutes block
+  },
+  
+  // Password reset (3 per 5 minutes)
+  reset: {
+    maxAttempts: 3,
+    windowSeconds: 300, // 5 minutes
+    blockSeconds: 600 // 10 minutes block
+  },
+  
+  // Password change (5 per minute)
+  'password-change': {
+    maxAttempts: 5,
+    windowSeconds: 60,
+    blockSeconds: 300 // 5 minutes block
+  },
+  
+  // Admin actions (higher limits - 15 per minute)
+  'admin-action': {
+    maxAttempts: 15,
+    windowSeconds: 60,
+    blockSeconds: 300 // 5 minutes block
+  },
+  
   // API requests (60 per minute)
   api: {
     maxAttempts: 60,
@@ -165,7 +193,7 @@ export function getRateLimitCount(actionType: string, ip: string): number {
 }
 
 /**
- * Express middleware for rate limiting
+ * Express middleware for rate limiting with admin privileges consideration
  * 
  * @param actionType Action type
  * @returns Express middleware function
@@ -176,11 +204,22 @@ export function rateLimitMiddleware(actionType: string) {
       // Get client IP
       const ip = await getClientIp(req);
       
-      // Check if rate limited
-      if (isRateLimited(actionType, ip)) {
-        // Get config
-        const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
-        
+      // Get config
+      const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
+      
+      if (!config) {
+        return next(); // No rate limit defined for this action
+      }
+      
+      // Determine if this is an admin user (higher rate limits)
+      const isAdminUser = req.isAuthenticated() && req.user && (req.user.role === 'admin' || req.user.role === 'superadmin');
+      
+      // Get the effective max attempts - higher for admin users
+      const effectiveMaxAttempts = isAdminUser ? Math.max(config.maxAttempts * 3, config.maxAttempts + 10) : config.maxAttempts;
+      
+      // Check if rate limited with admin privileges
+      const count = getRateLimitCount(actionType, ip);
+      if (count >= effectiveMaxAttempts) {
         // Add retry-after header
         res.set('Retry-After', config.blockSeconds.toString());
         
@@ -196,11 +235,8 @@ export function rateLimitMiddleware(actionType: string) {
       addRateLimitEntry(actionType, ip);
       
       // Add rate limit info to headers
-      const count = getRateLimitCount(actionType, ip);
-      const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
-      
-      res.set('X-RateLimit-Limit', config.maxAttempts.toString());
-      res.set('X-RateLimit-Remaining', Math.max(0, config.maxAttempts - count).toString());
+      res.set('X-RateLimit-Limit', effectiveMaxAttempts.toString());
+      res.set('X-RateLimit-Remaining', Math.max(0, effectiveMaxAttempts - (count + 1)).toString());
       res.set('X-RateLimit-Reset', Math.floor(Date.now() / 1000 + config.windowSeconds).toString());
       
       // Continue to next middleware
@@ -211,3 +247,44 @@ export function rateLimitMiddleware(actionType: string) {
     }
   };
 }
+
+/**
+ * Legacy middleware for checking rate limits
+ * Used mainly with auth routes for login and registration
+ * 
+ * @deprecated Use rateLimitMiddleware('login') instead
+ */
+export const checkRateLimit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const ip = await getClientIp(req);
+    const actionType = 'login';
+    
+    // Check if rate limited
+    if (isRateLimited(actionType, ip)) {
+      const config = RATE_LIMIT_CONFIGS[actionType];
+      res.set('Retry-After', config.blockSeconds.toString());
+      
+      return res.status(429).json({
+        status: false,
+        message: 'Too many attempts, please try again later',
+        retryAfter: config.blockSeconds
+      });
+    }
+    
+    // Add rate limit entry
+    addRateLimitEntry(actionType, ip);
+    
+    // Add rate limit info to headers
+    const count = getRateLimitCount(actionType, ip);
+    const config = RATE_LIMIT_CONFIGS[actionType];
+    
+    res.set('X-RateLimit-Limit', config.maxAttempts.toString());
+    res.set('X-RateLimit-Remaining', Math.max(0, config.maxAttempts - count).toString());
+    res.set('X-RateLimit-Reset', Math.floor(Date.now() / 1000 + config.windowSeconds).toString());
+    
+    next();
+  } catch (error) {
+    console.error('Error in rate limit middleware:', error);
+    next(error);
+  }
+};

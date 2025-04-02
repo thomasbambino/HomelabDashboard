@@ -1,5 +1,64 @@
 import { Request } from 'express';
 import { storage } from '../../storage';
+import axios from 'axios';
+
+/**
+ * Get information about an IP address (geolocation, ISP, etc.)
+ * 
+ * @param ip IP address
+ * @returns IP information including geolocation and ISP
+ */
+export async function getIpInfo(ip: string): Promise<{
+  ip: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  isp?: string;
+}> {
+  try {
+    // First check if we have cached data for this IP
+    const cachedInfo = await storage.getIpInfoFromCache(ip);
+    if (cachedInfo) {
+      return cachedInfo;
+    }
+    
+    // For privacy and security, don't query external services for private IPs
+    if (
+      ip === 'localhost' ||
+      ip === '127.0.0.1' ||
+      ip.startsWith('10.') ||
+      ip.startsWith('172.16.') ||
+      ip.startsWith('192.168.')
+    ) {
+      return { ip, country: 'Local', region: 'Local', city: 'Local', isp: 'Local Network' };
+    }
+    
+    // Use IP-API for geolocation (free, no API key required)
+    const response = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,isp`, {
+      timeout: 3000 // 3 second timeout
+    });
+    
+    if (response.data && response.data.status === 'success') {
+      const ipInfo = {
+        ip,
+        country: response.data.country,
+        region: response.data.regionName,
+        city: response.data.city,
+        isp: response.data.isp
+      };
+      
+      // Cache this IP info for future lookups
+      await storage.cacheIpInfo(ipInfo);
+      
+      return ipInfo;
+    }
+    
+    return { ip };
+  } catch (error) {
+    console.error('Error getting IP info:', error);
+    return { ip };
+  }
+}
 
 /**
  * Get the client's IP address from the request

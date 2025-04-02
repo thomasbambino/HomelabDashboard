@@ -93,6 +93,10 @@ export interface IStorage {
   clearLoginAttempts(identifier: string, ip: string, type: string): Promise<void>;
   getOldestLoginAttempt(identifier: string, ip: string, type: string): Promise<LoginAttempt | undefined>;
 
+  // IP Info Cache methods
+  getIpInfoFromCache(ip: string): Promise<IpInfoCache | null>;
+  cacheIpInfo(ipInfo: InsertIpInfoCache): Promise<void>;
+
   // Add new method for getting game server by instanceId
   getGameServerByInstanceId(instanceId: string): Promise<GameServer | undefined>;
   getGameServer(id: number): Promise<GameServer | undefined>;
@@ -557,6 +561,58 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(loginAttempts)
       .orderBy(desc(loginAttempts.timestamp));
+  }
+
+  // IP Info Cache methods
+  async getIpInfoFromCache(ip: string): Promise<IpInfoCache | null> {
+    try {
+      const oneDayAgo = new Date(Date.now() - 86400000); // 24 hours in milliseconds
+      const [cachedInfo] = await db
+        .select()
+        .from(ipInfoCache)
+        .where(
+          and(
+            eq(ipInfoCache.ip, ip),
+            gte(ipInfoCache.lastUpdated, oneDayAgo) // Only return cache entries less than 24 hours old
+          )
+        );
+      return cachedInfo || null;
+    } catch (error) {
+      console.error('Error retrieving IP info from cache:', error);
+      return null;
+    }
+  }
+
+  async cacheIpInfo(info: InsertIpInfoCache): Promise<void> {
+    try {
+      // Check if there's an existing entry
+      const [existingInfo] = await db
+        .select()
+        .from(ipInfoCache)
+        .where(eq(ipInfoCache.ip, info.ip));
+
+      if (existingInfo) {
+        // Update existing entry
+        await db
+          .update(ipInfoCache)
+          .set({
+            ...info,
+            lastUpdated: new Date()
+          })
+          .where(eq(ipInfoCache.ip, info.ip));
+      } else {
+        // Insert new entry
+        await db
+          .insert(ipInfoCache)
+          .values({
+            ...info,
+            lastUpdated: new Date()
+          });
+      }
+    } catch (error) {
+      console.error('Error caching IP info:', error);
+      // Don't throw the error since this is a non-critical operation
+    }
   }
 }
 

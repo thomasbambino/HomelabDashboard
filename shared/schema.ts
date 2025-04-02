@@ -138,6 +138,16 @@ export const loginAttempts = pgTable("loginAttempts", {
   country: text("country"),
 });
 
+export const ipInfoCache = pgTable("ipInfoCache", {
+  id: serial("id").primaryKey(),
+  ip: text("ip").notNull().unique(),
+  country: text("country"),
+  region: text("region"),
+  city: text("city"),
+  isp: text("isp"),
+  lastUpdated: timestamp("lastUpdated").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertServiceSchema = createInsertSchema(services);
 export const insertGameServerSchema = createInsertSchema(gameServers);
@@ -147,6 +157,7 @@ export const insertNotificationPreferenceSchema = createInsertSchema(notificatio
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertSentNotificationSchema = createInsertSchema(sentNotifications);
 export const insertLoginAttemptSchema = createInsertSchema(loginAttempts);
+export const insertIpInfoCacheSchema = createInsertSchema(ipInfoCache);
 
 // Export the update schemas
 export const updateServiceSchema = insertServiceSchema.extend({
@@ -195,4 +206,6 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type SentNotification = typeof sentNotifications.$inferSelect;
 export type InsertLoginAttempt = z.infer<typeof insertLoginAttemptSchema>;
+export type InsertIpInfoCache = z.infer<typeof insertIpInfoCacheSchema>;
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
+export type IpInfoCache = typeof ipInfoCache.$inferSelect;

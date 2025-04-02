@@ -2,7 +2,7 @@ import express from 'express';
 import passport from 'passport';
 import session from 'express-session';
 import { storage } from '../storage';
-import { configureLocalStrategy } from './strategies/local';
+import { setupLocalStrategy, setupPassportSerialization } from './strategies/local';
 import { configureFirebaseStrategy } from './firebase';
 
 // Export all the authorization components
@@ -40,26 +40,15 @@ export function configureAuth(app: express.Express): void {
   app.use(passport.session());
   
   // Configure Passport to serialize and deserialize users
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-  
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUserById(id);
-      done(null, user);
-    } catch (error) {
-      done(error, null);
-    }
-  });
+  setupPassportSerialization();
   
   // Configure Passport authentication strategies
-  configureLocalStrategy(passport);
+  setupLocalStrategy();
   
   // Configure Firebase authentication if FIREBASE_CONFIG is set
   if (process.env.FIREBASE_CONFIG) {
     try {
-      configureFirebaseStrategy(passport);
+      configureFirebaseStrategy();
     } catch (error) {
       console.error('Failed to configure Firebase authentication:', error);
     }

@@ -5,7 +5,8 @@ import { rateLimitMiddleware } from './utils/rate-limit';
 // Extended type for authenticated requests
 export interface AuthenticatedRequest extends Request {
   user?: any;
-  isAuthenticated(): boolean;
+  targetUser?: any;
+  isAuthenticated(): this is AuthenticatedRequest & { user: any };
 }
 
 /**
