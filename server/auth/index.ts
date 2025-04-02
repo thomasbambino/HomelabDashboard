@@ -5,52 +5,87 @@ import { storage } from '../storage';
 import { configureLocalStrategy } from './strategies/local';
 import { configureFirebaseStrategy } from './firebase';
 
-// Export the middleware
-export {
-  isAuthenticated, isApproved, isAdmin, isSuperAdmin, hasRole, isOwnerOrAdmin, rateLimit
-} from './middleware';
-export { hashPassword, verifyPassword, generateRandomPassword, isStrongPassword, getPasswordStrength } from './password';
-export { getClientIp, recordLoginAttempt, shouldLockAccount, lockUserAccount, unlockUserAccount } from './utils/ip';
-export { isRateLimited, resetRateLimit, rateLimitMiddleware } from './utils/rate-limit';
-export { createUser, getUserById, getUserByUsernameOrEmail, getUsers, updateUser, deleteUser, countUsers } from './user';
+// Export all the authorization components
+export * from './middleware';
+export * from './password';
+export * from './utils/ip';
+export * from './utils/rate-limit';
+export * from './user';
+
+// Session store for Express session
+const MemoryStore = require('memorystore')(session);
 
 /**
- * Initialize authentication for the app
+ * Configure authentication for the application
  * 
- * @param app Express app
- * @param sessionSecret Session secret
+ * @param app Express application
  */
-export function initAuth(app: express.Application, sessionSecret: string) {
-  // Initialize passport
-  app.use(passport.initialize());
-  
-  // Configure session
-  const sessionMiddleware = session({
-    secret: sessionSecret,
+export function configureAuth(app: express.Express): void {
+  // Configure Express session
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'homelab-dashboard-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     },
-    store: new (require('connect-pg-simple')(session))({
-      pool: storage.pool,
-      tableName: 'sessions'
+    store: new MemoryStore({
+      checkPeriod: 86400000 // 24 hours (prune expired entries)
     })
-  });
+  }));
   
-  // Use session middleware
-  app.use(sessionMiddleware);
-  
-  // Setup session for passport
+  // Initialize Passport
+  app.use(passport.initialize());
   app.use(passport.session());
   
-  // Configure passport strategies
-  configureLocalStrategy(passport);
-  configureFirebaseStrategy(passport);
+  // Configure Passport to serialize and deserialize users
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
   
-  return {
-    passport,
-    sessionMiddleware
-  };
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUserById(id);
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
+  });
+  
+  // Configure Passport authentication strategies
+  configureLocalStrategy(passport);
+  
+  // Configure Firebase authentication if FIREBASE_CONFIG is set
+  if (process.env.FIREBASE_CONFIG) {
+    try {
+      configureFirebaseStrategy(passport);
+    } catch (error) {
+      console.error('Failed to configure Firebase authentication:', error);
+    }
+  }
+}
+
+/**
+ * Create initial admin user if none exists
+ * This is typically called when the application starts
+ */
+export async function createInitialAdmin(): Promise<void> {
+  try {
+    const { createAdminIfNoneExists } = await import('./user');
+    
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    
+    if (adminEmail && adminPassword) {
+      const admin = await createAdminIfNoneExists(adminEmail, adminPassword, adminUsername);
+      
+      if (admin) {
+        console.log(`Created initial admin user: ${adminEmail}`);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to create initial admin user:', error);
+  }
 }

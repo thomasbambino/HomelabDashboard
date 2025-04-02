@@ -2,238 +2,316 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { rateLimitMiddleware } from './utils/rate-limit';
 
-// Role levels for access control
-const ROLE_LEVELS = {
-  superadmin: 3,
-  admin: 2,
-  user: 1,
-  pending: 0
-};
-
-/**
- * Middleware to check if a user is authenticated
- * 
- * @param req Express request
- * @param res Express response
- * @param next Next function
- */
-export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  
-  res.status(401).json({
-    success: false,
-    message: 'Authentication required'
-  });
+// Extended type for authenticated requests
+export interface AuthenticatedRequest extends Request {
+  user?: any;
+  isAuthenticated(): boolean;
 }
 
 /**
- * Check rate limits for a route
+ * Authentication middleware
+ * Checks if the user is authenticated
  * 
- * @param maxAttempts Maximum number of requests allowed in the time window
- * @param windowSeconds Time window in seconds
- * @param routeName Identifier for the route
+ * @param allowContinueWithoutAuth If true, continues without returning 401 even if not authenticated
  * @returns Express middleware function
  */
-export function checkRateLimit(
-  maxAttempts: number, 
-  windowSeconds: number, 
-  routeName: string
-) {
-  return rateLimitMiddleware(maxAttempts, windowSeconds, routeName);
-}
-
-/**
- * Middleware to check if a user is an admin or superadmin
- * 
- * @param req Express request
- * @param res Express response
- * @param next Next function
- */
-export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+export function isAuthenticated(allowContinueWithoutAuth: boolean = false) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Check if authenticated
+    if (req.isAuthenticated()) {
+      // Check if user account is locked
+      if (req.user?.locked) {
+        return res.status(403).json({
+          status: false,
+          message: 'Your account is locked. Please contact an administrator.'
+        });
+      }
+      
+      return next();
+    }
+    
+    // Allow continuing without auth if specified (for routes that vary behavior based on auth status)
+    if (allowContinueWithoutAuth) {
+      return next();
+    }
+    
+    // Not authenticated
     return res.status(401).json({
-      success: false,
+      status: false,
       message: 'Authentication required'
     });
-  }
-
-  const user = req.user as any;
-  
-  if (!user.role || (user.role !== 'admin' && user.role !== 'superadmin')) {
-    return res.status(403).json({
-      success: false,
-      message: 'Admin access required'
-    });
-  }
-  
-  next();
+  };
 }
 
 /**
- * Middleware to check if a user is a superadmin
+ * Authentication middleware for API endpoints
+ * Rate limited to prevent brute force attacks
  * 
- * @param req Express request
- * @param res Express response
- * @param next Next function
- */
-export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication required'
-    });
-  }
-
-  const user = req.user as any;
-  
-  if (!user.role || user.role !== 'superadmin') {
-    return res.status(403).json({
-      success: false,
-      message: 'Superadmin access required'
-    });
-  }
-  
-  next();
-}
-
-/**
- * Middleware to check if a user is approved
- * 
- * @param req Express request
- * @param res Express response
- * @param next Next function
- */
-export function isApproved(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication required'
-    });
-  }
-
-  const user = req.user as any;
-  
-  if (!user.approved) {
-    return res.status(403).json({
-      success: false,
-      message: 'Account not approved. Please wait for administrator approval.'
-    });
-  }
-  
-  next();
-}
-
-/**
- * Middleware to check if a user has a specific role level or higher
- * 
- * @param minRole Minimum required role
  * @returns Express middleware function
  */
-export function hasRole(minRole: 'superadmin' | 'admin' | 'user' | 'pending') {
-  const minLevel = ROLE_LEVELS[minRole];
-  
-  return (req: Request, res: Response, next: NextFunction) => {
+export function apiAuthentication() {
+  return [
+    // Apply rate limit to API authentication
+    rateLimitMiddleware('api'),
+    
+    // Check authentication
+    isAuthenticated()
+  ];
+}
+
+/**
+ * Authorization middleware for routes requiring specific roles
+ * 
+ * @param roles Array of roles allowed to access the route
+ * @returns Express middleware function
+ */
+export function hasRole(roles: string[]) {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Must be authenticated
     if (!req.isAuthenticated()) {
       return res.status(401).json({
-        success: false,
+        status: false,
         message: 'Authentication required'
       });
     }
-
-    const user = req.user as any;
     
-    if (!user.role || ROLE_LEVELS[user.role] < minLevel) {
+    // Check if account is locked
+    if (req.user?.locked) {
       return res.status(403).json({
-        success: false,
-        message: `Insufficient permissions. ${minRole} role or higher required.`
+        status: false,
+        message: 'Your account is locked. Please contact an administrator.'
       });
     }
     
+    // Check if user has one of the required roles
+    if (!req.user?.role || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        status: false,
+        message: 'Insufficient permissions'
+      });
+    }
+    
+    // User has required role
     next();
   };
 }
 
 /**
- * Check if the requesting user can modify the target user
- * 
- * @param requestingUser The user making the request
- * @param targetUserId ID of the user to modify
- * @returns True if the requesting user can modify the target user
+ * Role hierarchy - higher numbers mean higher permissions
+ * Used for role-based authorization with minimum level comparison
  */
-function canModifyUser(targetUser: any, requestingUser: any) {
-  // Users can always modify themselves
-  if (targetUser.id === requestingUser.id) {
-    return true;
-  }
-  
-  // Superadmins can modify any user
-  if (requestingUser.role === 'superadmin') {
-    return true;
-  }
-  
-  // Admins can modify users and other admins, but not superadmins
-  if (requestingUser.role === 'admin' && targetUser.role !== 'superadmin') {
-    return true;
-  }
-  
-  return false;
+const ROLE_LEVELS = {
+  pending: 0,
+  user: 1,
+  admin: 2,
+  superadmin: 3
+};
+
+/**
+ * Authorization middleware requiring a minimum role level
+ * 
+ * @param minRole Minimum role required to access the route
+ * @returns Express middleware function
+ */
+export function hasMinRole(minRole: 'superadmin' | 'admin' | 'user' | 'pending') {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Must be authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        status: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    // Check if account is locked
+    if (req.user?.locked) {
+      return res.status(403).json({
+        status: false,
+        message: 'Your account is locked. Please contact an administrator.'
+      });
+    }
+    
+    // Get role levels
+    const userRoleLevel = ROLE_LEVELS[req.user?.role as keyof typeof ROLE_LEVELS] || -1;
+    const requiredRoleLevel = ROLE_LEVELS[minRole];
+    
+    // Check if user's role level is sufficient
+    if (userRoleLevel < requiredRoleLevel) {
+      return res.status(403).json({
+        status: false,
+        message: 'Insufficient permissions'
+      });
+    }
+    
+    // User has sufficient role level
+    next();
+  };
 }
 
 /**
- * Middleware to check if the requesting user can modify a specific user
+ * Authorization middleware to ensure user is approved
  * 
- * @param userIdParam Name of the request parameter containing the user ID
  * @returns Express middleware function
  */
-export function canModifyUserMiddleware(userIdParam: string = 'userId') {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export function isApproved() {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Must be authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        status: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    // Check if account is locked
+    if (req.user?.locked) {
+      return res.status(403).json({
+        status: false,
+        message: 'Your account is locked. Please contact an administrator.'
+      });
+    }
+    
+    // Check if user is approved (role other than 'pending')
+    if (!req.user?.role || req.user.role === 'pending') {
+      return res.status(403).json({
+        status: false,
+        message: 'Your account is pending approval'
+      });
+    }
+    
+    // User is approved
+    next();
+  };
+}
+
+/**
+ * Authorization middleware to ensure user can manage another user
+ * Can only manage users with lower role level
+ * 
+ * @param userIdParamName Name of the URL parameter containing the target user ID
+ * @returns Express middleware function
+ */
+export function canManageUser(userIdParamName: string = 'userId') {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Must be authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        status: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    // Check if account is locked
+    if (req.user?.locked) {
+      return res.status(403).json({
+        status: false,
+        message: 'Your account is locked. Please contact an administrator.'
+      });
+    }
+    
+    // Only admins and superadmins can manage users
+    if (!req.user?.role || !['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({
+        status: false,
+        message: 'Insufficient permissions'
+      });
+    }
+    
+    // Get target user ID from URL params
+    const targetUserId = parseInt(req.params[userIdParamName], 10);
+    
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid user ID'
+      });
+    }
+    
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
-      }
-      
-      const requestingUser = req.user as any;
-      const targetUserId = parseInt(req.params[userIdParam], 10);
-      
-      if (isNaN(targetUserId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid user ID'
-        });
-      }
-      
-      // Get the target user
+      // Get target user
       const targetUser = await storage.getUserById(targetUserId);
       
       if (!targetUser) {
         return res.status(404).json({
-          success: false,
+          status: false,
           message: 'User not found'
         });
       }
       
-      // Check if the requesting user can modify the target user
-      if (!canModifyUser(targetUser, requestingUser)) {
+      // Check role hierarchy
+      const userRoleLevel = ROLE_LEVELS[req.user.role as keyof typeof ROLE_LEVELS];
+      const targetRoleLevel = ROLE_LEVELS[targetUser.role as keyof typeof ROLE_LEVELS];
+      
+      // Can only manage users with lower role level
+      // Superadmins can manage other superadmins
+      if (targetRoleLevel >= userRoleLevel && req.user.role !== 'superadmin') {
         return res.status(403).json({
-          success: false,
-          message: 'You do not have permission to modify this user'
+          status: false,
+          message: 'Insufficient permissions to manage this user'
         });
       }
       
-      // Attach the target user to the request for later use
+      // Store target user in request for later use
       req.targetUser = targetUser;
+      
+      // Can manage the user
       next();
     } catch (error) {
-      console.error('Error in canModifyUserMiddleware:', error);
+      console.error('Error in canManageUser middleware:', error);
       res.status(500).json({
-        success: false,
+        status: false,
         message: 'Internal server error'
       });
     }
+  };
+}
+
+/**
+ * Middleware to ensure user can only manage their own resources
+ * 
+ * @param userIdParamName Name of the URL parameter containing the target user ID
+ * @returns Express middleware function
+ */
+export function isSelfOrAdmin(userIdParamName: string = 'userId') {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // Must be authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        status: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    // Check if account is locked
+    if (req.user?.locked) {
+      return res.status(403).json({
+        status: false,
+        message: 'Your account is locked. Please contact an administrator.'
+      });
+    }
+    
+    // Get target user ID from URL params
+    const targetUserId = parseInt(req.params[userIdParamName], 10);
+    
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid user ID'
+      });
+    }
+    
+    // Check if user is accessing their own resource or is an admin
+    if (
+      req.user.id === targetUserId || 
+      ['admin', 'superadmin'].includes(req.user.role)
+    ) {
+      return next();
+    }
+    
+    // Not authorized
+    return res.status(403).json({
+      status: false,
+      message: 'Insufficient permissions'
+    });
   };
 }

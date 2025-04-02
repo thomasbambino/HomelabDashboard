@@ -2,103 +2,212 @@ import { storage } from '../../storage';
 import { getClientIp } from './ip';
 import { Request, Response, NextFunction } from 'express';
 
-// In-memory storage for rate limiting (will reset on server restart)
-const ipRateLimits = new Map<string, Map<string, number[]>>();
+// In-memory rate limiting for different actions
+// Key: action type (e.g., 'login', 'api')
+// Value: Map of IP addresses to arrays of timestamps
+const rateLimits = new Map<string, Map<string, number[]>>();
+
+// Limits by action type
+const RATE_LIMIT_CONFIGS = {
+  // Login attempts (5 per minute)
+  login: {
+    maxAttempts: 5,
+    windowSeconds: 60,
+    blockSeconds: 300 // 5 minutes block
+  },
+  
+  // API requests (60 per minute)
+  api: {
+    maxAttempts: 60,
+    windowSeconds: 60,
+    blockSeconds: 300 // 5 minutes block
+  }
+};
+
+// Clean up old rate limit entries every hour
+const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+setInterval(cleanupRateLimits, CLEANUP_INTERVAL);
+
+function cleanupRateLimits(): void {
+  const now = Date.now();
+  
+  // Go through each action type
+  for (const [actionType, ipMap] of rateLimits.entries()) {
+    const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
+    
+    if (!config) {
+      continue;
+    }
+    
+    // Go through each IP address
+    for (const [ip, timestamps] of ipMap.entries()) {
+      // Remove timestamps older than the window
+      const cutoff = now - (config.windowSeconds * 1000);
+      const newTimestamps = timestamps.filter(ts => ts > cutoff);
+      
+      if (newTimestamps.length === 0) {
+        // No recent attempts, remove IP
+        ipMap.delete(ip);
+      } else {
+        // Update with only recent timestamps
+        ipMap.set(ip, newTimestamps);
+      }
+    }
+    
+    // Remove action type if no IPs
+    if (ipMap.size === 0) {
+      rateLimits.delete(actionType);
+    }
+  }
+}
 
 /**
- * Check if a request should be rate limited
+ * Add a timestamp for the specified action and IP
  * 
- * @param ip Client IP address
- * @param routeName Identifier for the route
- * @param windowSeconds Time window in seconds
- * @param maxAttempts Maximum number of requests allowed in the time window
- * @returns True if the request should be rate limited
+ * @param actionType Action type (e.g., 'login', 'api')
+ * @param ip IP address
  */
-export function isRateLimited(ip: string, routeName: string, windowSeconds: number, maxAttempts: number): boolean {
-  // Get the IP's rate limit data, or create a new one
-  let ipLimits = ipRateLimits.get(ip);
-  if (!ipLimits) {
-    ipLimits = new Map<string, number[]>();
-    ipRateLimits.set(ip, ipLimits);
+export function addRateLimitEntry(actionType: string, ip: string): void {
+  // Get or create map for action type
+  let ipMap = rateLimits.get(actionType);
+  if (!ipMap) {
+    ipMap = new Map<string, number[]>();
+    rateLimits.set(actionType, ipMap);
   }
   
-  // Get the timestamps for this route, or create a new array
-  let timestamps = ipLimits.get(routeName);
-  if (!timestamps) {
-    timestamps = [];
-    ipLimits.set(routeName, timestamps);
+  // Get or create timestamps array for IP
+  const timestamps = ipMap.get(ip) || [];
+  
+  // Add current timestamp
+  timestamps.push(Date.now());
+  
+  // Update map
+  ipMap.set(ip, timestamps);
+}
+
+/**
+ * Reset rate limit for an IP and action
+ * Useful when successful login occurs after failures
+ * 
+ * @param actionType Action type
+ * @param ip IP address
+ */
+export function resetRateLimit(actionType: string, ip: string): void {
+  const ipMap = rateLimits.get(actionType);
+  if (ipMap) {
+    ipMap.delete(ip);
+  }
+}
+
+/**
+ * Check if the rate limit has been exceeded
+ * 
+ * @param actionType Action type
+ * @param ip IP address
+ * @returns Whether the rate limit has been exceeded
+ */
+export function isRateLimited(actionType: string, ip: string): boolean {
+  const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
+  
+  if (!config) {
+    return false; // No config for this action type
   }
   
-  // Get the current time
+  const ipMap = rateLimits.get(actionType);
+  if (!ipMap) {
+    return false; // No entries for this action type
+  }
+  
+  const timestamps = ipMap.get(ip);
+  if (!timestamps || timestamps.length === 0) {
+    return false; // No entries for this IP
+  }
+  
+  // Get timestamps within the window
   const now = Date.now();
-  const windowMs = windowSeconds * 1000;
+  const windowStart = now - (config.windowSeconds * 1000);
+  const recentTimestamps = timestamps.filter(ts => ts > windowStart);
   
-  // Filter out old timestamps
-  timestamps = timestamps.filter(timestamp => now - timestamp < windowMs);
+  // Check if number of attempts exceeds the limit
+  return recentTimestamps.length >= config.maxAttempts;
+}
+
+/**
+ * Get the number of attempts within the rate limit window
+ * 
+ * @param actionType Action type
+ * @param ip IP address
+ * @returns Number of attempts
+ */
+export function getRateLimitCount(actionType: string, ip: string): number {
+  const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
   
-  // Check if the IP has exceeded the rate limit
-  if (timestamps.length >= maxAttempts) {
-    return true;
+  if (!config) {
+    return 0; // No config for this action type
   }
   
-  // Add the current timestamp to the array
-  timestamps.push(now);
-  ipLimits.set(routeName, timestamps);
+  const ipMap = rateLimits.get(actionType);
+  if (!ipMap) {
+    return 0; // No entries for this action type
+  }
   
-  return false;
+  const timestamps = ipMap.get(ip);
+  if (!timestamps || timestamps.length === 0) {
+    return 0; // No entries for this IP
+  }
+  
+  // Get timestamps within the window
+  const now = Date.now();
+  const windowStart = now - (config.windowSeconds * 1000);
+  const recentTimestamps = timestamps.filter(ts => ts > windowStart);
+  
+  return recentTimestamps.length;
 }
 
 /**
  * Express middleware for rate limiting
  * 
- * @param maxAttempts Maximum number of requests allowed in the time window
- * @param windowSeconds Time window in seconds
- * @param routeName Identifier for the route
+ * @param actionType Action type
  * @returns Express middleware function
  */
-export function rateLimitMiddleware(maxAttempts: number, windowSeconds: number, routeName: string) {
+export function rateLimitMiddleware(actionType: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Get the client IP
-    const ip = await getClientIp(req);
-    
-    // Check if the IP is rate limited
-    if (isRateLimited(ip, routeName, windowSeconds, maxAttempts)) {
-      res.status(429).json({
-        success: false,
-        message: 'Too many requests, please try again later'
-      });
-      return;
-    }
-    
-    next();
-  };
-}
-
-/**
- * Clear expired rate limits from memory
- * Called periodically to prevent memory growth
- */
-export function cleanupRateLimits(): void {
-  const now = Date.now();
-  
-  // Loop through all IPs
-  for (const [ip, ipLimits] of ipRateLimits.entries()) {
-    // Loop through all routes for this IP
-    for (const [routeName, timestamps] of ipLimits.entries()) {
-      // Filter out timestamps older than 1 hour
-      const filteredTimestamps = timestamps.filter(timestamp => now - timestamp < 3600000);
+    try {
+      // Get client IP
+      const ip = await getClientIp(req);
       
-      // Update timestamps or remove the route if no timestamps remain
-      if (filteredTimestamps.length > 0) {
-        ipLimits.set(routeName, filteredTimestamps);
-      } else {
-        ipLimits.delete(routeName);
+      // Check if rate limited
+      if (isRateLimited(actionType, ip)) {
+        // Get config
+        const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
+        
+        // Add retry-after header
+        res.set('Retry-After', config.blockSeconds.toString());
+        
+        // Return error
+        return res.status(429).json({
+          status: false,
+          message: 'Too many requests, please try again later',
+          retryAfter: config.blockSeconds
+        });
       }
+      
+      // Add rate limit entry
+      addRateLimitEntry(actionType, ip);
+      
+      // Add rate limit info to headers
+      const count = getRateLimitCount(actionType, ip);
+      const config = RATE_LIMIT_CONFIGS[actionType as keyof typeof RATE_LIMIT_CONFIGS];
+      
+      res.set('X-RateLimit-Limit', config.maxAttempts.toString());
+      res.set('X-RateLimit-Remaining', Math.max(0, config.maxAttempts - count).toString());
+      res.set('X-RateLimit-Reset', Math.floor(Date.now() / 1000 + config.windowSeconds).toString());
+      
+      // Continue to next middleware
+      next();
+    } catch (error) {
+      console.error('Error in rate limit middleware:', error);
+      next(error);
     }
-    
-    // Remove the IP if no routes remain
-    if (ipLimits.size === 0) {
-      ipRateLimits.delete(ip);
-    }
-  }
+  };
 }

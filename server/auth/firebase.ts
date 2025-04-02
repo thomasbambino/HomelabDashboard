@@ -1,27 +1,19 @@
 import passport from 'passport';
 import { Strategy as CustomStrategy } from 'passport-custom';
 import { storage } from '../storage';
-import { Request } from 'express';
+import * as userUtils from './user';
 import { getClientIp, recordLoginAttempt } from './utils/ip';
-import admin from 'firebase-admin';
+import * as firebase from 'firebase-admin';
 
-// Initialize Firebase Admin SDK if credentials are available
+// Firebase Admin SDK initialized elsewhere if available
 let firebaseInitialized = false;
+
 try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    
+  if (firebase && process.env.FIREBASE_CREDENTIALS) {
     firebaseInitialized = true;
-    console.log('Firebase Admin SDK initialized successfully');
-  } else {
-    console.log('Firebase credentials not found, Firebase authentication will not be available');
   }
 } catch (error) {
-  console.error('Firebase Admin SDK initialization failed:', error);
+  console.log('Firebase Admin SDK not available');
 }
 
 /**
@@ -30,85 +22,78 @@ try {
  * @param passport Passport instance
  */
 export function configureFirebaseStrategy(passport: passport.PassportStatic): void {
-  if (!firebaseInitialized) {
-    console.log('Firebase authentication not configured, skipping');
-    return;
-  }
-  
-  passport.use('firebase', new CustomStrategy(async (req: Request, done) => {
+  passport.use('firebase', new CustomStrategy(async (req, done) => {
     try {
-      // Get authorization header
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return done(null, false, { message: 'No authorization token provided' });
+      // Get the client IP for rate limiting and logging
+      const ip = await getClientIp(req);
+      
+      // Get token from request
+      const idToken = req.body.idToken || req.headers.authorization?.split('Bearer ')[1];
+      
+      if (!idToken) {
+        return done(null, false, { message: 'No Firebase token provided' });
       }
       
-      // Extract token from header
-      const token = authHeader.split('Bearer ')[1];
-      if (!token) {
-        return done(null, false, { message: 'Invalid authorization format' });
+      if (!firebaseInitialized) {
+        return done(null, false, { message: 'Firebase authentication is not configured' });
       }
       
       // Verify Firebase token
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      if (!decodedToken) {
-        return done(null, false, { message: 'Invalid token' });
+      const decodedToken = await firebase.auth().verifyIdToken(idToken);
+      const firebaseUid = decodedToken.uid;
+      const email = decodedToken.email;
+      
+      if (!email) {
+        return done(null, false, { message: 'No email associated with Firebase account' });
       }
       
-      // Get Firebase user info
-      const firebaseUser = await admin.auth().getUser(decodedToken.uid);
-      
-      // Get the client IP for login tracking
-      const ip = await getClientIp(req);
-      
-      // Find user by email
-      let user = await storage.getUserByEmail(firebaseUser.email || '');
+      // Find or create user
+      let user = await storage.getUserByFirebaseUid(firebaseUid);
       
       if (!user) {
-        // User doesn't exist yet, create a new user
-        user = await storage.createUser({
-          username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || decodedToken.uid,
-          email: firebaseUser.email || `firebase-${decodedToken.uid}@example.com`,
-          passwordHash: '',  // Firebase users don't have a local password
-          role: 'pending',
-          approved: false,
-          locked: false,
-          firebaseUid: decodedToken.uid,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastLogin: new Date()
-        });
+        // Check if a user with this email already exists
+        user = await storage.getUserByEmail(email);
         
-        // Record successful login
-        await recordLoginAttempt(ip, user.id, user.email, true);
-        
-        return done(null, user);
-      }
-      
-      // Update user's Firebase UID if not already set
-      if (!user.firebaseUid) {
-        await storage.updateUser(user.id, {
-          firebaseUid: decodedToken.uid,
-          updatedAt: new Date()
-        });
+        if (user) {
+          // Link existing account with Firebase
+          user = await storage.updateUser(user.id, {
+            firebaseUid,
+            updatedAt: new Date()
+          });
+        } else {
+          // Create new user
+          const displayName = decodedToken.name || '';
+          const nameParts = displayName.split(' ');
+          const username = (decodedToken.email || '').split('@')[0];
+          
+          user = await userUtils.createUser({
+            username: username,
+            email: email,
+            role: 'pending', // New users start as pending until approved
+            approved: false,
+            firebaseUid: firebaseUid,
+            displayName: displayName,
+            firstName: nameParts[0] || null,
+            lastName: nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+          });
+        }
       }
       
       // Check if user is locked
       if (user.locked) {
-        await recordLoginAttempt(ip, user.id, user.email, false);
+        await recordLoginAttempt(ip, user.id, email, false);
         return done(null, false, { message: 'Account is locked. Please contact an administrator.' });
       }
       
-      // Update last login time
+      // Update last login
       await storage.updateUser(user.id, {
         lastLogin: new Date(),
         updatedAt: new Date()
       });
       
       // Record successful login
-      await recordLoginAttempt(ip, user.id, user.email, true);
+      await recordLoginAttempt(ip, user.id, email, true);
       
-      // Authentication successful
       return done(null, user);
     } catch (error) {
       console.error('Firebase authentication error:', error);
