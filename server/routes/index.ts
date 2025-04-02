@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import apiRoutes from './api';
 import { errorHandler } from './middleware/error-handler';
 import { ensureUploadsDirectory } from './utils/file-upload';
+import { storage } from '../storage';
 
 /**
  * Sets up all Express routes and middleware for the application
@@ -22,6 +23,7 @@ export function setupRoutes(app: Express) {
     secret: process.env.SESSION_SECRET || 'supersecretkey',
     resave: false,
     saveUninitialized: false,
+    store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
@@ -31,9 +33,10 @@ export function setupRoutes(app: Express) {
   
   app.use(sessionMiddleware);
   
+  // Trust proxy configuration
+  app.set("trust proxy", 1);
+  
   // Authentication middleware
-  app.use(passport.initialize());
-  app.use(passport.session());
   setupAuth(app);
   
   // Ensure uploads directory exists

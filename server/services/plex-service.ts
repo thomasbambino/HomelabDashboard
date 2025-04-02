@@ -63,7 +63,6 @@ export class PlexService implements IService {
       this.initialized = true;
       console.log('Plex Service initialized');
     } else {
-      this.initialized = false;
       console.warn('Plex Service not fully configured - missing token');
     }
   }
@@ -86,10 +85,6 @@ export class PlexService implements IService {
    * Check if the service is healthy
    */
   async isHealthy(): Promise<boolean> {
-    if (!this.initialized) {
-      return false; // Not initialized, so not healthy
-    }
-    
     try {
       const info = await this.getServerInfo();
       return info.status;
@@ -102,16 +97,6 @@ export class PlexService implements IService {
    * Get Plex server information
    */
   async getServerInfo(): Promise<PlexServerInfo> {
-    // If we're not initialized, return an error state
-    if (!this.initialized) {
-      return {
-        status: false,
-        streams: [],
-        activeStreamCount: 0,
-        error: 'Plex service not initialized - missing token'
-      };
-    }
-    
     // Check if we have a recent cache
     const now = Date.now();
     if (this.cachedServerInfo && now - this.lastFetchTime < this.cacheTTL) {
