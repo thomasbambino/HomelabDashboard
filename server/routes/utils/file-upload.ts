@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import http from 'http';
+import https from 'https';
 
 // Configure multer storage
 const storage = multer.diskStorage({

@@ -46,6 +46,37 @@ export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
+ * Middleware to check if a user has at least the specified role
+ * Role hierarchy (from lowest to highest): pending < user < admin < superadmin
+ */
+export function hasMinRole(minRole: 'user' | 'admin' | 'superadmin') {
+  return function(req: Request, res: Response, next: NextFunction) {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized: Please log in to access this resource' });
+    }
+    
+    const user = req.user as any;
+    const roleHierarchy: Record<string, number> = {
+      'pending': 0,
+      'user': 1,
+      'admin': 2,
+      'superadmin': 3
+    };
+    
+    const userRoleLevel = roleHierarchy[user.role as string] || 0;
+    const requiredRoleLevel = roleHierarchy[minRole];
+    
+    if (userRoleLevel >= requiredRoleLevel) {
+      return next();
+    }
+    
+    return res.status(403).json({ 
+      message: `Forbidden: You need at least ${minRole} privileges to access this resource` 
+    });
+  };
+}
+
+/**
  * Middleware to check if a user is approved (not pending)
  */
 export function isApproved(req: Request, res: Response, next: NextFunction) {

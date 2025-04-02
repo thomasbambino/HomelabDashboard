@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { storage } from '../../../storage';
-import { isAuthenticated, hasMinRole, canManageUser } from '../../middleware/auth-middleware';
+import { isAuthenticated, hasMinRole, canModifyUser } from '../../middleware/auth-middleware';
 import { asyncHandler } from '../../middleware/error-handler';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
@@ -229,7 +229,7 @@ router.post('/:id/reject', isAuthenticated, hasMinRole('admin'), asyncHandler(as
     
     // Send rejection email notification
     try {
-      const emailService = services.get('email');
+      const emailService = await import('../../../services').then(m => m.services.get('email'));
       if (emailService) {
         await emailService.sendUserNotification(
           userEmail,
