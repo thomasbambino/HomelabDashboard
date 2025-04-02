@@ -1,159 +1,104 @@
-import { Request, Response, NextFunction } from 'express';
 import { storage } from '../../storage';
 import { getClientIp } from './ip';
+import { Request, Response, NextFunction } from 'express';
 
-// In-memory rate limit store
-// Map<ipAddress, Map<resourceName, { count: number, resetAt: Date }>>
-const rateLimits = new Map<string, { [key: string]: { count: number; resetAt: Date } }>();
-
-// Configure defaults
-const DEFAULT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const DEFAULT_MAX_REQUESTS = 5; // 5 attempts
+// In-memory storage for rate limiting (will reset on server restart)
+const ipRateLimits = new Map<string, Map<string, number[]>>();
 
 /**
- * Apply rate limiting to a route or middleware
+ * Check if a request should be rate limited
  * 
- * @param options Rate limit options
- * @returns Express middleware
+ * @param ip Client IP address
+ * @param routeName Identifier for the route
+ * @param windowSeconds Time window in seconds
+ * @param maxAttempts Maximum number of requests allowed in the time window
+ * @returns True if the request should be rate limited
  */
-export function rateLimit(options: {
-  windowMs?: number;
-  max?: number;
-  resource?: string;
-  message?: string;
-}) {
-  const windowMs = options.windowMs || DEFAULT_WINDOW;
-  const max = options.max || DEFAULT_MAX_REQUESTS;
-  const resource = options.resource || 'generic';
-  const message = options.message || 'Too many requests, please try again later.';
+export function isRateLimited(ip: string, routeName: string, windowSeconds: number, maxAttempts: number): boolean {
+  // Get the IP's rate limit data, or create a new one
+  let ipLimits = ipRateLimits.get(ip);
+  if (!ipLimits) {
+    ipLimits = new Map<string, number[]>();
+    ipRateLimits.set(ip, ipLimits);
+  }
   
-  // Clean up expired entries periodically
-  setInterval(() => {
-    for (const [ip, resources] of rateLimits.entries()) {
-      let allExpired = true;
-      for (const key in resources) {
-        const data = resources[key];
-        if (data.resetAt > new Date()) {
-          allExpired = false;
-        } else {
-          delete resources[key];
-        }
-      }
-      
-      if (allExpired) {
-        rateLimits.delete(ip);
-      }
-    }
-  }, 10 * 60 * 1000); // Run cleanup every 10 minutes
+  // Get the timestamps for this route, or create a new array
+  let timestamps = ipLimits.get(routeName);
+  if (!timestamps) {
+    timestamps = [];
+    ipLimits.set(routeName, timestamps);
+  }
   
+  // Get the current time
+  const now = Date.now();
+  const windowMs = windowSeconds * 1000;
+  
+  // Filter out old timestamps
+  timestamps = timestamps.filter(timestamp => now - timestamp < windowMs);
+  
+  // Check if the IP has exceeded the rate limit
+  if (timestamps.length >= maxAttempts) {
+    return true;
+  }
+  
+  // Add the current timestamp to the array
+  timestamps.push(now);
+  ipLimits.set(routeName, timestamps);
+  
+  return false;
+}
+
+/**
+ * Express middleware for rate limiting
+ * 
+ * @param maxAttempts Maximum number of requests allowed in the time window
+ * @param windowSeconds Time window in seconds
+ * @param routeName Identifier for the route
+ * @returns Express middleware function
+ */
+export function rateLimitMiddleware(maxAttempts: number, windowSeconds: number, routeName: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // Get client IP
-      const ip = await getClientIp(req);
-      
-      // Get or create rate limit entry for this IP
-      let ipLimits = rateLimits.get(ip);
-      if (!ipLimits) {
-        ipLimits = {};
-        rateLimits.set(ip, ipLimits);
-      }
-      
-      // Get or create rate limit entry for this resource
-      let resourceLimit = ipLimits[resource];
-      if (!resourceLimit) {
-        resourceLimit = {
-          count: 0,
-          resetAt: new Date(Date.now() + windowMs)
-        };
-        ipLimits[resource] = resourceLimit;
-      }
-      
-      // Check if the window has expired
-      if (resourceLimit.resetAt < new Date()) {
-        // Reset counter
-        resourceLimit.count = 0;
-        resourceLimit.resetAt = new Date(Date.now() + windowMs);
-      }
-      
-      // Check if we've hit the limit
-      if (resourceLimit.count >= max) {
-        // Calculate remaining time
-        const remainingMs = resourceLimit.resetAt.getTime() - Date.now();
-        const remainingMinutes = Math.ceil(remainingMs / 60000);
-        
-        // Add headers
-        res.set('Retry-After', String(Math.ceil(remainingMs / 1000)));
-        res.set('X-RateLimit-Limit', String(max));
-        res.set('X-RateLimit-Remaining', '0');
-        res.set('X-RateLimit-Reset', String(Math.ceil(resourceLimit.resetAt.getTime() / 1000)));
-        
-        // Log the rate limit hit
-        console.warn(
-          `Rate limit exceeded for ${resource} by IP ${ip}, ` +
-          `remaining time: ${remainingMinutes} minutes`
-        );
-        
-        // Return error
-        return res.status(429).json({
-          error: 'Too Many Requests',
-          message: `${message} Please try again in ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}.`
-        });
-      }
-      
-      // Increment counter
-      resourceLimit.count++;
-      
-      // Add headers
-      res.set('X-RateLimit-Limit', String(max));
-      res.set('X-RateLimit-Remaining', String(max - resourceLimit.count));
-      res.set('X-RateLimit-Reset', String(Math.ceil(resourceLimit.resetAt.getTime() / 1000)));
-      
-      // Continue to next middleware
-      next();
-    } catch (error) {
-      console.error('Error in rate limit middleware:', error);
-      next();
+    // Get the client IP
+    const ip = await getClientIp(req);
+    
+    // Check if the IP is rate limited
+    if (isRateLimited(ip, routeName, windowSeconds, maxAttempts)) {
+      res.status(429).json({
+        success: false,
+        message: 'Too many requests, please try again later'
+      });
+      return;
     }
+    
+    next();
   };
 }
 
 /**
- * Rate limit for login attempts
- * This uses a stricter limit than other resources
+ * Clear expired rate limits from memory
+ * Called periodically to prevent memory growth
  */
-export const loginRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
-  resource: 'login',
-  message: 'Too many login attempts, please try again later.'
-});
-
-/**
- * Rate limit for registration attempts
- */
-export const registerRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts
-  resource: 'register',
-  message: 'Too many registration attempts, please try again later.'
-});
-
-/**
- * Rate limit for password reset requests
- */
-export const resetPasswordRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts per hour
-  resource: 'resetPassword',
-  message: 'Too many password reset attempts, please try again later.'
-});
-
-/**
- * Rate limit for API key requests
- */
-export const apiKeyRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 attempts per hour
-  resource: 'apiKey',
-  message: 'Too many API key requests, please try again later.'
-});
+export function cleanupRateLimits(): void {
+  const now = Date.now();
+  
+  // Loop through all IPs
+  for (const [ip, ipLimits] of ipRateLimits.entries()) {
+    // Loop through all routes for this IP
+    for (const [routeName, timestamps] of ipLimits.entries()) {
+      // Filter out timestamps older than 1 hour
+      const filteredTimestamps = timestamps.filter(timestamp => now - timestamp < 3600000);
+      
+      // Update timestamps or remove the route if no timestamps remain
+      if (filteredTimestamps.length > 0) {
+        ipLimits.set(routeName, filteredTimestamps);
+      } else {
+        ipLimits.delete(routeName);
+      }
+    }
+    
+    // Remove the IP if no routes remain
+    if (ipLimits.size === 0) {
+      ipRateLimits.delete(ip);
+    }
+  }
+}

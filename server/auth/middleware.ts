@@ -1,255 +1,239 @@
 import { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
+import { rateLimitMiddleware } from './utils/rate-limit';
+
+// Role levels for access control
+const ROLE_LEVELS = {
+  superadmin: 3,
+  admin: 2,
+  user: 1,
+  pending: 0
+};
 
 /**
- * Check if the user is authenticated
- * If not, send a 401 Unauthorized response
+ * Middleware to check if a user is authenticated
  * 
- * @returns Express middleware
+ * @param req Express request
+ * @param res Express response
+ * @param next Next function
  */
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated && req.isAuthenticated()) {
+  if (req.isAuthenticated()) {
     return next();
   }
   
   res.status(401).json({
-    error: 'Unauthorized',
-    message: 'You must be logged in to access this resource'
+    success: false,
+    message: 'Authentication required'
   });
 }
 
 /**
- * Check if the user is an admin
- * If not, send a 403 Forbidden response
- * This also checks if the user is authenticated
+ * Check rate limits for a route
  * 
- * @returns Express middleware
+ * @param maxAttempts Maximum number of requests allowed in the time window
+ * @param windowSeconds Time window in seconds
+ * @param routeName Identifier for the route
+ * @returns Express middleware function
+ */
+export function checkRateLimit(
+  maxAttempts: number, 
+  windowSeconds: number, 
+  routeName: string
+) {
+  return rateLimitMiddleware(maxAttempts, windowSeconds, routeName);
+}
+
+/**
+ * Middleware to check if a user is an admin or superadmin
+ * 
+ * @param req Express request
+ * @param res Express response
+ * @param next Next function
  */
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'You must be logged in to access this resource'
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+
+  const user = req.user as any;
+  
+  if (!user.role || (user.role !== 'admin' && user.role !== 'superadmin')) {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
     });
   }
   
-  const user = req.user as any;
-  
-  if (user.role === 'admin' || user.role === 'superadmin') {
-    return next();
-  }
-  
-  res.status(403).json({
-    error: 'Forbidden',
-    message: 'You do not have permission to access this resource'
-  });
+  next();
 }
 
 /**
- * Check if the user is a superadmin
- * If not, send a 403 Forbidden response
- * This also checks if the user is authenticated
+ * Middleware to check if a user is a superadmin
  * 
- * @returns Express middleware
+ * @param req Express request
+ * @param res Express response
+ * @param next Next function
  */
 export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'You must be logged in to access this resource'
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+
+  const user = req.user as any;
+  
+  if (!user.role || user.role !== 'superadmin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Superadmin access required'
     });
   }
   
-  const user = req.user as any;
-  
-  if (user.role === 'superadmin') {
-    return next();
-  }
-  
-  res.status(403).json({
-    error: 'Forbidden',
-    message: 'You do not have permission to access this resource'
-  });
+  next();
 }
 
 /**
- * Check if the user is approved
- * If not, send a 403 Forbidden response
- * This also checks if the user is authenticated
+ * Middleware to check if a user is approved
  * 
- * @returns Express middleware
+ * @param req Express request
+ * @param res Express response
+ * @param next Next function
  */
 export function isApproved(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'You must be logged in to access this resource'
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+
+  const user = req.user as any;
+  
+  if (!user.approved) {
+    return res.status(403).json({
+      success: false,
+      message: 'Account not approved. Please wait for administrator approval.'
     });
   }
   
-  const user = req.user as any;
-  
-  if (user.approved) {
-    return next();
-  }
-  
-  res.status(403).json({
-    error: 'Forbidden',
-    message: 'Your account requires approval. Please contact an administrator.'
-  });
+  next();
 }
 
 /**
- * Check if the user can modify a specific user
- * Normal users can only modify themselves
- * Admins can modify normal users
- * Superadmins can modify anyone except other superadmins
+ * Middleware to check if a user has a specific role level or higher
+ * 
+ * @param minRole Minimum required role
+ * @returns Express middleware function
+ */
+export function hasRole(minRole: 'superadmin' | 'admin' | 'user' | 'pending') {
+  const minLevel = ROLE_LEVELS[minRole];
+  
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const user = req.user as any;
+    
+    if (!user.role || ROLE_LEVELS[user.role] < minLevel) {
+      return res.status(403).json({
+        success: false,
+        message: `Insufficient permissions. ${minRole} role or higher required.`
+      });
+    }
+    
+    next();
+  };
+}
+
+/**
+ * Check if the requesting user can modify the target user
  * 
  * @param requestingUser The user making the request
- * @param targetUserId The ID of the user being modified
- * @returns Whether the requesting user can modify the target user
+ * @param targetUserId ID of the user to modify
+ * @returns True if the requesting user can modify the target user
  */
-export function canModifyUser(requestingUser: any, targetUserId: number): boolean {
-  // User can always modify themselves
-  if (requestingUser.id === targetUserId) {
+function canModifyUser(targetUser: any, requestingUser: any) {
+  // Users can always modify themselves
+  if (targetUser.id === requestingUser.id) {
     return true;
   }
   
-  // Otherwise check roles
-  switch (requestingUser.role) {
-    case 'superadmin':
-      // Superadmins can modify anyone except other superadmins
-      // We need to check the target user's role
-      const targetUser = storage.getUserById(targetUserId);
-      return !(targetUser && targetUser.role === 'superadmin');
-      
-    case 'admin':
-      // Admins can modify normal users
-      // We need to check the target user's role
-      const targetUserForAdmin = storage.getUserById(targetUserId);
-      return !(targetUserForAdmin && ['admin', 'superadmin'].includes(targetUserForAdmin.role));
-      
-    default:
-      // Normal users can only modify themselves (checked above)
-      return false;
+  // Superadmins can modify any user
+  if (requestingUser.role === 'superadmin') {
+    return true;
   }
+  
+  // Admins can modify users and other admins, but not superadmins
+  if (requestingUser.role === 'admin' && targetUser.role !== 'superadmin') {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
- * Middleware to check if the user can modify a specific user
- * Uses the userIdParam parameter to extract the target user ID from request parameters
+ * Middleware to check if the requesting user can modify a specific user
  * 
- * @param userIdParam The parameter name for the user ID (default: 'id')
- * @returns Express middleware
+ * @param userIdParam Name of the request parameter containing the user ID
+ * @returns Express middleware function
  */
-export function canModifyUserMiddleware(userIdParam = 'id') {
+export function canModifyUserMiddleware(userIdParam: string = 'userId') {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to access this resource'
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
+      const requestingUser = req.user as any;
+      const targetUserId = parseInt(req.params[userIdParam], 10);
+      
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid user ID'
+        });
+      }
+      
+      // Get the target user
+      const targetUser = await storage.getUserById(targetUserId);
+      
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if the requesting user can modify the target user
+      if (!canModifyUser(targetUser, requestingUser)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to modify this user'
+        });
+      }
+      
+      // Attach the target user to the request for later use
+      req.targetUser = targetUser;
+      next();
+    } catch (error) {
+      console.error('Error in canModifyUserMiddleware:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
       });
     }
-    
-    const user = req.user as any;
-    const targetUserId = parseInt(req.params[userIdParam], 10);
-    
-    if (isNaN(targetUserId)) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: 'Invalid user ID'
-      });
-    }
-    
-    // Check if the user can modify the target user
-    const canModify = await canModifyUser(user, targetUserId);
-    
-    if (canModify) {
-      return next();
-    }
-    
-    res.status(403).json({
-      error: 'Forbidden',
-      message: 'You do not have permission to modify this user'
-    });
-  };
-}
-
-/**
- * Helper to determine if a user can access specific settings
- * Different setting types have different permission requirements
- * 
- * @param user The user attempting to access the settings
- * @param settingType The type of settings being accessed
- * @returns Whether the user can access the settings
- */
-export function canAccessSettings(user: any, settingType: string): boolean {
-  if (!user) {
-    return false;
-  }
-  
-  // Define permission levels for different setting types
-  const settingPermissions: { [key: string]: number } = {
-    // Public settings can be accessed by anyone
-    'public': 0,
-    
-    // User settings can be accessed by approved users
-    'user': 1,
-    
-    // Admin settings can only be accessed by admins and superadmins
-    'admin': 2,
-    
-    // System settings can only be accessed by superadmins
-    'system': 3
-  };
-  
-  // Define role permission levels
-  const rolePermissions = {
-    'superadmin': 3,
-    'admin': 2,
-    'user': user.approved ? 1 : 0,
-    'pending': 0
-  };
-  
-  // Get the required permission level for the setting type
-  const requiredPermission = settingPermissions[settingType] || 0;
-  
-  // Get the user's permission level based on their role
-  const userPermission = rolePermissions[user.role] || 0;
-  
-  // Check if the user has sufficient permissions
-  return userPermission >= requiredPermission;
-}
-
-/**
- * Middleware to check if the user can access specific settings
- * Uses the settingTypeParam parameter to extract the setting type from request parameters
- * 
- * @param settingTypeParam The parameter name for the setting type (default: 'type')
- * @returns Express middleware
- */
-export function canAccessSettingsMiddleware(settingTypeParam = 'type') {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to access this resource'
-      });
-    }
-    
-    const user = req.user as any;
-    const settingType = req.params[settingTypeParam] || 'user';
-    
-    // Check if the user can access the settings
-    const canAccess = canAccessSettings(user, settingType);
-    
-    if (canAccess) {
-      return next();
-    }
-    
-    res.status(403).json({
-      error: 'Forbidden',
-      message: 'You do not have permission to access these settings'
-    });
   };
 }

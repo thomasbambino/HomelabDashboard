@@ -1,92 +1,126 @@
 import { Request } from 'express';
+import { storage } from '../../storage';
 
 /**
- * Get the client IP address from a request
+ * Get client IP address from request
  * 
  * @param req Express request
- * @returns IP address
+ * @returns Client IP address
  */
 export async function getClientIp(req: Request): Promise<string> {
-  // Check forwarded headers first (for proxies)
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    // x-forwarded-for might contain multiple IPs, take the first one
-    if (typeof forwardedFor === 'string') {
-      const ips = forwardedFor.split(',').map(ip => ip.trim());
+  // Try different request headers
+  const ipFromXForwardedFor = req.headers['x-forwarded-for'] as string;
+  const ipFromForwardedFor = req.headers['forwarded'] as string;
+  const ipFromReal = req.headers['x-real-ip'] as string;
+  const ipFromRemoteAddr = req.socket.remoteAddress;
+  
+  // Check X-Forwarded-For header (may contain multiple IPs)
+  if (ipFromXForwardedFor) {
+    const ips = ipFromXForwardedFor.split(',').map(ip => ip.trim());
+    // Return the first IP in the list
+    if (ips.length > 0) {
       return ips[0];
-    } else if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      return forwardedFor[0];
     }
   }
   
-  // Try real IP header (used by some proxies like Nginx)
-  const realIp = req.headers['x-real-ip'];
-  if (realIp && typeof realIp === 'string') {
-    return realIp;
+  // Check Forwarded header
+  if (ipFromForwardedFor) {
+    const matches = ipFromForwardedFor.match(/for=([^;]+)/);
+    if (matches && matches.length > 1) {
+      const forValue = matches[1].trim();
+      // Remove quotes if present
+      return forValue.replace(/^"(.*)"$/, '$1');
+    }
   }
   
-  // Fallback to remote address
-  return req.socket.remoteAddress || '';
+  // Check X-Real-IP header
+  if (ipFromReal) {
+    return ipFromReal.trim();
+  }
+  
+  // Fall back to remote address from socket
+  if (ipFromRemoteAddr) {
+    // Handle IPv6 localhost
+    if (ipFromRemoteAddr === '::1') {
+      return '127.0.0.1';
+    }
+    // Handle IPv4-mapped IPv6 addresses (starting with ::ffff:)
+    if (ipFromRemoteAddr.startsWith('::ffff:')) {
+      return ipFromRemoteAddr.substring(7);
+    }
+    return ipFromRemoteAddr;
+  }
+  
+  // Could not determine IP
+  return 'unknown';
 }
 
 /**
- * Anonymize an IP address for logging (GDPR compliance)
+ * Record login attempt
  * 
- * @param ip IP address to anonymize
- * @returns Anonymized IP address
+ * @param ip Client IP address
+ * @param userId User ID (null for failed login attempts)
+ * @param identifier User identifier (email/username)
+ * @param success Whether login was successful
  */
-export function anonymizeIp(ip: string): string {
-  if (!ip) {
-    return '';
-  }
-  
-  // Check if it's an IPv6 address
-  if (ip.includes(':')) {
-    // For IPv6, keep the first 4 segments
-    const segments = ip.split(':');
-    return segments.slice(0, 4).join(':') + ':0:0:0:0';
-  }
-  
-  // For IPv4, keep the first 3 octets
-  const octets = ip.split('.');
-  if (octets.length === 4) {
-    return octets.slice(0, 3).join('.') + '.0';
-  }
-  
-  // If we can't parse it, just return it
-  return ip;
+export async function recordLoginAttempt(
+  ip: string, 
+  userId: number | null, 
+  identifier: string,
+  success: boolean
+): Promise<void> {
+  await storage.createLoginAttempt({
+    ip,
+    userId,
+    identifier,
+    success,
+    timestamp: new Date()
+  });
 }
 
 /**
- * Classify an IP address (public, private, localhost)
+ * Check if an IP has too many failed login attempts
  * 
- * @param ip IP address to classify
- * @returns 'public', 'private', 'localhost', or 'unknown'
+ * @param ip Client IP address
+ * @param windowMinutes Time window in minutes
+ * @param maxAttempts Maximum number of failed attempts allowed in the time window
+ * @returns True if the IP has too many failed attempts
  */
-export function classifyIp(ip: string): 'public' | 'private' | 'localhost' | 'unknown' {
-  if (!ip) {
-    return 'unknown';
+export async function hasTooManyFailedLoginAttempts(
+  ip: string, 
+  windowMinutes: number = 30, 
+  maxAttempts: number = 5
+): Promise<boolean> {
+  const windowTime = new Date();
+  windowTime.setMinutes(windowTime.getMinutes() - windowMinutes);
+  
+  const failedAttempts = await storage.getFailedLoginAttemptsByIp(ip, windowTime);
+  
+  return failedAttempts.length >= maxAttempts;
+}
+
+/**
+ * Check if a specific login attempt is blocked due to too many failed attempts
+ * 
+ * @param ip Client IP address
+ * @param identifier User identifier (email/username), optional
+ * @returns True if login attempt is blocked
+ */
+export async function isLoginBlocked(ip: string, identifier?: string): Promise<boolean> {
+  // First check IP-based rate limiting
+  const ipBlocked = await hasTooManyFailedLoginAttempts(ip);
+  if (ipBlocked) {
+    return true;
   }
   
-  // Check for localhost
-  if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
-    return 'localhost';
+  // If identifier is provided, check identifier-based rate limiting
+  if (identifier) {
+    const windowTime = new Date();
+    windowTime.setMinutes(windowTime.getMinutes() - 30); // 30 minute window
+    
+    const failedAttempts = await storage.getFailedLoginAttemptsByIdentifier(identifier, windowTime);
+    return failedAttempts.length >= 5; // Block after 5 failed attempts
   }
   
-  // Check for private IPv4
-  if (
-    ip.startsWith('10.') ||
-    ip.startsWith('192.168.') ||
-    (ip.startsWith('172.') && parseInt(ip.split('.')[1], 10) >= 16 && parseInt(ip.split('.')[1], 10) <= 31)
-  ) {
-    return 'private';
-  }
-  
-  // Check for private IPv6
-  if (ip.startsWith('fc') || ip.startsWith('fd')) {
-    return 'private';
-  }
-  
-  // Otherwise assume public
-  return 'public';
+  return false;
 }

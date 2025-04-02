@@ -1,267 +1,130 @@
 import { storage } from '../storage';
-import { hashPassword, verifyPassword, generateToken } from './password';
+import { hashPassword } from './password';
 
 /**
  * Create a new user
  * 
- * @param userData User data
- * @returns The created user
+ * @param username Username for the new user
+ * @param email Email address for the new user
+ * @param password Plain text password for the new user
+ * @param role Role for the new user (default: 'user')
+ * @param approved Whether the user is approved (default: false)
+ * @returns Promise that resolves to the created user
  */
-export async function createUser(userData: {
-  username: string;
-  email: string;
-  password: string;
-  displayName?: string;
-  role?: string;
-  approved?: boolean;
-}): Promise<any> {
-  try {
-    // Hash the password
-    const passwordHash = await hashPassword(userData.password);
-    
-    // Create the user
-    const user = await storage.createUser({
-      username: userData.username,
-      email: userData.email,
-      passwordHash,
-      displayName: userData.displayName || userData.username,
-      role: userData.role || 'user',
-      approved: userData.approved !== undefined ? userData.approved : false,
-      created: new Date(),
-      lastLogin: null,
-      locked: false,
-    });
-    
-    return user;
-  } catch (error) {
-    console.error('Error creating user:', error);
-    throw error;
-  }
-}
-
-/**
- * Authenticate a user with username/email and password
- * 
- * @param usernameOrEmail Username or email
- * @param password Password
- * @returns The user if authentication is successful, null otherwise
- */
-export async function authenticateUser(usernameOrEmail: string, password: string): Promise<any> {
-  try {
-    // Get user by username or email
-    const user = await storage.getUserByUsernameOrEmail(usernameOrEmail);
-    
-    if (!user) {
-      return null;
-    }
-    
-    // Check if the user is locked
-    if (user.locked) {
-      console.warn(`Authentication attempt for locked user: ${usernameOrEmail}`);
-      return null;
-    }
-    
-    // Check password
-    const passwordValid = await verifyPassword(password, user.passwordHash);
-    
-    if (!passwordValid) {
-      console.warn(`Invalid password for user: ${usernameOrEmail}`);
-      return null;
-    }
-    
-    // Update last login time
-    await storage.updateUser(user.id, {
-      lastLogin: new Date()
-    });
-    
-    return user;
-  } catch (error) {
-    console.error('Error authenticating user:', error);
-    return null;
-  }
-}
-
-/**
- * Generate a password reset token for a user
- * 
- * @param email User's email
- * @returns The token and user info if successful, null otherwise
- */
-export async function generatePasswordResetToken(email: string): Promise<{ token: string; user: any } | null> {
-  try {
-    // Find the user
-    const user = await storage.getUserByEmail(email);
-    
-    if (!user) {
-      return null;
-    }
-    
-    // Generate a token
-    const token = generateToken();
-    const expires = new Date();
-    expires.setHours(expires.getHours() + 1); // Token expires in 1 hour
-    
-    // Save the token
-    await storage.createPasswordResetToken({
-      userId: user.id,
-      token,
-      expires
-    });
-    
-    return { token, user };
-  } catch (error) {
-    console.error('Error generating password reset token:', error);
-    return null;
-  }
-}
-
-/**
- * Reset a user's password using a token
- * 
- * @param token Reset token
- * @param newPassword New password
- * @returns True if successful, false otherwise
- */
-export async function resetPassword(token: string, newPassword: string): Promise<boolean> {
-  try {
-    // Get the token
-    const resetToken = await storage.getPasswordResetToken(token);
-    
-    if (!resetToken) {
-      return false;
-    }
-    
-    // Check if the token is expired
-    if (resetToken.expires < new Date()) {
-      await storage.deletePasswordResetToken(token);
-      return false;
-    }
-    
-    // Hash the new password
-    const passwordHash = await hashPassword(newPassword);
-    
-    // Update the user's password
-    await storage.updateUser(resetToken.userId, {
-      passwordHash
-    });
-    
-    // Delete the token
-    await storage.deletePasswordResetToken(token);
-    
-    return true;
-  } catch (error) {
-    console.error('Error resetting password:', error);
-    return false;
-  }
-}
-
-/**
- * Lock a user account
- * 
- * @param user User to lock
- * @returns Updated user
- */
-export async function lockUser(user: any): Promise<any> {
-  return await storage.updateUser(user.id, {
-    locked: true
+export async function createUser(
+  username: string,
+  email: string,
+  password: string,
+  role: 'superadmin' | 'admin' | 'user' | 'pending' = 'pending',
+  approved: boolean = false
+) {
+  // Hash the password
+  const passwordHash = await hashPassword(password);
+  
+  // Create the user
+  const user = await storage.createUser({
+    username,
+    email,
+    passwordHash,
+    role,
+    approved,
+    locked: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLogin: null
   });
-}
-
-/**
- * Unlock a user account
- * 
- * @param user User to unlock
- * @returns Updated user
- */
-export async function unlockUser(user: any): Promise<any> {
-  return await storage.updateUser(user.id, {
-    locked: false
-  });
+  
+  return user;
 }
 
 /**
  * Change a user's password
  * 
  * @param userId User ID
- * @param currentPassword Current password
- * @param newPassword New password
- * @returns True if successful, false otherwise
+ * @param newPassword New plain text password
+ * @returns Promise that resolves when the password has been changed
  */
-export async function changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean> {
-  try {
-    // Get the user
-    const user = await storage.getUserById(userId);
-    
-    if (!user) {
-      return false;
-    }
-    
-    // Verify the current password
-    const passwordValid = await verifyPassword(currentPassword, user.passwordHash);
-    
-    if (!passwordValid) {
-      return false;
-    }
-    
-    // Hash the new password
-    const passwordHash = await hashPassword(newPassword);
-    
-    // Update the user's password
-    await storage.updateUser(userId, {
-      passwordHash
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error changing password:', error);
-    return false;
-  }
+export async function changePassword(userId: number, newPassword: string): Promise<void> {
+  // Hash the new password
+  const passwordHash = await hashPassword(newPassword);
+  
+  // Update the user's password hash
+  await storage.updateUserPasswordHash(userId, passwordHash);
 }
 
 /**
- * Generate an API key for a user
+ * Check if a username is available (not already taken)
+ * 
+ * @param username Username to check
+ * @returns Promise that resolves to true if the username is available
+ */
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  const user = await storage.getUserByUsername(username);
+  return !user;
+}
+
+/**
+ * Check if an email is available (not already taken)
+ * 
+ * @param email Email to check
+ * @returns Promise that resolves to true if the email is available
+ */
+export async function isEmailAvailable(email: string): Promise<boolean> {
+  const user = await storage.getUserByEmail(email);
+  return !user;
+}
+
+/**
+ * Approve a user
  * 
  * @param userId User ID
- * @param name Name for the API key
- * @returns The API key data if successful, null otherwise
+ * @returns Promise that resolves when the user has been approved
  */
-export async function generateApiKey(userId: number, name: string): Promise<any> {
-  try {
-    const apiKey = await storage.createApiKey({
-      userId,
-      name,
-      key: generateToken(32),
-      created: new Date(),
-      lastUsed: null
-    });
-    
-    return apiKey;
-  } catch (error) {
-    console.error('Error generating API key:', error);
-    return null;
-  }
+export async function approveUser(userId: number): Promise<void> {
+  await storage.updateUser(userId, {
+    approved: true,
+    role: 'user', // Upgrade from 'pending' to 'user'
+    updatedAt: new Date()
+  });
 }
 
 /**
- * Delete an API key
+ * Change a user's role
  * 
- * @param keyId API key ID
- * @param userId User ID (for authorization check)
- * @returns True if successful, false otherwise
+ * @param userId User ID
+ * @param newRole New role
+ * @returns Promise that resolves when the role has been changed
  */
-export async function deleteApiKey(keyId: number, userId: number): Promise<boolean> {
-  try {
-    // Verify the key belongs to the user
-    const key = await storage.getApiKeyById(keyId);
-    
-    if (!key || key.userId !== userId) {
-      return false;
-    }
-    
-    await storage.deleteApiKey(keyId);
-    return true;
-  } catch (error) {
-    console.error('Error deleting API key:', error);
-    return false;
-  }
+export async function changeUserRole(
+  userId: number, 
+  newRole: 'superadmin' | 'admin' | 'user' | 'pending'
+): Promise<void> {
+  await storage.updateUser(userId, {
+    role: newRole,
+    updatedAt: new Date()
+  });
+}
+
+/**
+ * Lock or unlock a user account
+ * 
+ * @param userId User ID
+ * @param locked Whether the account should be locked
+ * @returns Promise that resolves when the account has been locked/unlocked
+ */
+export async function setUserLockStatus(userId: number, locked: boolean): Promise<void> {
+  await storage.updateUser(userId, {
+    locked,
+    updatedAt: new Date()
+  });
+}
+
+/**
+ * Delete a user
+ * 
+ * @param userId User ID
+ * @returns Promise that resolves when the user has been deleted
+ */
+export async function deleteUser(userId: number): Promise<void> {
+  await storage.deleteUser(userId);
 }

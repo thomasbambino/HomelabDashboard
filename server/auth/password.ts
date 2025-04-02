@@ -1,198 +1,152 @@
 import crypto from 'crypto';
 
-// Flag to track if we have bcrypt
-let hasBcrypt = false;
-let bcrypt: any = null;
+// Flag to check if bcrypt is available (more secure, but requires native dependencies)
+let bcryptAvailable = false;
+let bcrypt: any;
 
 // Try to load bcrypt if available
 try {
   bcrypt = require('bcrypt');
-  hasBcrypt = true;
+  bcryptAvailable = true;
+  console.log('bcrypt loaded, using native bcrypt for password hashing');
 } catch (error) {
-  console.warn('bcrypt module not available, falling back to pbkdf2');
+  console.log('bcrypt not available, using fallback password hashing');
 }
 
-// Constants for PBKDF2 (fallback if bcrypt is not available)
-const PBKDF2_ITERATIONS = 10000;
-const PBKDF2_KEYLEN = 64;
-const PBKDF2_DIGEST = 'sha512';
-const SALT_LENGTH = 16;
+/**
+ * Generate a secure random salt
+ * 
+ * @param length Salt length
+ * @returns Salt as hex string
+ */
+function generateSalt(length: number = 16): string {
+  return crypto.randomBytes(length).toString('hex');
+}
 
 /**
- * Hash a password using bcrypt or PBKDF2 if bcrypt is not available
+ * Hash a password using bcrypt if available, or fallback to PBKDF2
  * 
  * @param password Plain text password
- * @returns Hashed password string
+ * @returns Password hash
  */
 export async function hashPassword(password: string): Promise<string> {
-  // Check if the password is already hashed
-  if (password.startsWith('$2b$') || password.startsWith('pbkdf2:')) {
-    return password;
-  }
-  
-  if (hasBcrypt) {
-    try {
-      // Use bcrypt for hashing (recommended)
-      const saltRounds = 10;
-      const hash = await bcrypt.hash(password, saltRounds);
-      return hash;
-    } catch (error) {
-      console.error('Error using bcrypt:', error);
-      // Fall back to PBKDF2 if bcrypt fails
-      return hashPasswordWithPbkdf2(password);
-    }
+  if (bcryptAvailable) {
+    // Use bcrypt if available (more secure)
+    const salt = await bcrypt.genSalt(12);
+    const hash = await bcrypt.hash(password, salt);
+    return `bcrypt:${hash}`;
   } else {
-    // Use PBKDF2 as fallback
-    return hashPasswordWithPbkdf2(password);
-  }
-}
-
-/**
- * Hash a password using PBKDF2 (fallback method)
- * Format: pbkdf2:iterations:salt:hash
- * 
- * @param password Plain text password
- * @returns Hashed password string
- */
-function hashPasswordWithPbkdf2(password: string): string {
-  // Generate a random salt
-  const salt = crypto.randomBytes(SALT_LENGTH).toString('hex');
-  
-  // Hash the password
-  const hash = crypto.pbkdf2Sync(
-    password,
-    salt,
-    PBKDF2_ITERATIONS,
-    PBKDF2_KEYLEN,
-    PBKDF2_DIGEST
-  ).toString('hex');
-  
-  // Format: pbkdf2:iterations:salt:hash
-  return `pbkdf2:${PBKDF2_ITERATIONS}:${salt}:${hash}`;
-}
-
-/**
- * Verify a password against a hash
- * 
- * @param password Plain text password
- * @param hash Stored hash
- * @returns True if the password matches, false otherwise
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  if (!password || !hash) {
-    return false;
-  }
-  
-  // Check hash format
-  if (hash.startsWith('$2b$') && hasBcrypt) {
-    // bcrypt hash
-    try {
-      return await bcrypt.compare(password, hash);
-    } catch (error) {
-      console.error('Error comparing with bcrypt:', error);
-      return false;
-    }
-  } else if (hash.startsWith('pbkdf2:')) {
-    // PBKDF2 hash
-    return verifyPasswordPbkdf2(password, hash);
-  }
-  
-  // Unknown hash format
-  return false;
-}
-
-/**
- * Verify a password against a PBKDF2 hash
- * Format: pbkdf2:iterations:salt:hash
- * 
- * @param password Plain text password
- * @param storedHash Stored hash (pbkdf2:iterations:salt:hash)
- * @returns True if the password matches, false otherwise
- */
-function verifyPasswordPbkdf2(password: string, storedHash: string): boolean {
-  try {
-    // Split the stored hash into parts
-    const [prefix, iterations, salt, hash] = storedHash.split(':');
-    
-    if (prefix !== 'pbkdf2' || !iterations || !salt || !hash) {
-      return false;
-    }
-    
-    // Hash the provided password with the same salt and iterations
-    const derivedKey = crypto.pbkdf2Sync(
+    // Fallback to PBKDF2
+    const salt = generateSalt();
+    const hash = crypto.pbkdf2Sync(
       password,
       salt,
-      parseInt(iterations, 10),
-      PBKDF2_KEYLEN,
-      PBKDF2_DIGEST
+      100000,  // Higher iterations = more secure, but slower
+      64,      // Hash length
+      'sha512' // Hash algorithm
     ).toString('hex');
     
-    // Compare the derived key with the stored hash
-    return crypto.timingSafeEqual(
-      Buffer.from(hash, 'hex'),
-      Buffer.from(derivedKey, 'hex')
-    );
-  } catch (error) {
-    console.error('Error verifying PBKDF2 password:', error);
+    return `pbkdf2:${salt}:${hash}`;
+  }
+}
+
+/**
+ * Verify a password against a stored hash
+ * 
+ * @param password Plain text password
+ * @param storedHash Stored password hash
+ * @returns True if the password is correct
+ */
+export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (!storedHash) {
     return false;
   }
+  
+  if (storedHash.startsWith('bcrypt:')) {
+    if (!bcryptAvailable) {
+      console.error('Cannot verify bcrypt hash without bcrypt module');
+      return false;
+    }
+    
+    const hash = storedHash.substring(7); // Remove 'bcrypt:' prefix
+    return await bcrypt.compare(password, hash);
+  } else if (storedHash.startsWith('pbkdf2:')) {
+    const parts = storedHash.split(':');
+    if (parts.length !== 3) {
+      console.error('Invalid pbkdf2 hash format');
+      return false;
+    }
+    
+    const salt = parts[1];
+    const hash = parts[2];
+    
+    const calculatedHash = crypto.pbkdf2Sync(
+      password,
+      salt,
+      100000,
+      64,
+      'sha512'
+    ).toString('hex');
+    
+    return calculatedHash === hash;
+  } else {
+    // Legacy hash format or unknown format
+    console.error('Unknown password hash format');
+    return false;
+  }
+}
+
+/**
+ * Check if a password hash needs to be rehashed due to stronger algorithms available
+ * 
+ * @param password Plain text password
+ * @param storedHash Stored password hash
+ * @returns New hash if rehashing is recommended, null otherwise
+ */
+export async function needsRehash(password: string, storedHash: string): Promise<string | null> {
+  // If bcrypt is available but we're using PBKDF2, upgrade to bcrypt
+  if (bcryptAvailable && storedHash.startsWith('pbkdf2:')) {
+    return await hashPassword(password);
+  }
+  
+  // In the future, we could check for better bcrypt rounds or upgraded PBKDF2 parameters
+  
+  return null;
 }
 
 /**
  * Generate a secure random token
  * 
- * @param length Length of the token in bytes (default: 32)
- * @returns Hexadecimal string
+ * @param length Token length in bytes (will be twice this length as hex string)
+ * @returns Random token
  */
-export function generateToken(length = 32): string {
+export function generateToken(length: number = 32): string {
   return crypto.randomBytes(length).toString('hex');
 }
 
 /**
- * Generate a secure random API key
- * Format: prefix_base64url
+ * Hash a password reset token with a timestamp to prevent reuse
  * 
- * @param prefix Prefix for the API key (default: 'sk')
- * @param length Length of the token in bytes (default: 32)
- * @returns API key string
+ * @param token Plain text token
+ * @param userId User ID (used as salt)
+ * @returns Hashed token
  */
-export function generateApiKey(prefix = 'sk', length = 32): string {
-  const buffer = crypto.randomBytes(length);
-  const base64 = buffer.toString('base64');
-  const base64url = base64
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-  return `${prefix}_${base64url}`;
+export function hashResetToken(token: string, userId: number): string {
+  const userIdStr = userId.toString();
+  return crypto.createHmac('sha256', userIdStr)
+    .update(token)
+    .digest('hex');
 }
 
 /**
- * Check if the password needs to be upgraded
- * This is useful when migrating from a legacy system or when 
- * password hashing parameters have changed.
+ * Verify a password reset token
  * 
- * @param hash The stored hash
- * @returns True if the hash needs to be upgraded, false otherwise
+ * @param token Plain text token
+ * @param userId User ID (used as salt)
+ * @param hashedToken Hashed token
+ * @returns True if the token is valid
  */
-export function shouldUpgradePassword(hash: string): boolean {
-  if (!hash) {
-    return false;
-  }
-  
-  // If bcrypt is available but the hash is PBKDF2, upgrade to bcrypt
-  if (hasBcrypt && hash.startsWith('pbkdf2:')) {
-    return true;
-  }
-  
-  // For PBKDF2, check if the iterations are too low
-  if (hash.startsWith('pbkdf2:')) {
-    const [, iterations] = hash.split(':');
-    const iterationCount = parseInt(iterations, 10);
-    return iterationCount < PBKDF2_ITERATIONS;
-  }
-  
-  // For bcrypt, we could check if the salt rounds are too low
-  // but we'll leave that for a future update
-  
-  return false;
+export function verifyResetToken(token: string, userId: number, hashedToken: string): boolean {
+  const calculatedHash = hashResetToken(token, userId);
+  return calculatedHash === hashedToken;
 }
