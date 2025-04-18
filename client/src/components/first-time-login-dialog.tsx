@@ -72,7 +72,7 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
       description: (
         <div className="space-y-4">
           <p>
-            Our Plex Media Server provides MOVIES, TV Shows, and other media content.
+            Our Plex Media Server provides Movies, TV Shows, and other media content.
             To access it, you'll need to be invited to our Plex server.
           </p>
           <p className="font-medium">To get access:</p>
@@ -105,7 +105,7 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
       description: (
         <div className="space-y-4">
           <p>
-            <span className="font-medium">Overseer</span> is a request system that lets you request MOVIES and TV Shows to be added to our Plex server.
+            <span className="font-medium">Overseer</span> is a request system that lets you request Movies and TV Shows to be added to our Plex server.
           </p>
           <p>
             After you set up your Plex account:
