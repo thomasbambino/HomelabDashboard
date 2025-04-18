@@ -11,6 +11,7 @@ import { NavigationBar } from "@/components/navigation-bar";
 import { useState, useEffect } from "react";
 import { DashboardSkeleton } from "../components/dashboard-skeleton";
 import { NavigationBarSkeleton } from "../components/navigation-bar-skeleton";
+import { FirstTimeLoginDialog } from "../components/first-time-login-dialog";
 
 export default function Dashboard() {
   const { user } = useAuth();

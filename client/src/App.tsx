@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UsersPage from "@/pages/users-page";
 import PendingPage from "@/pages/pending-page";
+import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DiscordButton } from "@/components/discord-button";
@@ -18,6 +19,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/users" component={UsersPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/pending" component={PendingPage} />
       <Route component={NotFound} />
