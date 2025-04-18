@@ -25,11 +25,6 @@ export interface PlexServerInfo {
   activeStreamCount: number;
   uptime?: string;
   error?: string; // Add error field for better diagnostics
-  // Additional diagnostic fields
-  timeout_occurred?: boolean;
-  error_occurred?: boolean;
-  parse_error?: boolean;
-  execution_time?: string;
 }
 
 export class PlexService {
@@ -37,13 +32,6 @@ export class PlexService {
   private lastFetchTime: number = 0;
   private cachedServerInfo: PlexServerInfo | null = null;
   private cacheTTL: number = 30000; // 30 seconds cache (increased from 15 seconds)
-  
-  // Fallback library data - will be used when we can't reach the server but want to show something
-  private fallbackLibraryData: PlexLibrarySection[] = [
-    { title: 'Movies', type: 'movie', count: 423 },
-    { title: 'TV Shows', type: 'show', count: 186 },
-    { title: 'Music', type: 'artist', count: 58 }
-  ];
   private connectionRetries: number = 0;
   private maxRetries: number = 3;
   private baseUrl: string;
@@ -144,78 +132,8 @@ try:
         }))
         exit()
     
-    # Connect to the first server with timeout and retry logic
-    server = servers[0]
-    
-    # Log available connections
-    connections = server.connections
-    print(f"Server has {len(connections)} connection options", file=sys.stderr)
-    for i, conn in enumerate(connections):
-        print(f"Connection {i+1}: {conn.protocol}://{conn.address}:{conn.port}", file=sys.stderr)
-    
-    # Try to connect using PlexServer directly with each connection URL
-    connection_errors = []
-    plex = None
-    
-    # Find the 25262 port connection (which is the external port the user suggested)
-    # and try it first
-    external_port_connection = None
-    for conn in connections:
-        if conn.port == 25262:
-            external_port_connection = conn
-            break
-    
-    # If we found the external port connection, try it first
-    if external_port_connection:
-        try:
-            url = f"{external_port_connection.protocol}://{external_port_connection.address}:{external_port_connection.port}"
-            print(f"Trying suggested external port connection: {url}", file=sys.stderr)
-            # Explicitly set a shorter timeout for this connection attempt
-            import socket
-            socket.setdefaulttimeout(15)  # 15 second timeout for the main connection
-            
-            # Use PlexServer directly instead of connection.connect() which doesn't exist
-            from plexapi.server import PlexServer
-            import urllib3
-            # Disable SSL verification for this connection since it's likely using a self-signed certificate
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            plex = PlexServer(baseurl=url, token='${this.token}', timeout=15, verify=False)
-            print(f"Successfully connected via external port: {url}", file=sys.stderr)
-        except Exception as e:
-            connection_errors.append(f"{external_port_connection.protocol}://{external_port_connection.address}:{external_port_connection.port} - {str(e)}")
-            print(f"External port connection failed: {str(e)}", file=sys.stderr)
-    
-    # If external port connection failed or wasn't found, try the other connections
-    if plex is None:
-        for i, connection in enumerate(connections):
-            # Skip the external port connection if we already tried it
-            if external_port_connection and connection.port == external_port_connection.port:
-                continue
-                
-            try:
-                url = f"{connection.protocol}://{connection.address}:{connection.port}"
-                print(f"Trying connection {i+1}/{len(connections)}: {url}", file=sys.stderr)
-                # Explicitly set a shorter timeout for this connection attempt
-                import socket
-                socket.setdefaulttimeout(10)  # 10 second timeout per connection attempt
-                
-                # Use PlexServer directly instead of connection.connect() which doesn't exist
-                from plexapi.server import PlexServer
-                import urllib3
-                # Disable SSL verification for all connections since they're likely using self-signed certificates
-                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                plex = PlexServer(baseurl=url, token='${this.token}', timeout=10, verify=False)
-                print(f"Successfully connected via {url}", file=sys.stderr)
-                break
-            except Exception as e:
-                connection_errors.append(f"{connection.protocol}://{connection.address}:{connection.port} - {str(e)}")
-                print(f"Connection failed: {str(e)}", file=sys.stderr)
-    
-    # If all connections failed
-    if plex is None:
-        error_msg = "All connection attempts failed: " + ", ".join(connection_errors)
-        print(error_msg, file=sys.stderr)
-        raise Exception(error_msg)`}
+    # Connect to the first server
+    plex = servers[0].connect()`}
     
     # Get current streams
     sessions = plex.sessions()
@@ -322,108 +240,46 @@ except Exception as e:
 `;
 
       return new Promise((resolve, reject) => {
-        console.log('Starting Python process to connect to Plex');
         const python = spawn('python3', ['-c', pythonScript]);
         let result = '';
         let error = '';
-        
-        // Set a timeout for the Python process (30 seconds)
-        const timeoutId = setTimeout(() => {
-          console.error('Python process took too long to complete - killing process');
-          python.kill('SIGTERM');
-          
-          // If we have cached data, use it instead of failing
-          if (this.cachedServerInfo) {
-            console.log('Using cached data due to timeout');
-            resolve({
-              ...this.cachedServerInfo,
-              status: true,  // Mark as successful even though it timed out
-              timeout_occurred: true  // Add a flag to indicate there was a timeout
-            });
-          } else {
-            // No cached data, but still provide a reasonable fallback experience
-            resolve({
-              status: true, // Show as online for better user experience
-              error: 'Partial data: connection timed out but providing limited information',
-              streams: [],
-              libraries: this.fallbackLibraryData, // Use our fallback library data
-              activeStreamCount: 0,
-              timeout_occurred: true,
-              version: 'Unknown (Connection timed out)'
-            });
-          }
-        }, 30000);
 
         python.stdout.on('data', (data) => {
           result += data.toString();
         });
 
         python.stderr.on('data', (data) => {
-          const dataStr = data.toString();
-          error += dataStr;
-          // Log the error in real-time to help with debugging
-          console.log(`Plex Python stderr: ${dataStr}`);
+          error += data.toString();
         });
 
         python.on('close', (code) => {
-          // Clear the timeout since the process completed
-          clearTimeout(timeoutId);
-          
           if (code !== 0) {
             console.error(`Python process exited with code ${code}`);
             console.error(`Error: ${error}`);
-            
-            // If we have cached data and this isn't the first attempt, use the cache
-            if (this.cachedServerInfo && this.connectionRetries > 1) {
-              console.log('Using cached data due to error');
-              resolve({
-                ...this.cachedServerInfo,
-                status: true,  // Override status to appear online
-                error_occurred: true  // Flag that there was an error
-              });
-            } else {
-              resolve({
-                status: true, // Mark as online even when there are connection problems
-                error: `Limited functionality: ${error.substring(0, 100)}${error.length > 100 ? '...' : ''}`,
-                streams: [],
-                libraries: this.fallbackLibraryData, // Use fallback library data for a better user experience
-                activeStreamCount: 0,
-                version: 'Unknown (Connection issue)'
-              });
-            }
+            resolve({
+              status: false,
+              error: `Failed to communicate with Plex server (Exit code: ${code}). Error: ${error.substring(0, 200)}${error.length > 200 ? '...' : ''}`,
+              streams: [],
+              activeStreamCount: 0
+            });
           } else {
             try {
               const data = JSON.parse(result);
-              // Reset connection retries on success
-              this.connectionRetries = 0;
               // Update the cache
               this.cachedServerInfo = data;
               this.lastFetchTime = Date.now();
-              console.log('Updated Plex server info cache');
+              // Reduced logging - no need to log every cache update
+              // console.log('Updated Plex server info cache');
               resolve(data);
             } catch (e) {
               console.error('Failed to parse Python output as JSON', e);
               console.error('Raw output:', result);
-              
-              // If we have cached data, use it
-              if (this.cachedServerInfo) {
-                console.log('Using cached data due to parse error');
-                resolve({
-                  ...this.cachedServerInfo,
-                  status: true,  // Override status to appear online
-                  parse_error: true  // Flag that there was a parse error
-                });
-              } else {
-                resolve({
-                  status: true, // Show as online
-                  error: `Limited information: Parsing error`,
-                  streams: [],
-                  libraries: this.fallbackLibraryData, // Use fallback library data
-                  activeStreamCount: 0,
-                  version: 'Unknown (Data parsing issue)',
-                  parse_error: true
-                });
-              }
+              resolve({
+                status: false,
+                error: `Failed to parse Plex server response: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                streams: [],
+                activeStreamCount: 0
+              });
             }
           }
         });
@@ -431,12 +287,10 @@ except Exception as e:
     } catch (error) {
       console.error('Error fetching Plex server info:', error);
       return {
-        status: true, // Show as online for a better user experience
-        error: `Limited information available (server error)`,
+        status: false,
+        error: `Server error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
         streams: [],
-        libraries: this.fallbackLibraryData, // Use our fallback library data
-        activeStreamCount: 0,
-        version: 'Unknown'
+        activeStreamCount: 0
       };
     }
   }
