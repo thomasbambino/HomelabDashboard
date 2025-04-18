@@ -157,22 +157,53 @@ try:
     connection_errors = []
     plex = None
     
-    for i, connection in enumerate(connections):
+    # Find the 25262 port connection (which is the external port the user suggested)
+    # and try it first
+    external_port_connection = None
+    for conn in connections:
+        if conn.port == 25262:
+            external_port_connection = conn
+            break
+    
+    # If we found the external port connection, try it first
+    if external_port_connection:
         try:
-            url = f"{connection.protocol}://{connection.address}:{connection.port}"
-            print(f"Trying connection {i+1}/{len(connections)}: {url}", file=sys.stderr)
+            url = f"{external_port_connection.protocol}://{external_port_connection.address}:{external_port_connection.port}"
+            print(f"Trying suggested external port connection: {url}", file=sys.stderr)
             # Explicitly set a shorter timeout for this connection attempt
             import socket
-            socket.setdefaulttimeout(10)  # 10 second timeout per connection attempt
+            socket.setdefaulttimeout(15)  # 15 second timeout for the main connection
             
             # Use PlexServer directly instead of connection.connect() which doesn't exist
             from plexapi.server import PlexServer
-            plex = PlexServer(baseurl=url, token='${this.token}', timeout=10)
-            print(f"Successfully connected via {url}", file=sys.stderr)
-            break
+            plex = PlexServer(baseurl=url, token='${this.token}', timeout=15)
+            print(f"Successfully connected via external port: {url}", file=sys.stderr)
         except Exception as e:
-            connection_errors.append(f"{connection.protocol}://{connection.address}:{connection.port} - {str(e)}")
-            print(f"Connection failed: {str(e)}", file=sys.stderr)
+            connection_errors.append(f"{external_port_connection.protocol}://{external_port_connection.address}:{external_port_connection.port} - {str(e)}")
+            print(f"External port connection failed: {str(e)}", file=sys.stderr)
+    
+    # If external port connection failed or wasn't found, try the other connections
+    if plex is None:
+        for i, connection in enumerate(connections):
+            # Skip the external port connection if we already tried it
+            if external_port_connection and connection.port == external_port_connection.port:
+                continue
+                
+            try:
+                url = f"{connection.protocol}://{connection.address}:{connection.port}"
+                print(f"Trying connection {i+1}/{len(connections)}: {url}", file=sys.stderr)
+                # Explicitly set a shorter timeout for this connection attempt
+                import socket
+                socket.setdefaulttimeout(10)  # 10 second timeout per connection attempt
+                
+                # Use PlexServer directly instead of connection.connect() which doesn't exist
+                from plexapi.server import PlexServer
+                plex = PlexServer(baseurl=url, token='${this.token}', timeout=10)
+                print(f"Successfully connected via {url}", file=sys.stderr)
+                break
+            except Exception as e:
+                connection_errors.append(f"{connection.protocol}://{connection.address}:{connection.port} - {str(e)}")
+                print(f"Connection failed: {str(e)}", file=sys.stderr)
     
     # If all connections failed
     if plex is None:

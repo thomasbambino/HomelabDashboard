@@ -1164,6 +1164,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const serverInfo = await plexService.getServerInfo();
+      console.log("PLEX DEBUG - API response:", 
+        JSON.stringify({
+          status: serverInfo.status,
+          hasLibraries: !!serverInfo.libraries,
+          libraryCount: serverInfo.libraries?.length || 0,
+          libraryData: serverInfo.libraries || [],
+          error: serverInfo.error
+        })
+      );
       res.json(serverInfo);
     } catch (error) {
       console.error('Error fetching Plex server info:', error);
