@@ -146,18 +146,22 @@ try:
     for i, conn in enumerate(connections):
         print(f"Connection {i+1}: {conn.protocol}://{conn.address}:{conn.port}", file=sys.stderr)
     
-    # Try each connection with timeout
+    # Try to connect using PlexServer directly with each connection URL
     connection_errors = []
     plex = None
     
     for i, connection in enumerate(connections):
         try:
-            print(f"Trying connection {i+1}/{len(connections)}: {connection.protocol}://{connection.address}:{connection.port}", file=sys.stderr)
+            url = f"{connection.protocol}://{connection.address}:{connection.port}"
+            print(f"Trying connection {i+1}/{len(connections)}: {url}", file=sys.stderr)
             # Explicitly set a shorter timeout for this connection attempt
             import socket
             socket.setdefaulttimeout(10)  # 10 second timeout per connection attempt
-            plex = connection.connect(timeout=10)
-            print(f"Successfully connected via {connection.protocol}://{connection.address}:{connection.port}", file=sys.stderr)
+            
+            # Use PlexServer directly instead of connection.connect() which doesn't exist
+            from plexapi.server import PlexServer
+            plex = PlexServer(baseurl=url, token='${this.token}', timeout=10)
+            print(f"Successfully connected via {url}", file=sys.stderr)
             break
         except Exception as e:
             connection_errors.append(f"{connection.protocol}://{connection.address}:{connection.port} - {str(e)}")
