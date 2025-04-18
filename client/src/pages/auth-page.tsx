@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useLocation } from 'wouter';
 import { cn } from "@/lib/utils";
-import { AuthPageSkeleton } from "@/components/auth-skeleton";
+import { AuthPageSkeleton } from "../components/auth-skeleton";
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -162,6 +162,11 @@ export default function AuthPage() {
 
   if (user && !user.requires_password_change) {
     return <Redirect to="/" />;
+  }
+  
+  // Show skeleton while loading settings
+  if (isSettingsLoading) {
+    return <AuthPageSkeleton />;
   }
 
   if (isPending) {

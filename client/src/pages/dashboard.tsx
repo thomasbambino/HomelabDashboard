@@ -9,6 +9,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavigationBar } from "@/components/navigation-bar";
 import { useState, useEffect } from "react";
+import { DashboardSkeleton } from "../components/dashboard-skeleton";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,14 +42,12 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin';
   const isSuperAdmin = user?.role === 'superadmin';
 
-  if (settingsLoading) {
+  if (settingsLoading || servicesLoading) {
     return (
       <div className="min-h-screen bg-background">
         <NavigationBar />
-        <main className="max-w-[1400px] mx-auto px-8 mt-24 pb-6">
-          <div className="animate-pulse space-y-8">
-            <div className="h-8 w-48 bg-primary/20 rounded" />
-          </div>
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6">
+          <DashboardSkeleton />
         </main>
       </div>
     );
@@ -117,15 +116,7 @@ export default function Dashboard() {
               isServicesExpanded ? "max-h-[2000px]" : "max-h-0"
             )}
           >
-            {servicesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array(3).fill(0).map((_, i) => (
-                  <div key={i} className="h-[120px] bg-card animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <ServiceList services={services} />
-            )}
+            <ServiceList services={services} />
           </div>
         </section>
       </main>

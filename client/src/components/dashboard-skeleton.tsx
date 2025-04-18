@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "../components/ui/skeleton";
 import { GameServerListSkeleton } from "./game-server-list-skeleton";
 import { ServiceListSkeleton } from "./service-list-skeleton";
 

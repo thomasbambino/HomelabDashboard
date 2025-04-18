@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "../components/ui/skeleton";
+import { cn } from "../lib/utils";
 
 export function ServiceCardSkeleton() {
   return (
