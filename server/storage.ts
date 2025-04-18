@@ -160,7 +160,7 @@ export class DatabaseStorage implements IStorage {
     return allUsers.map((user: User) => {
       const latestAttempt = latestAttempts.find(
         (attempt: { identifier: string; ip: string; timestamp: Date; type: string }) =>
-          attempt.identifier === user.username
+          attempt.identifier === user.username || attempt.identifier === user.email
       );
       return {
         ...user,
