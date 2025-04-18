@@ -13,6 +13,7 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { ThemeToggle } from "./theme-toggle"
 import { useEffect, useState } from "react"
+import { cn } from "@/lib/utils"
 
 interface NavigationBarProps {
   settings?: Settings;
@@ -25,6 +26,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
   const isSuperAdmin = user?.role === 'superadmin';
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [contentLoaded, setContentLoaded] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +46,16 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Set content loaded after a small delay to trigger fade-in animations
+  useEffect(() => {
+    if (settings) {
+      const timer = setTimeout(() => {
+        setContentLoaded(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [settings]);
+
   return (
     <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
       isVisible ? 'translate-y-0' : '-translate-y-full'
@@ -52,18 +64,36 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
         <nav className="w-full flex items-center justify-between rounded-full border bg-background/95 px-4 md:px-8 py-3 md:py-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="flex items-center gap-2 md:gap-3">
-              {settings?.logo_url ? (
-                <img
-                  src={settings.logo_url}
-                  alt="Site Logo"
-                  className="h-7 w-7 md:h-9 md:w-9 object-contain fixed-logo"
-                />
+              {!contentLoaded ? (
+                <>
+                  {/* Logo skeleton */}
+                  <div className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-primary/20 animate-pulse" />
+                  <div className="h-5 w-[120px] md:w-[180px] bg-primary/10 animate-pulse rounded" />
+                </>
               ) : (
-                <ServerCog className="h-7 w-7 md:h-9 md:w-9 text-primary" />
+                <>
+                  <div className={cn(
+                    "transition-all duration-500",
+                    contentLoaded ? "opacity-100" : "opacity-0"
+                  )}>
+                    {settings?.logo_url ? (
+                      <img
+                        src={settings.logo_url}
+                        alt="Site Logo"
+                        className="h-7 w-7 md:h-9 md:w-9 object-contain"
+                      />
+                    ) : (
+                      <ServerCog className="h-7 w-7 md:h-9 md:w-9 text-primary" />
+                    )}
+                  </div>
+                  <span className={cn(
+                    "font-bold text-foreground text-xs md:text-base max-w-[120px] md:max-w-none truncate transition-all duration-500",
+                    contentLoaded ? "opacity-100" : "opacity-0"
+                  )}>
+                    {settings?.site_title || "Homelab Dashboard"}
+                  </span>
+                </>
               )}
-              <span className="font-bold text-foreground text-xs md:text-base max-w-[120px] md:max-w-none truncate">
-                {settings?.site_title || "Homelab Dashboard"}
-              </span>
             </div>
 
             {pageTitle && (

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { NavigationBar } from "@/components/navigation-bar";
 import { useState, useEffect } from "react";
 import { DashboardSkeleton } from "../components/dashboard-skeleton";
+import { NavigationBarSkeleton } from "../components/navigation-bar-skeleton";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export default function Dashboard() {
   if (settingsLoading || servicesLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <NavigationBar />
+        <NavigationBarSkeleton />
         <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6">
           <DashboardSkeleton />
         </main>
