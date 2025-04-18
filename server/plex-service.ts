@@ -176,7 +176,10 @@ try:
             
             # Use PlexServer directly instead of connection.connect() which doesn't exist
             from plexapi.server import PlexServer
-            plex = PlexServer(baseurl=url, token='${this.token}', timeout=15)
+            import urllib3
+            # Disable SSL verification for this connection since it's likely using a self-signed certificate
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            plex = PlexServer(baseurl=url, token='${this.token}', timeout=15, verify=False)
             print(f"Successfully connected via external port: {url}", file=sys.stderr)
         except Exception as e:
             connection_errors.append(f"{external_port_connection.protocol}://{external_port_connection.address}:{external_port_connection.port} - {str(e)}")
@@ -198,7 +201,10 @@ try:
                 
                 # Use PlexServer directly instead of connection.connect() which doesn't exist
                 from plexapi.server import PlexServer
-                plex = PlexServer(baseurl=url, token='${this.token}', timeout=10)
+                import urllib3
+                # Disable SSL verification for all connections since they're likely using self-signed certificates
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                plex = PlexServer(baseurl=url, token='${this.token}', timeout=10, verify=False)
                 print(f"Successfully connected via {url}", file=sys.stderr)
                 break
             except Exception as e:
