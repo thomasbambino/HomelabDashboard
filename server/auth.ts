@@ -665,11 +665,26 @@ export function setupAuth(app: Express) {
       if (!user.approved) {
         try {
           const ipInfo = await getIpInfo(clientIp);
+          const now = new Date();
+          
+          // Record failed login attempt with email identifier
           await storage.addLoginAttempt({
             identifier: decodedToken.email,
             ip: ipInfo.ip || clientIp,
             type: 'failed',
-            timestamp: new Date(),
+            timestamp: now,
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+          
+          // Also record failed login attempt with username identifier
+          await storage.addLoginAttempt({
+            identifier: user.username,
+            ip: ipInfo.ip || clientIp,
+            type: 'failed',
+            timestamp: now,
             isp: ipInfo.isp || null,
             city: ipInfo.city || null,
             region: ipInfo.region || null,
@@ -701,8 +716,21 @@ export function setupAuth(app: Express) {
           const ipInfo = await getIpInfo(clientIp);
           const now = new Date();
 
+          // Record login attempt with email identifier
           await storage.addLoginAttempt({
             identifier: decodedToken.email,
+            ip: ipInfo.ip || clientIp,
+            type: 'success',
+            timestamp: now,
+            isp: ipInfo.isp || null,
+            city: ipInfo.city || null,
+            region: ipInfo.region || null,
+            country: ipInfo.country || null
+          });
+          
+          // ALSO record login attempt with username for complete tracking
+          await storage.addLoginAttempt({
+            identifier: user.username,
             ip: ipInfo.ip || clientIp,
             type: 'success',
             timestamp: now,

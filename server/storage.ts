@@ -158,9 +158,16 @@ export class DatabaseStorage implements IStorage {
 
     // Map the latest IP and timestamp to each user
     return allUsers.map((user: User) => {
+      // Make case-insensitive comparison for both username and email
       const latestAttempt = latestAttempts.find(
-        (attempt: { identifier: string; ip: string; timestamp: Date; type: string }) =>
-          attempt.identifier === user.username || attempt.identifier === user.email
+        (attempt: { identifier: string; ip: string; timestamp: Date; type: string }) => {
+          // Compare case-insensitively
+          const attemptId = attempt.identifier.toLowerCase();
+          const username = user.username.toLowerCase();
+          const email = user.email ? user.email.toLowerCase() : '';
+          
+          return attemptId === username || attemptId === email;
+        }
       );
       return {
         ...user,
