@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Check, Info, Server, Video } from "lucide-react";
+import { Check, Info } from "lucide-react";
 
 interface FirstTimeLoginDialogProps {
   open: boolean;
@@ -14,11 +14,13 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [hasSeenDialog, setHasSeenDialog] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     // Check if the user has seen this dialog before
     const hasSeenFirstTimeDialog = localStorage.getItem("hasSeenFirstTimeDialog");
     setHasSeenDialog(!!hasSeenFirstTimeDialog);
+    setIsInitialized(true);
   }, []);
 
   const handleClose = () => {
@@ -60,7 +62,21 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
           </ol>
         </div>
       ),
-      icon: <Video className="h-8 w-8 text-primary" />,
+      icon: (
+        <div className="h-8 w-8 flex items-center justify-center">
+          <img 
+            src="/uploads/service_url-1740387234140-38463330.png" 
+            alt="Plex" 
+            className="max-h-full max-w-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.style.display = 'none';
+              target.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>';
+            }}
+          />
+        </div>
+      ),
     },
     {
       title: "Using Overseer with Your Plex Account",
@@ -83,10 +99,29 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
           </p>
         </div>
       ),
-      icon: <Server className="h-8 w-8 text-primary" />,
+      icon: (
+        <div className="h-8 w-8 flex items-center justify-center">
+          <img 
+            src="/uploads/service_url-1740381582556-21043011.png" 
+            alt="Overseer" 
+            className="max-h-full max-w-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.style.display = 'none';
+              target.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>';
+            }}
+          />
+        </div>
+      ),
     },
   ];
 
+  // Don't render anything until we've checked localStorage
+  if (!isInitialized) {
+    return null;
+  }
+  
   return (
     <Dialog open={open && !hasSeenDialog} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
