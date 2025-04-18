@@ -23,6 +23,7 @@ export default function Dashboard() {
     const saved = localStorage.getItem('isServicesExpanded');
     return saved ? JSON.parse(saved) : true;
   });
+  const [showFirstTimeDialog, setShowFirstTimeDialog] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('isServersExpanded', JSON.stringify(isServersExpanded));
@@ -58,6 +59,10 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <NavigationBar settings={settings} />
+      <FirstTimeLoginDialog 
+        open={showFirstTimeDialog} 
+        onOpenChange={setShowFirstTimeDialog} 
+      />
 
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-36 pb-6 space-y-8">
         <section className="relative">
