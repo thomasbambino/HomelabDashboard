@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { useLocation } from 'wouter';
 import { cn } from "@/lib/utils";
+import { AuthPageSkeleton } from "@/components/auth-skeleton";
 
 const requestResetSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -41,7 +42,7 @@ export default function AuthPage() {
   const isPending = new URLSearchParams(window.location.search).get('pending') === 'true';
   const [contentVisible, setContentVisible] = useState(false);
 
-  const { data: settings } = useQuery<Settings>({
+  const { data: settings, isLoading: isSettingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
 
