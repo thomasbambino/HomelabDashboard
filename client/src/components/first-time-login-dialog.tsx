@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Check, Info } from "lucide-react";
+import { Check, ServerCog } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Settings } from "@shared/schema";
 
 interface FirstTimeLoginDialogProps {
   open: boolean;
@@ -15,6 +17,10 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
   const [currentStep, setCurrentStep] = useState(1);
   const [hasSeenDialog, setHasSeenDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
 
   useEffect(() => {
     // Check if the user has seen this dialog before
@@ -43,14 +49,30 @@ export function FirstTimeLoginDialog({ open, onOpenChange }: FirstTimeLoginDialo
           </p>
         </div>
       ),
-      icon: <Info className="h-8 w-8 text-primary" />,
+      icon: settings?.logo_url ? (
+        <div className="h-8 w-8 flex items-center justify-center">
+          <img 
+            src={settings.logo_url} 
+            alt="Site Logo" 
+            className="max-h-full max-w-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.style.display = 'none';
+              target.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary"><path d="M10 3H6a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h4M16 17l5-5-5-5M19.8 12H9"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9"/></svg>';
+            }}
+          />
+        </div>
+      ) : (
+        <ServerCog className="h-8 w-8 text-primary" />
+      ),
     },
     {
       title: "Connecting to Plex Media Server",
       description: (
         <div className="space-y-4">
           <p>
-            Our Plex Media Server provides movies, TV shows, and other media content.
+            Our Plex Media Server provides <span className="font-bold">M</span>ovies, TV shows, and other media content.
             To access it, you'll need to be invited to our Plex server.
           </p>
           <p className="font-medium">To get access:</p>
