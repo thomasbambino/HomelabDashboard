@@ -182,15 +182,18 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
           </div>
         </div>
 
-        {/* Center: Navigation Menu - Centered to viewport */}
-        <div className="hidden lg:flex justify-center w-full absolute top-0 z-10" style={{ height: '65px' }}>
-          <div className="flex items-center gap-1 h-full">
+        {/* Center: Navigation Menu - Text center approach */}
+        <div className="hidden lg:block absolute top-0 w-full text-center z-10" style={{ height: '65px' }}>
+          <div className="inline-flex items-center gap-1 h-full" style={{ verticalAlign: 'middle' }}>
             <NavLink href="/">Dashboard</NavLink>
             <NavLink href="/game-servers">Game Servers</NavLink>
             <NavLink href="/services">Services</NavLink>
             <NavLink href="/plex">Plex</NavLink>
           </div>
         </div>
+
+        {/* Visual debugging - temporary center line */}
+        <div className="absolute top-0 left-1/2 w-0.5 h-full bg-red-500 z-50 opacity-50" style={{ transform: 'translateX(-50%)' }}></div>
 
         {/* Right: User Actions */}
         <div className="absolute right-5 top-0 z-20" style={{ height: '65px' }}>
