@@ -161,15 +161,15 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
       {/* Main Navbar Container */}
       <div className="relative flex justify-center z-10">
         <div 
-          className="relative z-10 flex w-full max-w-[1240px] items-center px-5"
+          className="relative z-10 w-full max-w-[1240px] px-5"
           style={{
             height: '65px',
             userSelect: 'none',
             WebkitFontSmoothing: 'antialiased'
           }}
         >
-          {/* Left: Logo/Wordmark - Fixed width */}
-          <div className="flex items-center w-60">
+          {/* Left: Logo/Wordmark */}
+          <div className="absolute left-5 top-0 h-full flex items-center">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
               {settings?.logo_url ? (
                 <img
@@ -188,8 +188,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </Link>
           </div>
 
-          {/* Center: Navigation Menu - Flex grow and center */}
-          <div className="hidden lg:flex flex-1 justify-center">
+          {/* Center: Navigation Menu - Absolutely centered */}
+          <div className="hidden lg:flex absolute top-0 left-1/2 h-full items-center" style={{ transform: 'translateX(-50%)' }}>
             <div className="flex items-center gap-1">
               <NavLink href="/">Dashboard</NavLink>
               <NavLink href="/game-servers">Game Servers</NavLink>
@@ -198,8 +198,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </div>
           </div>
 
-          {/* Right: User Actions - Fixed width to match left */}
-          <div className="flex items-center gap-3 justify-end w-60">
+          {/* Right: User Actions */}
+          <div className="absolute right-5 top-0 h-full flex items-center gap-3">
             {/* System Alerts Bell */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
