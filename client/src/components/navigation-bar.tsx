@@ -161,15 +161,15 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
       {/* Main Navbar Container */}
       <div className="relative flex justify-center z-10">
         <div 
-          className="relative z-10 grid grid-cols-3 w-full max-w-[1240px] items-center px-5"
+          className="relative z-10 flex w-full max-w-[1240px] items-center px-5"
           style={{
             height: '65px',
             userSelect: 'none',
             WebkitFontSmoothing: 'antialiased'
           }}
         >
-          {/* Left: Logo/Wordmark */}
-          <div className="flex items-center justify-start">
+          {/* Left: Logo/Wordmark - Fixed width */}
+          <div className="flex items-center w-60">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
               {settings?.logo_url ? (
                 <img
@@ -188,8 +188,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </Link>
           </div>
 
-          {/* Center: Navigation Menu - Grid centered */}
-          <div className="hidden lg:flex justify-center">
+          {/* Center: Navigation Menu - Flex grow and center */}
+          <div className="hidden lg:flex flex-1 justify-center">
             <div className="flex items-center gap-1">
               <NavLink href="/">Dashboard</NavLink>
               <NavLink href="/game-servers">Game Servers</NavLink>
@@ -198,8 +198,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </div>
           </div>
 
-          {/* Right: User Actions */}
-          <div className="flex items-center gap-3 justify-end">
+          {/* Right: User Actions - Fixed width to match left */}
+          <div className="flex items-center gap-3 justify-end w-60">
             {/* System Alerts Bell */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
