@@ -15,8 +15,9 @@ import sharp from 'sharp';
 import { User } from '@shared/schema';
 import cookieParser from 'cookie-parser';
 import { sendEmail } from './email';
-import { ampService } from './amp-service';
-import { plexService } from './plex-service';
+import { ampService } from './services/amp-service';
+import { plexService } from './services/plex-service';
+import { trueNASService } from './services/truenas-service';
 import { z } from "zod";
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
@@ -435,8 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Serve uploaded files
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Uploads are served in serve-static.ts for production
 
   // Register type-specific upload endpoints
   app.post("/api/upload/site", upload.single('image'), (req, res) => handleUpload(req, res, 'site'));
@@ -532,11 +532,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           port = endpoint.split(':')[1];
         }
 
+        // Get game type from AMP instance - try multiple approaches
+        let gameType = 'Unknown';
+        
+        // Function to detect game type from any string
+        const detectGameType = (text: string): string | null => {
+          if (!text) return null;
+          const lowerText = text.toLowerCase();
+          
+          if (lowerText.includes('minecraft')) return 'Minecraft';
+          if (lowerText.includes('satisfactory')) return 'Satisfactory';
+          if (lowerText.includes('valheim')) return 'Valheim';
+          if (lowerText.includes('terraria')) return 'Terraria';
+          if (lowerText.includes('rust')) return 'Rust';
+          if (lowerText.includes('7 days')) return '7 Days to Die';
+          if (lowerText.includes('palworld')) return 'Palworld';
+          if (lowerText.includes('enshrouded')) return 'Enshrouded';
+          if (lowerText.includes('ark')) return 'ARK: Survival Evolved';
+          if (lowerText.includes('conan')) return 'Conan Exiles';
+          
+          return null;
+        };
+        
+        // First try: ApplicationName (most reliable for actual game type)
+        gameType = detectGameType(instance.ApplicationName);
+        
+        // Second try: FriendlyName 
+        if (!gameType || gameType === 'Unknown') {
+          gameType = detectGameType(instance.FriendlyName);
+        }
+        
+        // Third try: Module property (but avoid generic ones)
+        if (!gameType || gameType === 'Unknown') {
+          if (instance.Module && instance.Module !== 'GenericModule') {
+            gameType = detectGameType(instance.Module) || instance.Module;
+          }
+        }
+        
+        // Fourth try: Fallback to ApplicationName or first word of FriendlyName
+        if (!gameType || gameType === 'Unknown') {
+          if (instance.ApplicationName) {
+            gameType = instance.ApplicationName;
+          } else if (instance.FriendlyName) {
+            const firstWord = instance.FriendlyName.split(' ')[0];
+            if (firstWord && firstWord.length > 0) {
+              gameType = firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+            }
+          }
+        }
+
         // Create response object with metrics data directly from instance
         const serverData = {
           ...storedServer,
           name: instance.FriendlyName,
-          type: instance.FriendlyName.toLowerCase().split(' ')[0],
+          type: gameType,
           status: instance.Running,
           playerCount: instance.Metrics?.['Active Users']?.RawValue || 0,
           maxPlayers: instance.Metrics?.['Active Users']?.MaxValue || 0,
@@ -547,6 +596,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastStatusCheck: new Date()
         };
 
+        // Debug server status
+        if (serverData.name.toLowerCase().includes('satisfactory')) {
+          console.log('DEBUG Server Status:', {
+            name: serverData.name,
+            status: serverData.status,
+            statusType: typeof serverData.status,
+            running: instance.Running,
+            runningType: typeof instance.Running
+          });
+        }
+        
         console.log('Processed server data:', serverData);
         return serverData;
       });
@@ -610,13 +670,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await ampService.startInstance(instanceId);
       console.log(`Start command successful for instance ${instanceId}`);
 
-      // Get updated status
-      const status = await ampService.getInstanceStatus(instanceId);
-      console.log(`Updated status for instance ${instanceId}:`, status);
-
+      // Don't wait for status update - return immediately
+      // The server may take time to start, and we don't want to timeout
       res.json({
-        message: "Server starting",
-        status: status?.State || "Unknown"
+        message: "Server start command sent successfully",
+        status: "Starting",
+        note: "Server is starting up, this may take a few minutes"
       });
     } catch (error) {
       console.error('Error starting game server:', error);
@@ -645,13 +704,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await ampService.stopInstance(instanceId);
       console.log(`Stop command successful for instance ${instanceId}`);
 
-      // Get updated status
-      const status = await ampService.getInstanceStatus(instanceId);
-      console.log(`Updated status for instance ${instanceId}:`, status);
-
+      // Don't wait for status update - return immediately
+      // The server may take time to stop, and we don't want to timeout
       res.json({
-        message: "Server stopping",
-        status: status?.State || "Unknown"
+        message: "Server stop command sent successfully",
+        status: "Stopping",
+        note: "Server is shutting down"
       });
     } catch (error) {
       console.error('Error stopping game server:', error);
@@ -680,13 +738,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await ampService.restartInstance(instanceId);
       console.log(`Restart command successful for instance ${instanceId}`);
 
-      // Get updated status
-      const status = await ampService.getInstanceStatus(instanceId);
-      console.log(`Updated status for instance ${instanceId}:`, status);
-
+      // Don't wait for status update - return immediately
+      // The server may take time to restart, and we don't want to timeout
       res.json({
-        message: "Server restarting",
-        status: status?.State || "Unknown"
+        message: "Server restart command sent successfully",
+        status: "Restarting",
+        note: "Server is restarting, this may take a few minutes"
       });
     } catch (error) {
       console.error('Error restarting game server:', error);
@@ -727,6 +784,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error killing game server:', error);
       res.status(500).json({
         message: "Failed to kill game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/game-servers/:instanceId/console", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      const { command } = req.body;
+      
+      if (!command) {
+        return res.status(400).json({ message: "Command is required" });
+      }
+      
+      console.log(`Console command for instance ${instanceId}: ${command}`);
+      
+      // Send the console command
+      await ampService.sendConsoleCommand(instanceId, command);
+      
+      res.json({ 
+        message: "Command sent successfully",
+        command: command 
+      });
+    } catch (error) {
+      console.error('Error sending console command:', error);
+      res.status(500).json({ 
+        message: "Failed to send console command",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.post("/api/game-servers/:instanceId/update", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Update request received for instance ${instanceId}`);
+      
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+      
+      // Initiate update
+      await ampService.updateInstance(instanceId);
+      console.log(`Update initiated for instance ${instanceId}`);
+      
+      res.json({ 
+        message: "Server update initiated",
+        instanceName: instance.FriendlyName
+      });
+    } catch (error) {
+      console.error('Error updating game server:', error);
+      res.status(500).json({ 
+        message: "Failed to update game server",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.post("/api/game-servers/:instanceId/backup", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      const { title, description } = req.body;
+      const user = req.user as User;
+      
+      console.log(`Backup request received for instance ${instanceId}`);
+      
+      // Verify instance exists
+      const instances = await ampService.getInstances();
+      const instance = instances.find(i => i.InstanceID === instanceId);
+      
+      if (!instance) {
+        console.error(`Instance ${instanceId} not found`);
+        return res.status(404).json({ message: "Instance not found" });
+      }
+      
+      // Take backup
+      const backupTitle = title || `Manual Backup - ${new Date().toLocaleString()}`;
+      const backupDescription = description || `Backup requested by ${user.email}`;
+      
+      const result = await ampService.takeBackup(instanceId, backupTitle, backupDescription);
+      console.log(`Backup initiated for instance ${instanceId}`);
+      
+      res.json({ 
+        message: "Backup initiated successfully",
+        instanceName: instance.FriendlyName,
+        backupTitle: backupTitle,
+        result: result
+      });
+    } catch (error) {
+      console.error('Error taking backup:', error);
+      res.status(500).json({ 
+        message: "Failed to take backup",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.get("/api/game-servers/:instanceId/backups", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      console.log(`Getting backups for instance ${instanceId}`);
+      
+      const backups = await ampService.getBackups(instanceId);
+      res.json(backups);
+    } catch (error) {
+      console.error('Error getting backups:', error);
+      res.status(500).json({ 
+        message: "Failed to get backups",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.post("/api/game-servers/:instanceId/restore", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      const { backupId } = req.body;
+      
+      if (!backupId) {
+        return res.status(400).json({ message: "Backup ID is required" });
+      }
+      
+      console.log(`Restore request for instance ${instanceId}, backup ${backupId}`);
+      
+      await ampService.restoreBackup(instanceId, backupId);
+      
+      res.json({ 
+        message: "Backup restoration initiated",
+        backupId: backupId
+      });
+    } catch (error) {
+      console.error('Error restoring backup:', error);
+      res.status(500).json({ 
+        message: "Failed to restore backup",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.get("/api/game-servers/:instanceId/console-output", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      const since = req.query.since ? parseInt(req.query.since as string) : undefined;
+      
+      const output = await ampService.getConsoleOutput(instanceId, since);
+      res.json({ output });
+    } catch (error) {
+      console.error('Error getting console output:', error);
+      res.status(500).json({ 
+        message: "Failed to get console output",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  app.get("/api/game-servers/:instanceId/scheduled-tasks", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { instanceId } = req.params;
+      
+      const tasks = await ampService.getScheduledTasks(instanceId);
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error getting scheduled tasks:', error);
+      res.status(500).json({ 
+        message: "Failed to get scheduled tasks",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -979,11 +1213,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(null);
       }
 
-      // Get metrics
-      const metrics = await ampService.getMetrics(instanceId);
-      console.log(`Metrics forinstance ${instanceId}:`, metrics);
+      // Get metrics from the instance data directly (same as main server list)
+      const instanceData = instance;
+      
+      if (!instanceData) {
+        return res.status(404).json({ message: "Instance not found in instances list" });
+      }
+      
+      console.log(`Instance data for ${instanceId}:`, JSON.stringify(instanceData.Metrics, null, 2));
+      
+      // Extract metrics the same way as the main server list
+      const metrics = {
+        cpu: instanceData.Metrics?.['CPU Usage']?.RawValue || 0,
+        memory: instanceData.Metrics?.['Memory Usage']?.RawValue || 0,
+        activePlayers: instanceData.Metrics?.['Active Users']?.RawValue || 0,
+        maxPlayers: instanceData.Metrics?.['Active Users']?.MaxValue || 0
+      };
+      
+      // Add debug info with the actual instance data
+      const response = {
+        ...metrics,
+        debug: {
+          rawMetrics: instanceData.Metrics,
+          state: instanceData.State,
+          uptime: instanceData.Uptime,
+          applicationName: instanceData.ApplicationName,
+          running: instanceData.Running,
+          fullInstance: instanceData
+        }
+      };
 
-      res.json(metrics);
+      res.json(response);
     } catch (error) {
       console.error(`Error fetching metrics for instance ${instanceId}:`, error);
       res.status(500).json({
@@ -1264,6 +1524,437 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error sending Plex invitation:', error);
       res.status(500).json({
         message: "Failed to send Plex invitation",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Tautulli API routes
+  app.get("/api/tautulli/activity", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const activity = await tautulliService.getActivity();
+      res.json(activity.response.data);
+    } catch (error) {
+      console.error('Error fetching Tautulli activity:', error);
+      res.status(500).json({
+        message: "Failed to fetch Tautulli activity",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/users", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const timeRange = req.query.time_range as string || '30';
+      
+      const [usersResponse, homeStatsResponse] = await Promise.allSettled([
+        tautulliService.getUsers(),
+        tautulliService.getHomeStats('top_users', timeRange)
+      ]);
+      
+      let users = [];
+      let userStats = [];
+      
+      if (usersResponse.status === 'fulfilled') {
+        users = usersResponse.value.response.data;
+      }
+      
+      if (homeStatsResponse.status === 'fulfilled') {
+        // Check different possible structures for user stats data
+        const data = homeStatsResponse.value.response?.data;
+        if (data?.rows) {
+          userStats = data.rows;
+        } else if (data?.top_users) {
+          userStats = data.top_users;
+        } else if (Array.isArray(data)) {
+          userStats = data;
+        }
+      }
+      
+      // Filter out Local user and enrich user data with play counts from home stats
+      const enrichedUsers = users
+        .filter((user: any) => 
+          user.username !== 'Local' && 
+          user.friendly_name !== 'Local' && 
+          user.user_id !== 0
+        )
+        .map((user: any) => {
+          const stats = userStats.find((stat: any) => 
+            stat.user_id === user.user_id || stat.friendly_name === user.friendly_name
+          );
+          
+          return {
+            ...user,
+            plays: stats?.total_plays || user.plays || 0,
+            duration: stats?.total_time || user.duration || 0
+          };
+        });
+      
+      res.json(enrichedUsers);
+    } catch (error) {
+      console.error('Error fetching Tautulli users:', error);
+      res.status(500).json({
+        message: "Failed to fetch Tautulli users",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/libraries", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const libraries = await tautulliService.getLibraries();
+      res.json(libraries.response.data);
+    } catch (error) {
+      console.error('Error fetching Tautulli libraries:', error);
+      res.status(500).json({
+        message: "Failed to fetch Tautulli libraries",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/history", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const history = await tautulliService.getHistory(req.query as any);
+      res.json(history.response.data);
+    } catch (error) {
+      console.error('Error fetching Tautulli history:', error);
+      res.status(500).json({
+        message: "Failed to fetch Tautulli history",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/recently-added", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const count = req.query.count ? parseInt(req.query.count as string) : 10;
+      const recentlyAdded = await tautulliService.getRecentlyAdded(count);
+      res.json(recentlyAdded.response.data);
+    } catch (error) {
+      console.error('Error fetching Tautulli recently added:', error);
+      res.status(500).json({
+        message: "Failed to fetch recently added content",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/analytics/plays-by-date", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const timeRange = (req.query.time_range as string) || '30';
+      const playsByDate = await tautulliService.getPlaysByDate(timeRange);
+      res.json(playsByDate.response.data);
+    } catch (error) {
+      console.error('Error fetching Tautulli plays by date:', error);
+      res.status(500).json({
+        message: "Failed to fetch plays by date analytics",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const isConnected = await tautulliService.testConnection();
+      res.json({ 
+        connected: isConnected,
+        url: process.env.TAUTULLI_URL,
+        message: isConnected ? "Tautulli connection successful" : "Tautulli connection failed"
+      });
+    } catch (error) {
+      console.error('Error testing Tautulli connection:', error);
+      res.status(500).json({
+        connected: false,
+        message: "Failed to test Tautulli connection",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/tautulli/proxy-image", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { img, rating_key, width, height, fallback } = req.query;
+      
+      if (!img || typeof img !== 'string') {
+        return res.status(400).json({ message: "Missing image parameter" });
+      }
+      
+      const tautulliUrl = process.env.TAUTULLI_URL;
+      const apiKey = process.env.TAUTULLI_API_KEY;
+      
+      if (!tautulliUrl || !apiKey) {
+        return res.status(500).json({ message: "Tautulli not configured" });
+      }
+      
+      // Build the Tautulli pms_image_proxy URL
+      const params = new URLSearchParams({
+        cmd: 'pms_image_proxy',
+        apikey: apiKey,
+        img: img,
+        ...(rating_key && { rating_key: rating_key as string }),
+        ...(width && { width: width as string }),
+        ...(height && { height: height as string }),
+        ...(fallback && { fallback: fallback as string })
+      });
+      
+      const imageUrl = `${tautulliUrl}/api/v2?${params}`;
+      
+      // Fetch the image from Tautulli
+      const response = await fetch(imageUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      
+      // Get the content type and image data
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const buffer = await response.arrayBuffer();
+      
+      // Set cache headers for better performance
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      
+      // Send the image
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error('Error proxying Tautulli image:', error);
+      res.status(500).json({
+        message: "Failed to proxy image",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // TrueNAS API routes
+  app.get("/api/truenas/system-stats", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const stats = await trueNASService.getSystemStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching TrueNAS system stats:', error);
+      res.status(500).json({
+        message: "Failed to fetch TrueNAS system stats",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/truenas/system-info", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const systemInfo = await trueNASService.getSystemInfo();
+      res.json(systemInfo);
+    } catch (error) {
+      console.error('Error fetching TrueNAS system info:', error);
+      res.status(500).json({
+        message: "Failed to fetch TrueNAS system info",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/truenas/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const alerts = await trueNASService.getAlerts();
+      res.json(alerts);
+    } catch (error) {
+      console.error('Error fetching TrueNAS alerts:', error);
+      res.status(500).json({
+        message: "Failed to fetch TrueNAS alerts",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Unified system alerts endpoint combining multiple sources
+  app.get("/api/system/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const alerts: any[] = [];
+    
+    // Fetch TrueNAS alerts
+    try {
+      const trueNASAlerts = await trueNASService.getAlerts();
+      const formattedTrueNASAlerts = trueNASAlerts.map((alert: any) => ({
+        id: `truenas-${alert.id}`,
+        source: 'TrueNAS',
+        level: alert.level,
+        text: alert.text,
+        formatted: alert.formatted,
+        datetime: alert.datetime,
+        last_occurrence: alert.last_occurrence,
+        dismissed: alert.dismissed,
+        category: 'storage'
+      }));
+      alerts.push(...formattedTrueNASAlerts);
+    } catch (error) {
+      console.error('Error fetching TrueNAS alerts:', error);
+    }
+    
+    // Fetch Tautulli logs (errors and warnings)
+    try {
+      const { tautulliService } = await import('./services/tautulli-service');
+      const logsResponse = await tautulliService.getLogs({
+        search: 'ERROR|WARNING|CRITICAL',
+        regex: '1',
+        order: 'desc',
+        start: 0,
+        end: 50
+      });
+      
+      if (logsResponse?.response?.data?.data) {
+        const tautulliLogs = logsResponse.response.data.data
+          .filter((log: any) => log.loglevel && ['ERROR', 'WARNING', 'CRITICAL'].includes(log.loglevel))
+          .map((log: any) => ({
+            id: `tautulli-log-${log.timestamp}`,
+            source: 'Tautulli',
+            level: log.loglevel === 'CRITICAL' ? 'CRITICAL' : log.loglevel,
+            text: log.message,
+            formatted: `[${log.thread}] ${log.message}`,
+            datetime: new Date(log.timestamp * 1000).toISOString(),
+            last_occurrence: new Date(log.timestamp * 1000).toISOString(),
+            dismissed: false,
+            category: 'media'
+          }));
+        alerts.push(...tautulliLogs);
+      }
+      
+      // Check for active transcoding issues
+      const activityResponse = await tautulliService.getActivity();
+      if (activityResponse?.response?.data) {
+        const { sessions } = activityResponse.response.data;
+        
+        // Alert for buffering/throttled streams
+        const problematicStreams = sessions.filter((session: any) => 
+          session.throttled || 
+          session.state === 'buffering' ||
+          (session.transcode_decision === 'transcode' && session.transcoding_progress < 50)
+        );
+        
+        problematicStreams.forEach((session: any) => {
+          const issues = [];
+          if (session.throttled) issues.push('throttled');
+          if (session.state === 'buffering') issues.push('buffering');
+          if (session.transcode_decision === 'transcode' && session.transcoding_progress < 50) {
+            issues.push(`slow transcoding (${session.transcoding_progress}%)`);
+          }
+          
+          alerts.push({
+            id: `stream-issue-${session.session_key}`,
+            source: 'Plex',
+            level: 'WARNING',
+            text: `Stream issue for ${session.username}`,
+            formatted: `${session.username} watching "${session.title}" - Issues: ${issues.join(', ')}`,
+            datetime: new Date().toISOString(),
+            last_occurrence: new Date().toISOString(),
+            dismissed: false,
+            category: 'media'
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Tautulli logs:', error);
+    }
+    
+    // Note: Plex server status check removed - using Tautulli for all Plex monitoring
+    
+    // Sort alerts by severity and timestamp
+    const severityOrder = { 'CRITICAL': 0, 'ERROR': 1, 'WARNING': 2, 'INFO': 3 };
+    alerts.sort((a, b) => {
+      const severityDiff = (severityOrder[a.level] || 4) - (severityOrder[b.level] || 4);
+      if (severityDiff !== 0) return severityDiff;
+      return new Date(b.last_occurrence).getTime() - new Date(a.last_occurrence).getTime();
+    });
+    
+    res.json(alerts);
+  });
+
+  app.get("/api/truenas/pools", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const pools = await trueNASService.getPools();
+      const datasets = await trueNASService.getDatasets();
+      
+      // Combine pool and dataset information
+      const poolsWithUsage = pools.map(pool => {
+        const dataset = datasets.find(d => d.pool === pool.name && d.name === pool.name);
+        return {
+          ...pool,
+          usedBytes: dataset?.used.parsed || 0,
+          availableBytes: dataset?.available.parsed || 0,
+          totalBytes: (dataset?.used.parsed || 0) + (dataset?.available.parsed || 0)
+        };
+      });
+      
+      res.json(poolsWithUsage);
+    } catch (error) {
+      console.error('Error fetching TrueNAS pools:', error);
+      res.status(500).json({
+        message: "Failed to fetch TrueNAS pools",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/truenas/vms", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const vms = await trueNASService.getVMs();
+      res.json(vms);
+    } catch (error) {
+      console.error('Error fetching TrueNAS VMs:', error);
+      res.status(500).json({
+        message: "Failed to fetch TrueNAS VMs",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/truenas/test", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const isConnected = await trueNASService.testConnection();
+      res.json({ 
+        connected: isConnected,
+        message: isConnected ? "TrueNAS connection successful" : "TrueNAS connection failed"
+      });
+    } catch (error) {
+      console.error('Error testing TrueNAS connection:', error);
+      res.status(500).json({
+        connected: false,
+        message: "Failed to test TrueNAS connection",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
