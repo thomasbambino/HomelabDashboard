@@ -145,15 +145,15 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
         )}>
           {/* Game artwork background */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-15 group-hover:opacity-25 transition-opacity duration-500 dark:opacity-20 dark:group-hover:opacity-30"
+            className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-35 transition-opacity duration-500 dark:opacity-20 dark:group-hover:opacity-30"
             style={{
               backgroundImage: `url(${gameBanner})`,
               filter: 'blur(1px)'
             }}
           />
           
-          {/* Overlay for better text readability - stronger in light mode */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/80 dark:from-background/90 dark:via-background/80 dark:to-background/60" />
+          {/* Overlay for better text readability - lighter in light mode for more background visibility */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background/85 via-background/75 to-background/65 dark:from-background/90 dark:via-background/80 dark:to-background/60" />
 
           {/* Status indicator bar */}
           <div 
@@ -228,11 +228,11 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
               {/* Game Logo and Actions */}
               <div className="flex items-center gap-2">
                 {/* Game Logo */}
-                <div className="opacity-60 group-hover:opacity-80 transition-opacity">
+                <div className="opacity-70 group-hover:opacity-90 transition-opacity">
                   <img 
                     src={gameArtwork.logo} 
                     alt={`${server.type} logo`}
-                    className="h-9 w-auto max-w-24 object-contain"
+                    className="h-12 w-auto max-w-32 object-contain"
                     onError={(e) => {
                       // Hide logo if it fails to load
                       const target = e.target as HTMLImageElement;
