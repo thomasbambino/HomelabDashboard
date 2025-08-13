@@ -159,17 +159,10 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
         }}
       />
       {/* Main Navbar Container */}
-      <div className="relative flex justify-center z-10">
-        <div 
-          className="relative z-10 w-full max-w-[1240px] px-5"
-          style={{
-            height: '65px',
-            userSelect: 'none',
-            WebkitFontSmoothing: 'antialiased'
-          }}
-        >
-          {/* Left: Logo/Wordmark */}
-          <div className="absolute left-5 top-0 h-full flex items-center">
+      <div className="relative w-full z-10">
+        {/* Left: Logo/Wordmark */}
+        <div className="absolute left-5 top-0 z-20" style={{ height: '65px' }}>
+          <div className="h-full flex items-center">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
               {settings?.logo_url ? (
                 <img
@@ -187,19 +180,21 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
               </span>
             </Link>
           </div>
+        </div>
 
-          {/* Center: Navigation Menu - Absolutely centered */}
-          <div className="hidden lg:flex absolute top-0 left-1/2 h-full items-center" style={{ transform: 'translateX(-50%)' }}>
-            <div className="flex items-center gap-1">
-              <NavLink href="/">Dashboard</NavLink>
-              <NavLink href="/game-servers">Game Servers</NavLink>
-              <NavLink href="/services">Services</NavLink>
-              <NavLink href="/plex">Plex</NavLink>
-            </div>
+        {/* Center: Navigation Menu - Centered to viewport */}
+        <div className="hidden lg:flex justify-center w-full absolute top-0 z-10" style={{ height: '65px' }}>
+          <div className="flex items-center gap-1 h-full">
+            <NavLink href="/">Dashboard</NavLink>
+            <NavLink href="/game-servers">Game Servers</NavLink>
+            <NavLink href="/services">Services</NavLink>
+            <NavLink href="/plex">Plex</NavLink>
           </div>
+        </div>
 
-          {/* Right: User Actions */}
-          <div className="absolute right-5 top-0 h-full flex items-center gap-3">
+        {/* Right: User Actions */}
+        <div className="absolute right-5 top-0 z-20" style={{ height: '65px' }}>
+          <div className="h-full flex items-center gap-3">
             {/* System Alerts Bell */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
