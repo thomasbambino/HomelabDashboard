@@ -161,7 +161,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
       {/* Main Navbar Container */}
       <div className="relative flex justify-center z-10">
         <div 
-          className="relative z-10 flex w-full max-w-[1240px] items-center justify-between px-5"
+          className="relative z-10 flex w-full max-w-[1240px] items-center px-5"
           style={{
             height: '65px',
             userSelect: 'none',
@@ -169,7 +169,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
           }}
         >
           {/* Left: Logo/Wordmark */}
-          <div className="flex items-center">
+          <div className="flex items-center absolute left-0">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
               {settings?.logo_url ? (
                 <img
@@ -199,7 +199,7 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
           </div>
 
           {/* Right: User Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 absolute right-0">
             {/* System Alerts Bell */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
