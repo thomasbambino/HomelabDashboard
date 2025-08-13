@@ -192,15 +192,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
           </div>
         </div>
 
-        {/* Visual debugging - temporary center line */}
-        <div 
-          className="fixed top-0 left-1/2 w-1 bg-red-500 z-[9999] pointer-events-none" 
-          style={{ 
-            transform: 'translateX(-50%)',
-            height: '100vh',
-            opacity: 1
-          }}
-        ></div>
+        {/* TEST - Make navbar background bright green to verify updates are loading */}
+        <div className="absolute inset-0 bg-green-500 opacity-50"></div>
 
         {/* Right: User Actions */}
         <div className="absolute right-5 top-0 z-20" style={{ height: '65px' }}>
