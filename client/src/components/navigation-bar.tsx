@@ -161,10 +161,9 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
       {/* Main Navbar Container */}
       <div className="relative flex justify-center z-10">
         <div 
-          className="relative z-10 grid w-full max-w-[1240px] items-center justify-between px-5"
+          className="relative z-10 flex w-full max-w-[1240px] items-center justify-between px-5"
           style={{
             height: '65px',
-            gridTemplateColumns: 'auto 1fr auto',
             userSelect: 'none',
             WebkitFontSmoothing: 'antialiased'
           }}
@@ -189,8 +188,8 @@ export function NavigationBar({ settings, pageTitle }: NavigationBarProps) {
             </Link>
           </div>
 
-          {/* Center: Navigation Menu */}
-          <div className="hidden lg:flex items-center justify-center">
+          {/* Center: Navigation Menu - Absolutely centered */}
+          <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2">
             <div className="flex items-center gap-1">
               <NavLink href="/">Dashboard</NavLink>
               <NavLink href="/game-servers">Game Servers</NavLink>
