@@ -145,15 +145,15 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
         )}>
           {/* Game artwork background */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+            className="absolute inset-0 bg-cover bg-center opacity-15 group-hover:opacity-25 transition-opacity duration-500 dark:opacity-20 dark:group-hover:opacity-30"
             style={{
               backgroundImage: `url(${gameBanner})`,
               filter: 'blur(1px)'
             }}
           />
           
-          {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/80 to-background/60" />
+          {/* Overlay for better text readability - stronger in light mode */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/80 dark:from-background/90 dark:via-background/80 dark:to-background/60" />
 
           {/* Status indicator bar */}
           <div 
@@ -232,7 +232,7 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                   <img 
                     src={gameArtwork.logo} 
                     alt={`${server.type} logo`}
-                    className="h-6 w-auto max-w-16 object-contain"
+                    className="h-9 w-auto max-w-24 object-contain"
                     onError={(e) => {
                       // Hide logo if it fails to load
                       const target = e.target as HTMLImageElement;
