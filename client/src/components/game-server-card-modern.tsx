@@ -283,19 +283,19 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
               )}
 
               {/* Connection Info */}
-              {server.status && server.ip && (
+              {server.status && (
                 <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 text-sm">
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <code className="font-mono text-xs">
-                      {server.ip}:{server.port || "25565"}
+                      game.stylus.services:{server.port || "25565"}
                     </code>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${server.ip}:${server.port || "25565"}`);
+                      navigator.clipboard.writeText(`game.stylus.services:${server.port || "25565"}`);
                     }}
                     className="h-7 text-xs"
                   >
@@ -349,21 +349,6 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Restart</TooltipContent>
-                    </Tooltip>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setShowConsole(true)}
-                          disabled={isLoading}
-                        >
-                          <Activity className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Console</TooltipContent>
                     </Tooltip>
                   </div>
                 )}
@@ -651,13 +636,13 @@ function AdditionalServerInfo({ serverId, server }: { serverId: string; server: 
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
             <div>
               <div className="font-medium">Game Server</div>
-              <code className="text-xs">{server.ip}:{server.port || "25565"}</code>
+              <code className="text-xs">game.stylus.services:{server.port || "25565"}</code>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                navigator.clipboard.writeText(`${server.ip}:${server.port || "25565"}`);
+                navigator.clipboard.writeText(`game.stylus.services:${server.port || "25565"}`);
               }}
               className="h-7 text-xs"
             >
