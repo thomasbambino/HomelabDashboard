@@ -23,6 +23,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { getGameArtwork, getGameBanner, getGameIcon } from "@/lib/game-artwork";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,11 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
   const [showDetails, setShowDetails] = useState(false);
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  // Get game artwork
+  const gameArtwork = getGameArtwork(server.type || 'Unknown');
+  const gameBanner = getGameBanner(server.type || 'Unknown');
+  const gameIcon = getGameIcon(server.type || 'Unknown');
 
   // Server control mutations
   const startMutation = useMutation({
@@ -137,12 +143,27 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
           "border-border/50 backdrop-blur-sm",
           !server.status && "opacity-75"
         )}>
+          {/* Game artwork background */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+            style={{
+              backgroundImage: `url(${gameBanner})`,
+              filter: 'blur(1px)'
+            }}
+          />
+          
+          {/* Dark overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/80 to-background/60" />
+
           {/* Status indicator bar */}
-          <div className={cn(
-            "absolute top-0 left-0 right-0 h-1",
-            getStatusColor(),
-            server.status && "animate-pulse"
-          )} />
+          <div 
+            className={cn(
+              "absolute top-0 left-0 right-0 h-1",
+              getStatusColor(),
+              server.status && "animate-pulse"
+            )} 
+            style={{ backgroundColor: gameArtwork.color }}
+          />
 
           {/* Background gradient effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -172,8 +193,28 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Gamepad2 className="h-3 w-3 mr-1" />
+                  <Badge 
+                    variant="secondary" 
+                    className="text-xs"
+                    style={{ 
+                      backgroundColor: `${gameArtwork.color}20`,
+                      borderColor: `${gameArtwork.color}40`,
+                      color: gameArtwork.color
+                    }}
+                  >
+                    <img 
+                      src={gameIcon} 
+                      alt={server.type} 
+                      className="h-3 w-3 mr-1 rounded-sm"
+                      onError={(e) => {
+                        // Fallback to gamepad icon if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const gamepadIcon = target.nextElementSibling as HTMLElement;
+                        if (gamepadIcon) gamepadIcon.style.display = 'inline';
+                      }}
+                    />
+                    <Gamepad2 className="h-3 w-3 mr-1" style={{ display: 'none' }} />
                     {server.type || "Unknown"}
                   </Badge>
                   {server.version && (
@@ -184,18 +225,34 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                 </div>
               </div>
 
-              {/* Actions Menu */}
-              {isAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={isLoading}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+              {/* Game Logo and Actions */}
+              <div className="flex items-center gap-2">
+                {/* Game Logo */}
+                <div className="opacity-60 group-hover:opacity-80 transition-opacity">
+                  <img 
+                    src={gameArtwork.logo} 
+                    alt={`${server.type} logo`}
+                    className="h-6 w-auto max-w-16 object-contain"
+                    onError={(e) => {
+                      // Hide logo if it fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+
+                {/* Actions Menu */}
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isLoading}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {server.status ? (
@@ -242,7 +299,8 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Server Info Grid */}
