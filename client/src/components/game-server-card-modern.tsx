@@ -205,7 +205,7 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                     <img 
                       src={gameIcon} 
                       alt={server.type} 
-                      className="h-3 w-3 mr-1 rounded-sm"
+                      className="h-4 w-4 mr-1 rounded-sm"
                       onError={(e) => {
                         // Fallback to gamepad icon if image fails to load
                         const target = e.target as HTMLImageElement;
@@ -214,7 +214,7 @@ export function GameServerCardModern({ server }: GameServerCardModernProps) {
                         if (gamepadIcon) gamepadIcon.style.display = 'inline';
                       }}
                     />
-                    <Gamepad2 className="h-3 w-3 mr-1" style={{ display: 'none' }} />
+                    <Gamepad2 className="h-4 w-4 mr-1" style={{ display: 'none' }} />
                     {server.type || "Unknown"}
                   </Badge>
                   {server.version && (
